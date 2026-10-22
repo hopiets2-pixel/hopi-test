@@ -864,6 +864,7 @@ h2.section-title{font-family:'Archivo Black',sans-serif;font-size:clamp(40px,5vw
   .footer-brand{grid-column:span 2}
   .product-detail{grid-template-columns:1fr;gap:30px}
   .cart-layout,.checkout-layout{grid-template-columns:1fr;gap:24px}
+  .cart-layout>*,.checkout-layout>*{min-width:0}
   .summary{position:static}
   .cta-row{grid-template-columns:1fr}
   .account-layout{grid-template-columns:1fr}
@@ -882,6 +883,14 @@ h2.section-title{font-family:'Archivo Black',sans-serif;font-size:clamp(40px,5vw
   .product-info{padding:14px}
   .product-name{font-size:14px}
   .product-price{font-size:18px}
+}
+@media (max-width:480px){
+  .cart-item{grid-template-columns:72px minmax(0,1fr) auto;gap:12px;padding:14px}
+  .cart-item-img{width:72px;height:72px}
+  .cart-item-name{font-size:14px;overflow-wrap:anywhere}
+  .cart-item-price{font-size:17px}
+  .checkout-main input,.checkout-main select{min-width:0;max-width:100%}
+  .checkout-main,.summary{padding:20px 16px}
 }
 </style>
 </head>
@@ -2924,6 +2933,7 @@ function render(){
   };
   (views[path]||viewHome)(params);
   bindGlobal();
+  try{ if(typeof hvMaybeShowAnnouncement==='function')hvMaybeShowAnnouncement(views[path]?path:'home'); }catch(e){console.warn('Oznámení:',e)}
 }
 function bindGlobal(){
   const t=document.getElementById('menuToggle');
@@ -3032,8 +3042,8 @@ function renderFooter(){
           </div>
         </div>
         <div class="footer-bottom">
-          <p>© 2026 ${escapeHtml(s.shopName)}® — Všechna práva vyhrazena</p>
-          <p>Created by <strong style="color:var(--green-glow);letter-spacing:0.02em">David Kebrdle</strong> · <a onclick="go('admin-login')" style="opacity:0.6">Admin</a></p>
+          <p>© 2026 ${escapeHtml(s.shopName)}® — Všechna práva vyhrazena · <a onclick="go('admin-login')" style="opacity:0.6">Admin</a></p>
+          <p>Created by <strong style="color:var(--green-glow);letter-spacing:0.02em">David Kebrdle</strong></p>
         </div>
       </div>
     </footer>
@@ -3433,7 +3443,7 @@ function viewCart(){
             `:`
               <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--green-glow);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px">🎟️ Máš slevový kód?</div>
               <form onsubmit="event.preventDefault();applyPromoCode()" style="display:flex;gap:8px">
-                <input type="text" id="promoInput" placeholder="ZADEJ KÓD" style="flex:1;padding:10px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:#fff;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;font-size:13px" autocomplete="off" maxlength="20">
+                <input type="text" id="promoInput" placeholder="ZADEJ KÓD" style="flex:1;min-width:0;padding:10px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);color:#fff;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;font-size:13px" autocomplete="off" maxlength="20">
                 <button type="submit" style="padding:10px 18px;background:var(--green);color:#fff;border:none;font-family:'Archivo',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;font-size:12px;cursor:pointer">Uplatnit</button>
               </form>
             `}
@@ -3454,7 +3464,7 @@ function viewCart(){
     <main class="page">
       <div class="breadcrumb"><a onclick="go('home')">Home</a> / <span>Košík</span></div>
       <h1 class="page-title">Košík</h1>
-      <p class="page-sub">${cart.length===0?'Tvůj košík je prázdný.':cartCount()+' položek v košíku'}</p>
+      <p class="page-sub">${cart.length===0?'Tvůj košík je prázdný.':(n=>n+' '+(n===1?'položka':n>=2&&n<=4?'položky':'položek')+' v košíku')(cartCount())}</p>
       ${content}
     </main>
     ${renderFooter()}
@@ -5512,8 +5522,14 @@ function getAdminNav(){
       {view:'stats',label:'Statistiky',icon:'chart'},
       {view:'finance',label:'Finance',icon:'wallet'},
     ]},
-    {id:'katalog',label:'Produkty',icon:'shirt',view:'products'},
+    {id:'hosp',label:'Hospodaření',icon:'wallet',children:[
+      {view:'econ',label:'Přehled hospodaření',icon:'chart'},
+      {view:'investments',label:'Investice',icon:'box'},
+      {view:'opex',label:'Provozní náklady',icon:'receipt'},
+    ]},
+    {id:'katalog',label:'Produkty a sklad',icon:'shirt',view:'products'},
     {id:'marketing',label:'Nabídka a marketing',icon:'megaphone',children:[
+      {view:'announce',label:'Oznámení',icon:'megaphone'},
       {view:'monetize',label:'Slevy a upsell',icon:'tag'},
       {view:'emails',label:'E-maily',icon:'mail'},
     ]},
@@ -5686,6 +5702,118 @@ const HV_ADMIN_CSS=`
   .hv-card-num{font-size:40px;margin-top:10px}
 }
 @media (prefers-reduced-motion:reduce){.hv-shell *{transition:none!important}}
+.an-list{display:flex;flex-direction:column}
+.an-row{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(60,60,67,.1);flex-wrap:wrap}
+.an-row:last-child{border-bottom:0}
+.an-main{flex:1 1 320px;min-width:0}
+.an-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:16px}
+.an-text{color:rgba(60,60,67,.75);font-size:14px;margin-top:4px;line-height:1.45}
+.an-meta{color:rgba(60,60,67,.55);font-size:12.5px;margin-top:6px}
+.an-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hv-switch{width:51px;height:31px;border-radius:999px;border:0;background:rgba(118,118,128,.16);position:relative;cursor:pointer;transition:background .25s;flex-shrink:0}
+.hv-switch i{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15);transition:transform .25s cubic-bezier(.32,.72,0,1)}
+.hv-switch.on{background:#34C759} .hv-switch.on i{transform:translateX(20px)}
+.an-editor{width:min(560px,100%)!important}
+.an-editor .an-sub{font-size:15px;color:rgba(0,0,0,.6);margin:-4px 0 14px}
+.an-l{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(0,0,0,.55);margin:16px 0 7px}
+.an-in{width:100%;box-sizing:border-box;border-radius:16px;border:1px solid rgba(60,60,67,.18);background:rgba(255,255,255,.9);padding:13px 15px;font-size:16px;font-family:inherit;color:#000;resize:vertical}
+.an-in:focus{outline:2px solid #008A3F;outline-offset:1px}
+.an-h{font-size:13px;color:rgba(0,0,0,.55);margin-top:6px;line-height:1.45}
+.an-chips{display:flex;flex-wrap:wrap;gap:8px}
+.an-chip{cursor:pointer} .an-chip input{position:absolute;opacity:0;pointer-events:none}
+.an-chip span{display:inline-flex;align-items:center;height:38px;padding:0 14px;border-radius:999px;background:rgba(118,118,128,.14);font-size:14px;font-weight:600;color:#000;transition:background .2s}
+.an-chip input:checked+span{background:#008A3F;color:#fff}
+.an-chip input:focus-visible+span{outline:2px solid #008A3F;outline-offset:2px}
+.an-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.an-activ{display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.7);font-weight:700;cursor:pointer;position:relative}
+.an-activ input{position:absolute;opacity:0;pointer-events:none}
+.hv-switch-ui{width:51px;height:31px;border-radius:999px;background:rgba(118,118,128,.2);position:relative;transition:background .25s}
+.hv-switch-ui::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15);transition:transform .25s cubic-bezier(.32,.72,0,1)}
+.an-activ input:checked+.hv-switch-ui{background:#34C759} .an-activ input:checked+.hv-switch-ui::after{transform:translateX(20px)}
+.an-foot{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:22px}
+@media (max-width:480px){.an-2{grid-template-columns:1fr}}
+
+.hv-dash{--ovw-accent:#008A3F;--ovw-accent-tint:color-mix(in srgb,#008A3F 12%,white);--ovw-card:#fff;--ovw-line:rgba(60,60,67,.14);--ovw-soft:rgba(118,118,128,.12);--ovw-ink:#000;--ovw-muted:rgba(60,60,67,.6);--ovw-faint:rgba(60,60,67,.3);--ovw-green:#34C759;--ovw-orange:#FF9500;--ovw-red:#FF3B30;color:#000;box-sizing:border-box;max-width:100%;overflow-x:hidden}
+.hv-dash *{box-sizing:border-box}
+.hv-dash .ovw-btn{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:12px;border:1px solid rgba(60,60,67,.18);background:#fff;color:#000;font-weight:600;font-size:14px;line-height:1;font-family:inherit;cursor:pointer;white-space:nowrap;transition:transform .2s cubic-bezier(.32,.72,0,1)}
+.hv-dash .ovw-btn:active{transform:scale(.97)} .hv-dash .ovw-btn.primary{background:#008A3F;border-color:#008A3F;color:#fff}
+.hv-dash .ovw-title{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hv-dash .ovw-title h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-.015em;font-family:inherit;text-transform:none}
+.hv-dash .ovw-title span{font-size:14px;font-weight:600;color:rgba(60,60,67,.6)}
+.hv-dash .ovw-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hv-dash .ovw-f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.hv-dash .ovw-f>label{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(60,60,67,.6)}
+.hv-dash input[type=date],.hv-dash input[type=text],.hv-dash input[type=number],.hv-dash input[type=month]{height:40px;border-radius:12px;border:1px solid rgba(60,60,67,.18);background:#fff;padding:0 12px;font-size:14px;font-family:inherit;color:#000;min-width:0}
+.hv-dash input:focus{outline:2px solid #008A3F;outline-offset:1px}
+.hv-dash .ovw-empty{padding:40px 20px;text-align:center} .hv-dash .ovw-empty .t{font-size:18px;font-weight:700;margin-bottom:6px} .hv-dash .ovw-empty .d{color:rgba(60,60,67,.6);font-size:15px}
+.hv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.hv-stat{background:#fff;border-radius:22px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
+.hv-stat .l{font-size:13px;font-weight:600;color:rgba(60,60,67,.6)}
+.hv-stat .v{font-size:clamp(22px,2.3vw,28px);font-weight:800;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hv-stat .s{font-size:12.5px;color:rgba(60,60,67,.6);margin-top:4px}
+.hv-stat.pos .v{color:#008A3F} .hv-stat.neg .v{color:#FF3B30}
+.hv-panel{background:#fff;border-radius:26px;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:16px;overflow:hidden}
+.hv-panelhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 22px;border-bottom:1px solid rgba(60,60,67,.14)}
+.hv-note{font-size:13px;color:rgba(60,60,67,.6);margin:4px 6px 0;line-height:1.5}
+.hv-tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hv-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.hv-table th{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(60,60,67,.6);text-align:left;padding:12px 10px;border-bottom:1px solid rgba(60,60,67,.14);white-space:nowrap}
+.hv-table td{padding:11px 10px;border-bottom:1px solid rgba(60,60,67,.1);vertical-align:middle}
+.hv-table tr:last-child td{border-bottom:0}
+.hv-table th:first-child,.hv-table td:first-child{padding-left:22px} .hv-table th:last-child,.hv-table td:last-child{padding-right:22px}
+.hv-table .r{text-align:right;white-space:nowrap}
+.ec-edit input{height:36px!important;border-radius:10px!important}
+.ec-edit input.num{width:96px;text-align:right} .ec-edit input.sm{width:70px}
+.ec-del{width:30px;height:30px;border-radius:9px;border:0;background:rgba(255,59,48,.1);color:#FF3B30;font-size:18px;cursor:pointer;line-height:1}
+.ec-cat{display:inline-flex;align-items:center;gap:4px} .ec-cat button{border:0;background:none;color:rgba(60,60,67,.35);cursor:pointer;font-size:14px;padding:0 2px}
+.ec-cat button:hover{color:#FF3B30}
+.ec-month{height:38px!important}
+.ec-total{font-size:14px;color:rgba(60,60,67,.6)} .ec-total b{color:#000;font-size:17px;margin-left:6px}
+.ec-form{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding:18px 22px}
+.ec-form .grow{flex:1 1 240px} .ec-form .ovw-btn{height:40px}
+.ec-stockrow{padding-top:0;align-items:flex-end}
+.ec-select{height:40px;border-radius:12px;border:1px solid rgba(60,60,67,.18);background:#fff;padding:0 12px;font-size:14px;font-family:inherit;max-width:100%}
+.ec-sizes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ec-size{display:flex;align-items:center;gap:6px;background:rgba(118,118,128,.1);border-radius:12px;padding:4px 4px 4px 10px;font-weight:700;font-size:13.5px}
+.ec-size input{width:64px!important;height:32px!important;border-radius:9px!important;text-align:center}
+.ec-hint{font-size:12.5px;color:rgba(60,60,67,.6);margin-top:8px}
+.ec-check{display:flex!important;align-items:center;gap:8px;font-size:13.5px!important;font-weight:500!important;letter-spacing:0!important;text-transform:none!important;color:#000!important;margin-top:10px;cursor:pointer}
+.ec-check input{width:18px;height:18px;accent-color:#008A3F}
+.ec-goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px 22px;padding:20px 22px}
+.ec-goal-top{display:flex;justify-content:space-between;gap:8px;font-size:14px;align-items:baseline}
+.ec-goal-top span{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap} .ec-goal-top em{font-style:normal;color:rgba(60,60,67,.6);font-weight:500}
+.ec-bar{height:12px;border-radius:999px;background:rgba(118,118,128,.12);margin-top:10px;overflow:hidden} .ec-bar i{display:block;height:100%;border-radius:999px}
+.ec-goal-pct{font-size:12.5px;color:rgba(60,60,67,.6);margin-top:6px}
+.ec-goal-edit{margin-top:8px;display:flex;flex-direction:column;gap:4px} .ec-goal-edit label{font-size:12px;color:rgba(60,60,67,.6)} .ec-goal-edit input{width:100%}
+.pv-list{display:flex;flex-direction:column}
+.pv-row{display:grid;grid-template-columns:64px minmax(180px,1.6fr) 100px 110px 110px minmax(220px,2fr) 20px;gap:16px;align-items:center;padding:14px 22px;border-bottom:1px solid rgba(60,60,67,.1);cursor:pointer;transition:background .15s}
+.pv-row:last-child{border-bottom:0} .pv-row:hover{background:#fafafb}
+.pv-img{width:64px;height:64px;border-radius:16px;background:#F2F2F7;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;color:#008A3F;font-size:12px}
+.pv-img img{width:100%;height:100%;object-fit:cover}
+.pv-name{font-weight:700;font-size:15.5px;line-height:1.3}
+.pv-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pv-tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;background:rgba(118,118,128,.12);font-size:12px;font-weight:600;color:rgba(60,60,67,.8);white-space:nowrap}
+.pv-tag.badge{background:color-mix(in srgb,#008A3F 12%,white);color:#006B30;text-transform:uppercase;letter-spacing:.03em}
+.pv-num .l,.pv-stock .l{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(60,60,67,.55)}
+.pv-num .v{font-weight:700;font-size:15px;margin-top:3px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pv-num .s{font-size:12px;color:rgba(60,60,67,.6);margin-top:1px}
+.pv-stock .l{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:500} .pv-stock .l b{color:#000}
+.pv-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pv-chip{display:inline-flex;align-items:center;gap:4px;height:30px;border-radius:999px;padding:0 3px;background:color-mix(in srgb,var(--c) 12%,white);color:color-mix(in srgb,var(--c) 75%,black);font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.pv-chip b{font-weight:800;color:#000;margin-left:2px} .pv-chip span{margin-right:2px}
+.pv-chip button{width:24px;height:24px;border-radius:50%;border:0;background:#fff;color:#000;font-size:15px;line-height:1;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.pv-chip button:active{transform:scale(.9)}
+.pv-go{color:rgba(60,60,67,.3)}
+@media (max-width:1180px){.pv-row{grid-template-columns:56px minmax(0,1fr) 92px 100px 100px;grid-template-areas:"img main n1 n2 n3" "img stock stock stock stock"} .pv-img{grid-area:img;width:56px;height:56px;align-self:start} .pv-main{grid-area:main} .pv-n1,.n1{grid-area:n1} .n2{grid-area:n2} .n3{grid-area:n3} .pv-stock{grid-area:stock} .pv-go{display:none}}
+@media (max-width:760px){
+  .pv-row{grid-template-columns:56px repeat(3,minmax(0,1fr));grid-template-areas:"img main main main" "img n1 n2 n3" "stock stock stock stock";gap:10px 12px;padding:14px 16px}
+  .hv-panelhead{padding:16px} .ec-form{padding:16px} .ec-form .ovw-f{flex:1 1 140px} .ec-form .ovw-btn{flex:1 1 100%;justify-content:center} .ec-form .grow{flex:1 1 100%} .ec-select{width:100%}
+  .hv-stats{grid-template-columns:1fr 1fr;gap:10px} .hv-stat{padding:14px} .hv-stat .v{font-size:21px}
+  .hv-table th:first-child,.hv-table td:first-child{padding-left:16px}
+  .ec-goals{padding:16px}
+}
+
+
 `;
 function hvEnsureCss(){
   if(document.getElementById('hvAdminCss'))return;
@@ -5730,6 +5858,706 @@ function viewAdminOverview(){
 }
 
 
+HV_I.download='<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/>';
+// ============== PRODUKTY A SKLAD + HOSPODAŘENÍ ==============
+function hvKc(n,dec){const v=Number(n)||0;const d=dec??0;return v.toLocaleString('cs-CZ',{minimumFractionDigits:d,maximumFractionDigits:d})+'\u00a0Kč'}
+function hvPct(x,dec){return (Number(x)||0).toLocaleString('cs-CZ',{maximumFractionDigits:dec??1})+'\u00a0%'}
+function hvPageHead(title,sub,actions){
+  return `<div class="ovw-page"><div><h1>${title}</h1><div class="ovw-pagesub">${sub||'HOPI VIRTUAL e-shop'}</div></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${actions||''}<span class="ovw-live ${HOPI_IS_STAGE?'stage':''}"><i></i>${HOPI_IS_STAGE?'Testovací prostředí':'Živě'}</span></div></div>`;
+}
+function hvUnitCost(p){return (Number(p.productCost)||0)+(Number(p.packagingCost)||0)}
+function hvStockEntries(p){
+  // [{size,count}] — pro produkty s velikostmi každá velikost zvlášť
+  if(p.stock===undefined)return null;
+  let s=p.stock;
+  if(typeof s==='string'){try{s=JSON.parse(s)}catch(e){s=Number(s)||0}}
+  if(s!==null&&typeof s==='object'){
+    const sizes=(p.sizes||'').split('/').map(x=>x.trim()).filter(Boolean);
+    const keys=sizes.length?sizes.filter(k=>k in s).concat(Object.keys(s).filter(k=>!sizes.includes(k))):Object.keys(s);
+    return keys.map(k=>({size:k,count:Math.max(0,Number(s[k])||0)}));
+  }
+  return [{size:'',count:Math.max(0,Number(s)||0)}];
+}
+function getStockValue(){
+  let cost=0,sale=0,pcs=0,out=0,low=0;
+  getProducts().forEach(p=>{
+    const e=hvStockEntries(p); if(!e)return;
+    e.forEach(x=>{pcs+=x.count;cost+=x.count*hvUnitCost(p);sale+=x.count*(Number(p.price)||0);if(x.count===0)out++;else if(x.count<=2)low++;});
+  });
+  return {cost,sale,pcs,out,low};
+}
+
+// ---------- Produkty a sklad ----------
+function viewProductsAdmin(){
+  const products=getProducts();
+  const sv=getStockValue();
+  const chip=(p,x)=>{
+    const c=x.count===0?'#FF3B30':x.count<=2?'#FF9500':'#34C759';
+    return `<span class="pv-chip" style="--c:${c}">
+      <button onclick="event.stopPropagation();adjustStock(${p.id},-1${x.size?`,'${escapeHtml(x.size).replace(/'/g,"\\'")}'`:''})" aria-label="Ubrat">−</button>
+      ${x.size?`<b>${escapeHtml(x.size)}</b>`:''}<span>${x.count}${x.size?'':'\u00a0ks'}</span>
+      <button onclick="event.stopPropagation();adjustStock(${p.id},1${x.size?`,'${escapeHtml(x.size).replace(/'/g,"\\'")}'`:''})" aria-label="Přidat">+</button>
+    </span>`;
+  };
+  const rows=products.map(p=>{
+    const unit=hvUnitCost(p);
+    const hasCost=p.productCost!=null||p.packagingCost!=null;
+    const margin=(Number(p.price)||0)-unit;
+    const pct=p.price>0?margin/p.price*100:0;
+    const st=hvStockEntries(p);
+    const pcs=st?st.reduce((a,x)=>a+x.count,0):null;
+    const img=(p.images&&p.images.length)?p.images[0]:(p.photo||'');
+    const cat=p.categoryLabel||(typeof CATEGORY_LABELS!=='undefined'&&CATEGORY_LABELS[p.category])||p.category||'';
+    return {p,unit,hasCost,margin,pct,st,pcs,img,cat};
+  });
+  return `
+  <div class="hv-dash">
+    ${hvPageHead('Produkty a sklad','Katalog, náklady a stav skladu')}
+    <div class="hv-stats">
+      <div class="hv-stat"><div class="l">Hodnota skladu</div><div class="v">${hvKc(sv.cost)}</div><div class="s">v nákupních cenách</div></div>
+      <div class="hv-stat"><div class="l">Prodejní hodnota</div><div class="v">${hvKc(sv.sale)}</div><div class="s">když se vše prodá</div></div>
+      <div class="hv-stat"><div class="l">Kusů skladem</div><div class="v">${sv.pcs}</div><div class="s">${sv.out?`${sv.out} vyprodaných variant`:'nic není vyprodané'}</div></div>
+    </div>
+    <div class="hv-panel">
+      <div class="hv-panelhead">
+        <div class="ovw-title"><h2>Všechny produkty</h2><span>${products.length}</span></div>
+        <div class="ovw-actions">
+          <button class="ovw-btn" onclick="go('home')">${hvIcon('external',16)} Otevřít web</button>
+          <button class="ovw-btn primary" onclick="openProductModal()">+ Přidat produkt</button>
+        </div>
+      </div>
+      ${products.length===0?`<div class="ovw-empty"><div class="t">Zatím žádné produkty</div><div class="d">Klikni na „Přidat produkt“.</div></div>`:`
+      <div class="pv-list">
+        ${rows.map(r=>`
+        <div class="pv-row" onclick="openProductModal(${r.p.id})">
+          <div class="pv-img">${r.img?`<img src="${escapeHtml(r.img)}" alt="" loading="lazy">`:'<span>HOPI</span>'}</div>
+          <div class="pv-main">
+            <div class="pv-name">${escapeHtml(r.p.name)}</div>
+            <div class="pv-tags">${r.cat?`<span class="pv-tag">${escapeHtml(r.cat)}</span>`:''}${r.p.badge?`<span class="pv-tag badge">${escapeHtml(r.p.badge)}</span>`:''}</div>
+          </div>
+          <div class="pv-num n1"><div class="l">Cena</div><div class="v">${hvKc(r.p.price)}</div></div>
+          <div class="pv-num n2"><div class="l">Náklady</div><div class="v">${r.hasCost?hvKc(r.unit):'<span style="color:#FF9500">nezadáno</span>'}</div>${r.hasCost&&Number(r.p.packagingCost)?`<div class="s">obal ${hvKc(r.p.packagingCost)}</div>`:''}</div>
+          <div class="pv-num n3"><div class="l">Marže</div><div class="v" style="color:${r.margin>=0?'#008A3F':'#FF3B30'}">${r.hasCost?hvKc(r.margin):'—'}</div>${r.hasCost?`<div class="s">${hvPct(r.pct)}</div>`:''}</div>
+          <div class="pv-stock">
+            <div class="l">Skladem ${r.pcs!=null?`<b>${r.pcs}\u00a0ks</b>`:''}${r.pcs!=null&&r.hasCost?` · ${hvKc(r.pcs*r.unit)}`:''}</div>
+            <div class="pv-chips">${r.st?r.st.map(x=>chip(r.p,x)).join(''):'<span class="pv-tag">neomezeno</span>'}</div>
+          </div>
+          <div class="pv-go">${hvIcon('chevron',18,'style="transform:rotate(-90deg)"')}</div>
+        </div>`).join('')}
+      </div>`}
+    </div>
+  </div>`;
+}
+
+// ---------- Hospodaření: data ----------
+const HV_OPEX_DEFAULT_CATS=['Doména','iDoklad','Netlify','GoPay','Zásilkovna','3D tisk','Sklo','EmailJS'];
+const HV_MONTHS=['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+function hvMonthLabel(key){const [y,m]=key.split('-');const n=HV_MONTHS[Number(m)-1]||m;return n.charAt(0).toUpperCase()+n.slice(1)+' '+y}
+function hvMonthKey(d){d=new Date(d);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function getInvestments(){const v=getAppSetting('hopi_investments',[]);return Array.isArray(v)?v:[]}
+function getOpex(){const v=getAppSetting('hopi_opex',null)||{};return {categories:Array.isArray(v.categories)&&v.categories.length?v.categories:HV_OPEX_DEFAULT_CATS.slice(),months:v.months||{}}}
+function getKpiTargets(){return Object.assign({obrat:5000,zisk:1000,objednavky:25,roi:10,prumer:450},getAppSetting('hopi_kpi_targets',{})||{})}
+async function hvSave(key,val,msg){
+  const ok=await saveAppSetting(key,val);
+  if(ok===false)showToast('❌ Uložení se nepovedlo – jsi přihlášený?','error');
+  else if(msg)showToast(msg);
+  return ok;
+}
+let _hvSaveTimers={};
+function hvSaveLater(key,val){clearTimeout(_hvSaveTimers[key]);_hvSaveTimers[key]=setTimeout(()=>hvSave(key,val),500)}
+
+function hvEconCompute(){
+  const products=getProducts();
+  const orders=getOrders().filter(o=>o.status!=='cancelled');
+  const months={}; const prods={};
+  let obrat=0,goodsNet=0,costs=0,profit=0,kusy=0,ship=0;
+  orders.forEach(o=>{
+    const b=calcOrderBreakdown(o,null,products);
+    const k=hvMonthKey(o.date);
+    const m=months[k]||(months[k]={obrat:0,goodsNet:0,costs:0,profit:0,ship:0,orders:0,kusy:0});
+    const q=(o.items||[]).reduce((a,i)=>a+(i.qty||0),0);
+    const sh=b.shipping+b.codFee+b.tip;
+    m.obrat+=b.total;m.goodsNet+=b.goodsNet;m.costs+=b.costs;m.profit+=b.profit;m.ship+=sh;m.orders++;m.kusy+=q;ship+=sh;
+    obrat+=b.total;goodsNet+=b.goodsNet;costs+=b.costs;profit+=b.profit;kusy+=q;
+    // prodejnost produktů (sleva rozpočítaná poměrem ceny)
+    const ratio=b.goods>0?b.goodsNet/b.goods:1;
+    (o.items||[]).forEach(i=>{
+      const p=products.find(x=>x.id===Number(i.productId));
+      const id=p?p.id:('x'+i.productId);
+      const r=prods[id]||(prods[id]={name:p?p.name:('Produkt #'+i.productId),qty:0,rev:0,cost:0});
+      const price=p?Number(p.price)||0:0;
+      r.qty+=i.qty||0;r.rev+=price*(i.qty||0)*ratio;r.cost+=(p?hvUnitCost(p):0)*(i.qty||0);
+    });
+  });
+  const opex=getOpex();
+  const opexMonth=k=>opex.categories.reduce((a,c)=>a+(Number((opex.months[k]||{})[c])||0),0);
+  const allKeys=[...new Set([...Object.keys(months),...Object.keys(opex.months)])].sort().reverse();
+  const monthRows=allKeys.map(k=>{const m=months[k]||{obrat:0,goodsNet:0,costs:0,profit:0,ship:0,orders:0,kusy:0};const op=opexMonth(k);return {key:k,...m,opex:op,net:m.profit+m.ship-op}});
+  const opexTotal=allKeys.reduce((a,k)=>a+opexMonth(k),0);
+  const inv=getInvestments().reduce((a,x)=>a+(Number(x.total)||0),0);
+  const net=profit+ship-opexTotal; // doprava/dobírka od zákazníků je příjem, její skutečná cena je v provozu
+  return {obrat,goodsNet,costs,profit,ship,kusy,orders:orders.length,avg:orders.length?obrat/orders.length:0,margin:goodsNet>0?profit/goodsNet*100:0,
+    opexTotal,net,inv,roi:inv>0?net/inv*100:0,stock:getStockValue(),monthRows,
+    prodRows:Object.values(prods).map(r=>({...r,profit:r.rev-r.cost,margin:r.rev>0?(r.rev-r.cost)/r.rev*100:0})).sort((a,b)=>b.rev-a.rev)};
+}
+
+// ---------- Hospodaření: Přehled ----------
+let hvEditKpi=false;
+window.hvToggleKpi=function(){hvEditKpi=!hvEditKpi;viewAdmin()};
+window.hvSaveKpi=async function(){
+  const v=id=>{const x=parseFloat(String(document.getElementById(id)?.value||'0').replace(',','.'));return isNaN(x)?0:x};
+  await hvSave('hopi_kpi_targets',{obrat:v('kObrat'),zisk:v('kZisk'),objednavky:v('kObj'),roi:v('kRoi'),prumer:v('kPrum')},'✅ Cíle uloženy');
+  hvEditKpi=false;viewAdmin();
+};
+function viewEconomy(){
+  const E=hvEconCompute(); const T=getKpiTargets();
+  const stat=(l,v,s,cls)=>`<div class="hv-stat ${cls||''}"><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+  const goal=(label,cur,target,fmt,id,unit)=>{
+    const pct=target>0?Math.max(0,Math.min(1,cur/target)):0;
+    return `<div class="ec-goal">
+      <div class="ec-goal-top"><b>${label}</b><span>${fmt(cur)} ${hvEditKpi?'':`<em>z ${fmt(target)}</em>`}</span></div>
+      ${hvEditKpi?`<div class="ec-goal-edit"><label for="${id}">Cíl${unit?` (${unit})`:''}</label><input id="${id}" type="number" step="any" inputmode="decimal" value="${target}"></div>`:
+      `<div class="ec-bar"><i style="width:${(pct*100).toFixed(1)}%;background:${pct>=1?'#34C759':'#008A3F'}"></i></div><div class="ec-goal-pct">${Math.round(pct*100)}\u00a0% splněno</div>`}
+    </div>`;
+  };
+  return `
+  <div class="hv-dash">
+    ${hvPageHead('Hospodaření','Výsledky e-shopu – počítá se z objednávek, produktů a tvých zápisů',
+      `<button class="ovw-btn" onclick="document.getElementById('hvImportFile').click()">Nahrát z Excelu</button>
+       <input type="file" id="hvImportFile" accept=".xlsx,.xls" style="display:none" onchange="hvImportDashboard(this.files[0]);this.value=''">
+       <button class="ovw-btn primary" onclick="hvExportDashboard()">${hvIcon('download',16)} Export XLSX</button>`)}
+    <div class="hv-stats">
+      ${stat('Celkový obrat',hvKc(E.obrat),`${E.orders} objednávek`)}
+      ${stat('Hrubý zisk ze zboží',hvKc(E.profit),`marže ${hvPct(E.margin)}`,E.profit>=0?'pos':'neg')}
+      ${stat('Provozní náklady',hvKc(E.opexTotal),'služby, poplatky, doprava')}
+      ${stat('Čistý zisk',hvKc(E.net),`+ doprava ${hvKc(E.ship)} − provoz`,E.net>=0?'pos':'neg')}
+      ${stat('Investice',hvKc(E.inv),`ROI ${hvPct(E.roi)}`)}
+      ${stat('Hodnota skladu',hvKc(E.stock.cost),`${E.stock.pcs} ks skladem`)}
+      ${stat('Průměrná objednávka',hvKc(E.avg),`${E.kusy} prodaných kusů`)}
+    </div>
+
+    <div class="hv-panel">
+      <div class="hv-panelhead">
+        <div class="ovw-title"><h2>Cíle</h2><span>celkem od začátku</span></div>
+        <div class="ovw-actions">${hvEditKpi?`<button class="ovw-btn" onclick="hvToggleKpi()">Zrušit</button><button class="ovw-btn primary" onclick="hvSaveKpi()">Uložit cíle</button>`:`<button class="ovw-btn" onclick="hvToggleKpi()">Upravit cíle</button>`}</div>
+      </div>
+      <div class="ec-goals">
+        ${goal('Obrat',E.obrat,T.obrat,v=>hvKc(v),'kObrat','Kč')}
+        ${goal('Čistý zisk',E.net,T.zisk,v=>hvKc(v),'kZisk','Kč')}
+        ${goal('Objednávky',E.orders,T.objednavky,v=>String(Math.round(v)),'kObj','')}
+        ${goal('ROI',E.roi,T.roi,v=>hvPct(v),'kRoi','%')}
+        ${goal('Průměrná objednávka',E.avg,T.prumer,v=>hvKc(v),'kPrum','Kč')}
+      </div>
+    </div>
+
+    <div class="hv-panel">
+      <div class="hv-panelhead"><div class="ovw-title"><h2>Po měsících</h2><span>${E.monthRows.length}</span></div></div>
+      ${E.monthRows.length?`<div class="hv-tablewrap"><table class="hv-table">
+        <thead><tr><th>Měsíc</th><th class="r">Obrat</th><th class="r">Náklady zboží</th><th class="r">Hrubý zisk</th><th class="r">Doprava</th><th class="r">Provoz</th><th class="r">Čistý zisk</th><th class="r">Marže</th><th class="r">Obj.</th><th class="r">Kusy</th><th class="r">Průměr</th></tr></thead>
+        <tbody>${E.monthRows.map(m=>`<tr>
+          <td><b>${hvMonthLabel(m.key)}</b></td><td class="r">${hvKc(m.obrat)}</td><td class="r">${hvKc(m.costs)}</td>
+          <td class="r">${hvKc(m.profit)}</td><td class="r">${m.ship?'+'+hvKc(m.ship):'—'}</td><td class="r">${m.opex?'−'+hvKc(m.opex):'—'}</td>
+          <td class="r"><b style="color:${m.net>=0?'#008A3F':'#FF3B30'}">${hvKc(m.net)}</b></td>
+          <td class="r">${m.goodsNet>0?hvPct(m.profit/m.goodsNet*100):'—'}</td><td class="r">${m.orders}</td><td class="r">${m.kusy}</td><td class="r">${m.orders?hvKc(m.obrat/m.orders):'—'}</td></tr>`).join('')}</tbody>
+      </table></div>`:`<div class="ovw-empty"><div class="d">Zatím žádná data.</div></div>`}
+    </div>
+
+    <div class="hv-panel">
+      <div class="hv-panelhead"><div class="ovw-title"><h2>Prodejnost produktů</h2><span>${E.prodRows.length}</span></div></div>
+      ${E.prodRows.length?`<div class="hv-tablewrap"><table class="hv-table">
+        <thead><tr><th>Produkt</th><th class="r">Prodáno</th><th class="r">Tržba</th><th class="r">Náklady</th><th class="r">Zisk</th><th class="r">Marže</th></tr></thead>
+        <tbody>${E.prodRows.map(r=>`<tr><td><b>${escapeHtml(r.name)}</b></td><td class="r">${r.qty}\u00a0ks</td><td class="r">${hvKc(r.rev)}</td><td class="r">${hvKc(r.cost)}</td>
+          <td class="r"><b style="color:${r.profit>=0?'#008A3F':'#FF3B30'}">${hvKc(r.profit)}</b></td><td class="r">${hvPct(r.margin)}</td></tr>`).join('')}</tbody>
+      </table></div>`:`<div class="ovw-empty"><div class="d">Zatím nic neprodáno.</div></div>`}
+    </div>
+    <p class="hv-note">Hrubý zisk = cena zboží po slevě − nákupní cena a obal z Produktů. Čistý zisk = hrubý zisk + co zákazníci zaplatili za dopravu a dobírku − provozní náklady (tam patří i Zásilkovna a GoPay). ROI = čistý zisk / investice. Zrušené objednávky se nepočítají.</p>
+  </div>`;
+}
+
+// ---------- Hospodaření: Investice ----------
+window.hvInvEdit=function(id,field,val){
+  const list=getInvestments().map(x=>x.id===id?{...x,[field]:field==='name'||field==='date'?val:(parseFloat(String(val).replace(',','.'))||0)}:x);
+  _appSettingsCache['hopi_investments']=list; hvSaveLater('hopi_investments',list);
+  const r=list.find(x=>x.id===id); const el=document.getElementById('unit_'+id);
+  if(el&&r)el.textContent=r.qty?hvKc(r.total/r.qty,2):'—';
+  const t=document.getElementById('invSum'); if(t)t.textContent=hvKc(list.reduce((a,x)=>a+(Number(x.total)||0),0),2);
+};
+// ---- propojení investice ↔ sklad ----
+function hvParseStock(p){let st=p.stock;if(typeof st==='string'){try{st=JSON.parse(st)}catch(e){st=Number(st)||0}}return st}
+function hvStockSizes(p){
+  const st=hvParseStock(p);
+  if(st!==null&&typeof st==='object'){const sz=(p.sizes||'').split('/').map(x=>x.trim()).filter(Boolean);return sz.length?sz.concat(Object.keys(st).filter(k=>!sz.includes(k))):Object.keys(st)}
+  return null;
+}
+function hvApplyStock(productId,add,sign){
+  const products=getProducts(); const p=products.find(x=>x.id===Number(productId)); if(!p)return false;
+  if(p.stock===undefined)return false; // neomezený sklad – nesahat
+  let st=hvParseStock(p);
+  if(st!==null&&typeof st==='object'){st={...st};Object.keys(add).forEach(k=>{if(k==='')return;st[k]=Math.max(0,(Number(st[k])||0)+sign*(Number(add[k])||0))})}
+  else{const q=Object.values(add).reduce((a,v)=>a+(Number(v)||0),0);st=Math.max(0,(Number(st)||0)+sign*q)}
+  p.stock=st; setProductsLS(products); if(typeof syncStockToSheets==='function')syncStockToSheets().catch(()=>{});
+  return true;
+}
+function hvStockAddLabel(x){
+  if(!x.stockAdd)return '';
+  const parts=Object.entries(x.stockAdd).filter(([,v])=>Number(v)>0).map(([k,v])=>k?`${k} ${v}`:`${v} ks`);
+  return parts.join(', ');
+}
+window.hvInvProductChange=function(id){
+  const box=document.getElementById('invStockBox'); if(!box)return;
+  const p=getProducts().find(x=>x.id===Number(id));
+  const nameEl=document.getElementById('invName'); if(p&&nameEl&&!nameEl.value.trim())nameEl.value=p.name;
+  if(!p){box.innerHTML='';return}
+  if(p.stock===undefined){box.innerHTML='<div class="ec-hint">Tenhle produkt má neomezený sklad – kusy se nepřičtou.</div>';return}
+  const sizes=hvStockSizes(p);
+  if(sizes){
+    box.innerHTML=`<div class="ec-sizes">${sizes.map(s=>`<label class="ec-size"><span>${escapeHtml(s)}</span><input type="number" min="0" step="1" inputmode="numeric" data-size="${escapeHtml(s)}" placeholder="0" oninput="hvInvSumSizes()"></label>`).join('')}</div>
+      <div class="ec-hint">Napiš, kolik kusů jaké velikosti přišlo. Počet kusů nahoře se sečte sám.</div>`;
+  }else{
+    box.innerHTML='<div class="ec-hint">Do skladu se přičte „Počet kusů“ z řádku nahoře.</div>';
+  }
+};
+window.hvInvSumSizes=function(){
+  const sum=[...document.querySelectorAll('#invStockBox input[data-size]')].reduce((a,i)=>a+(parseInt(i.value)||0),0);
+  const q=document.getElementById('invQty'); if(q)q.value=sum||'';
+};
+window.hvInvAdd=async function(){
+  const g=id=>document.getElementById(id)?.value||'';
+  const name=g('invName').trim(); const total=parseFloat(g('invTotal').replace(',','.'))||0; const qty=parseFloat(g('invQty').replace(',','.'))||0;
+  if(!name||!total){showToast('Vyplň položku a cenu','error');return}
+  const pid=g('invProduct'); const p=pid?getProducts().find(x=>x.id===Number(pid)):null;
+  let stockAdd=null;
+  if(p&&p.stock!==undefined){
+    const inputs=[...document.querySelectorAll('#invStockBox input[data-size]')];
+    if(inputs.length){stockAdd={};inputs.forEach(i=>{const v=parseInt(i.value)||0;if(v>0)stockAdd[i.dataset.size]=v})}
+    else if(qty>0)stockAdd={'':qty};
+    if(!stockAdd||!Object.keys(stockAdd).length){showToast('Zadej, kolik kusů naskladnit','error');return}
+  }
+  const updCost=!!document.getElementById('invUpdCost')?.checked&&p&&qty>0;
+  const item={id:'i'+Date.now(),date:g('invDate')||ovwToInput(new Date()),name,total,qty};
+  if(p){item.productId=p.id;item.productName=p.name;if(stockAdd)item.stockAdd=stockAdd}
+  const ok=await hvSave('hopi_investments',getInvestments().concat([item]));
+  if(ok===false)return; // bez uložení investice na sklad nesaháme
+  let msg='✅ Investice přidána';
+  if(p&&stockAdd&&hvApplyStock(p.id,stockAdd,+1))msg+=` · naskladněno ${hvStockAddLabel(item)}`;
+  if(updCost){
+    const products=getProducts(); const pp=products.find(x=>x.id===p.id);
+    if(pp){pp.productCost=Math.round(total/qty*100)/100;setProductsLS(products);msg+=` · nákupní cena ${hvKc(pp.productCost,2)}`}
+  }
+  showToast(msg);viewAdmin();
+};
+window.hvInvDel=async function(id){
+  const x=getInvestments().find(i=>i.id===id); if(!x)return;
+  if(!confirm('Smazat investici „'+x.name+'“?'))return;
+  const revert=x.stockAdd&&x.productId&&confirm(`Odebrat i naskladněné kusy ze skladu?\n${x.productName||''}: ${hvStockAddLabel(x)}\n\n(Zruš, pokud se už část prodala a sklad chceš nechat, jak je.)`);
+  const ok=await hvSave('hopi_investments',getInvestments().filter(i=>i.id!==id));
+  if(ok===false)return;
+  if(revert)hvApplyStock(x.productId,x.stockAdd,-1);
+  showToast(revert?'Smazáno a kusy odebrány ze skladu':'Smazáno');viewAdmin();
+};
+function viewInvestments(){
+  const list=getInvestments().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const sum=list.reduce((a,x)=>a+(Number(x.total)||0),0);
+  return `
+  <div class="hv-dash">
+    ${hvPageHead('Investice','Nákupy zboží, materiálu a vybavení')}
+    <div class="hv-panel">
+      <div class="hv-panelhead"><div class="ovw-title"><h2>Nová investice</h2></div></div>
+      <div class="ec-form">
+        <div class="ovw-f"><label for="invDate">Datum</label><input id="invDate" type="date" value="${ovwToInput(new Date())}"></div>
+        <div class="ovw-f grow"><label for="invName">Položka</label><input id="invName" type="text" placeholder="např. Trika bílá – doskladnění"></div>
+        <div class="ovw-f"><label for="invTotal">Cena celkem (Kč)</label><input id="invTotal" type="number" step="0.01" inputmode="decimal" placeholder="např. 2856"></div>
+        <div class="ovw-f"><label for="invQty">Počet kusů</label><input id="invQty" type="number" step="1" inputmode="numeric" placeholder="např. 12"></div>
+      </div>
+      <div class="ec-form ec-stockrow">
+        <div class="ovw-f grow"><label for="invProduct">Naskladnit do produktu (nepovinné)</label>
+          <select id="invProduct" class="ec-select" onchange="hvInvProductChange(this.value)"><option value="">— nenaskladňovat (obálky, kartičky, služby…) —</option>${getProducts().map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}</select>
+          <div id="invStockBox"></div>
+          <label class="ec-check"><input type="checkbox" id="invUpdCost"> Nastavit u produktu nákupní cenu podle ceny za kus</label>
+        </div>
+        <button class="ovw-btn primary" onclick="hvInvAdd()">Přidat investici</button>
+      </div>
+    </div>
+    <div class="hv-panel">
+      <div class="hv-panelhead"><div class="ovw-title"><h2>Všechny investice</h2><span>${list.length}</span></div><div class="ec-total">Celkem <b id="invSum">${hvKc(sum,2)}</b></div></div>
+      ${list.length?`<div class="hv-tablewrap"><table class="hv-table ec-edit">
+        <thead><tr><th>Datum</th><th>Položka</th><th class="r">Cena celkem</th><th class="r">Kusů</th><th class="r">Cena za kus</th><th>Naskladněno</th><th></th></tr></thead>
+        <tbody>${list.map(x=>`<tr>
+          <td><input type="date" value="${escapeHtml(x.date||'')}" onchange="hvInvEdit('${x.id}','date',this.value)"></td>
+          <td><input type="text" value="${escapeHtml(x.name||'')}" onchange="hvInvEdit('${x.id}','name',this.value)" style="min-width:220px"></td>
+          <td class="r"><input type="number" step="0.01" value="${Number(x.total)||0}" oninput="hvInvEdit('${x.id}','total',this.value)" class="num"></td>
+          <td class="r"><input type="number" step="1" value="${Number(x.qty)||0}" oninput="hvInvEdit('${x.id}','qty',this.value)" class="num sm"></td>
+          <td class="r" id="unit_${x.id}">${x.qty?hvKc(x.total/x.qty,2):'—'}</td>
+          <td>${x.stockAdd?`<span class="pv-tag badge" style="text-transform:none;letter-spacing:0" title="${escapeHtml(x.productName||'')}">${escapeHtml(hvStockAddLabel(x))}</span>`:'<span style="color:rgba(60,60,67,.4)">—</span>'}</td>
+          <td class="r"><button class="ec-del" title="Smazat" onclick="hvInvDel('${x.id}')">×</button></td></tr>`).join('')}</tbody>
+      </table></div>`:`<div class="ovw-empty"><div class="t">Zatím žádné investice</div><div class="d">Přidej první nákup nahoře, nebo nahraj svůj dashboard přes Hospodaření → „Nahrát z Excelu“.</div></div>`}
+    </div>
+    <p class="hv-note">Změny v tabulce se ukládají samy. Když u investice vybereš produkt, kusy se rovnou přičtou do skladu. Při smazání se zeptám, jestli je zase odebrat.</p>
+  </div>`;
+}
+
+// ---------- Hospodaření: Provozní náklady ----------
+window.hvOpexSet=function(month,cat,val){
+  const o=getOpex(); const m={...(o.months[month]||{})}; m[cat]=parseFloat(String(val).replace(',','.'))||0;
+  o.months={...o.months,[month]:m}; _appSettingsCache['hopi_opex']=o; hvSaveLater('hopi_opex',o);
+  const tot=o.categories.reduce((a,c)=>a+(Number(m[c])||0),0); const el=document.getElementById('opsum_'+month); if(el)el.textContent=hvKc(tot,2);
+};
+window.hvOpexAddMonth=async function(){
+  const v=document.getElementById('opNewMonth')?.value; if(!v){showToast('Vyber měsíc','error');return}
+  const o=getOpex(); if(o.months[v]){showToast('Tenhle měsíc už v tabulce je','error');return}
+  // předvyplnit pravidelné platby z posledního měsíce (doména, iDoklad…)
+  const last=Object.keys(o.months).sort().pop(); const prev=last?o.months[last]:{};
+  const fill={}; o.categories.forEach(c=>{fill[c]=['Doména','iDoklad','Netlify','EmailJS'].includes(c)?(Number(prev[c])||0):0});
+  o.months={...o.months,[v]:fill}; await hvSave('hopi_opex',o,'✅ Měsíc přidán'); viewAdmin();
+};
+window.hvOpexDelMonth=async function(month){
+  if(!confirm('Smazat měsíc '+hvMonthLabel(month)+'?'))return;
+  const o=getOpex(); const m={...o.months}; delete m[month]; o.months=m; await hvSave('hopi_opex',o,'Smazáno'); viewAdmin();
+};
+window.hvOpexAddCat=async function(){
+  const n=(prompt('Název nové položky (např. Reklama)')||'').trim(); if(!n)return;
+  const o=getOpex(); if(o.categories.includes(n)){showToast('Ta už existuje','error');return}
+  o.categories=o.categories.concat([n]); await hvSave('hopi_opex',o,'✅ Přidáno'); viewAdmin();
+};
+window.hvOpexDelCat=async function(cat){
+  if(!confirm('Odebrat sloupec „'+cat+'“? Hodnoty v něm se smažou.'))return;
+  const o=getOpex(); o.categories=o.categories.filter(c=>c!==cat);
+  Object.keys(o.months).forEach(k=>{const m={...o.months[k]};delete m[cat];o.months[k]=m});
+  await hvSave('hopi_opex',o,'Odebráno'); viewAdmin();
+};
+function viewOpex(){
+  const o=getOpex(); const keys=Object.keys(o.months).sort().reverse();
+  const total=keys.reduce((a,k)=>a+o.categories.reduce((b,c)=>b+(Number(o.months[k][c])||0),0),0);
+  const now=new Date(); const nextKey=hvMonthKey(now);
+  return `
+  <div class="hv-dash">
+    ${hvPageHead('Provozní náklady','Měsíční platby za služby, poplatky a dopravu')}
+    <div class="hv-panel">
+      <div class="hv-panelhead">
+        <div class="ovw-title"><h2>Po měsících</h2><span>${keys.length}</span></div>
+        <div class="ovw-actions">
+          <input id="opNewMonth" type="month" value="${nextKey}" class="ec-month">
+          <button class="ovw-btn primary" onclick="hvOpexAddMonth()">+ Přidat měsíc</button>
+          <button class="ovw-btn" onclick="hvOpexAddCat()">+ Položka</button>
+        </div>
+      </div>
+      ${keys.length?`<div class="hv-tablewrap"><table class="hv-table ec-edit">
+        <thead><tr><th>Měsíc</th>${o.categories.map(c=>`<th class="r"><span class="ec-cat">${escapeHtml(c)}<button title="Odebrat" onclick="hvOpexDelCat('${escapeHtml(c).replace(/'/g,"\\'")}')">×</button></span></th>`).join('')}<th class="r">Celkem</th><th></th></tr></thead>
+        <tbody>${keys.map(k=>{const m=o.months[k];const t=o.categories.reduce((a,c)=>a+(Number(m[c])||0),0);return `<tr>
+          <td><b style="white-space:nowrap">${hvMonthLabel(k)}</b></td>
+          ${o.categories.map(c=>`<td class="r"><input type="number" step="0.01" class="num" value="${Number(m[c])||0}" oninput="hvOpexSet('${k}','${escapeHtml(c).replace(/'/g,"\\'")}',this.value)"></td>`).join('')}
+          <td class="r"><b id="opsum_${k}">${hvKc(t,2)}</b></td>
+          <td class="r"><button class="ec-del" title="Smazat měsíc" onclick="hvOpexDelMonth('${k}')">×</button></td></tr>`}).join('')}</tbody>
+      </table></div>`:`<div class="ovw-empty"><div class="t">Zatím prázdné</div><div class="d">Přidej měsíc nahoře, nebo nahraj svůj dashboard přes Hospodaření → „Nahrát z Excelu“.</div></div>`}
+    </div>
+    <p class="hv-note">Celkem za všechny měsíce: <b>${hvKc(total,2)}</b>. Změny se ukládají samy. U nového měsíce se předvyplní pravidelné platby (doména, iDoklad…) z minulého.</p>
+  </div>`;
+}
+
+// ---------- Import z tvého dashboardu (Excel) ----------
+function hvParseMonth(v){
+  if(v instanceof Date&&!isNaN(v))return hvMonthKey(v);
+  if(typeof v==='number'){const d=new Date(Math.round((v-25569)*86400000));return hvMonthKey(d)}
+  const s=String(v||'').toLowerCase().trim(); const y=(s.match(/(20\d\d)/)||[])[1]; if(!y)return null;
+  const order=HV_MONTHS.map((n,i)=>[n,i]).sort((a,b)=>b[0].length-a[0].length);
+  const hit=order.find(([n])=>s.includes(n)); return hit?`${y}-${String(hit[1]+1).padStart(2,'0')}`:null;
+}
+window.hvImportDashboard=async function(file){
+  if(!file)return;
+  let XLSX; try{XLSX=await ovwLoadXLSX()}catch(e){showToast('❌ '+e.message,'error');return}
+  try{
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+    const rows=n=>wb.Sheets[n]?XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null}):null;
+    const inv=rows('Investice'), op=rows('Provoz'), kpi=rows('KPI');
+    const out={inv:[],opex:null,kpi:null};
+    if(inv)inv.slice(1).forEach((r,i)=>{const name=String(r[1]||'').replace(/\s+/g,' ').trim();const total=Number(r[2])||0;if(!name||!total)return;
+      const d=r[0] instanceof Date?ovwToInput(r[0]):(typeof r[0]==='number'?ovwToInput(new Date(Math.round((r[0]-25569)*86400000))):ovwToInput(new Date()));
+      out.inv.push({id:'i'+Date.now()+'_'+i,date:d,name,total,qty:Number(r[3])||0})});
+    if(op&&op.length){const head=op[0].map(x=>String(x||'').trim());const end=head.findIndex((h,i)=>i>0&&/^celkem$/i.test(h));
+      const cats=head.slice(1,end>0?end:head.length).filter(Boolean);const months={};
+      op.slice(1).forEach(r=>{const k=hvParseMonth(r[0]);if(!k)return;const m={};cats.forEach((c,ci)=>m[c]=Number(r[ci+1])||0);months[k]=m});
+      if(Object.keys(months).length)out.opex={categories:cats,months};}
+    if(kpi){const t={};kpi.slice(1).forEach(r=>{const n=String(r[0]||'').toLowerCase();const v=Number(r[1]);if(isNaN(v))return;
+      if(n.startsWith('obrat'))t.obrat=v;else if(n.startsWith('zisk'))t.zisk=v;else if(n.startsWith('objedn'))t.objednavky=v;else if(n.startsWith('roi'))t.roi=v<=1?v*100:v;else if(n.startsWith('průměr')||n.startsWith('prumer'))t.prumer=v;});
+      if(Object.keys(t).length)out.kpi=t;}
+    const msg=`Našel jsem:\n• ${out.inv.length} investic\n• ${out.opex?Object.keys(out.opex.months).length+' měsíců provozních nákladů':'žádné provozní náklady'}\n• ${out.kpi?'cíle (KPI)':'žádné cíle'}\n\nNahradit tím současná data v Hospodaření?`;
+    if(!confirm(msg))return;
+    if(out.inv.length)await hvSave('hopi_investments',out.inv);
+    if(out.opex)await hvSave('hopi_opex',out.opex);
+    if(out.kpi)await hvSave('hopi_kpi_targets',Object.assign(getKpiTargets(),out.kpi));
+    showToast('✅ Dashboard nahrán');viewAdmin();
+  }catch(e){console.error(e);showToast('❌ Soubor se nepodařilo přečíst','error')}
+};
+
+// ---------- Export celého dashboardu do Excelu (stejné listy jako tvůj soubor) ----------
+window.hvExportDashboard=async function(){
+  let XLSX; try{XLSX=await ovwLoadXLSX()}catch(e){showToast('❌ '+e.message,'error');return}
+  const E=hvEconCompute(), T=getKpiTargets(), o=getOpex(), inv=getInvestments().slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const KC='#,##0" Kč"', KC2='#,##0.00" Kč"', PC='0.0 %';
+  const B={top:{style:'thin',color:{rgb:'D9D9D9'}},bottom:{style:'thin',color:{rgb:'D9D9D9'}},left:{style:'thin',color:{rgb:'D9D9D9'}},right:{style:'thin',color:{rgb:'D9D9D9'}}};
+  const H={font:{name:'Roboto',bold:true},fill:{fgColor:{rgb:'E8F5E9'}},border:B,alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+  const C={font:{name:'Roboto'},border:B};
+  const cell=(v,fmt,extra)=>v===null||v===undefined||v===''?{v:'',t:'s',s:{...C,...(extra||{})}}:typeof v==='number'?{v,t:'n',z:fmt||'0',s:{...C,numFmt:fmt||'0',...(extra||{})}}:{v:String(v),t:'s',s:{...C,...(extra||{})}};
+  const sheet=(head,data,cols,fmts)=>{const ws={};head.forEach((h,c)=>ws[XLSX.utils.encode_cell({r:0,c})]={v:h,t:'s',s:H});
+    data.forEach((row,r)=>row.forEach((v,c)=>{ws[XLSX.utils.encode_cell({r:r+1,c})]=(v&&typeof v==='object')?Object.assign({t:'n',v:v.v,z:v.z,s:{...C,numFmt:v.z,font:{name:'Roboto',bold:!!v.b}}},v.f?{f:v.f}:{}):cell(v,fmts&&fmts[c])}));
+    ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(data.length,1),c:head.length-1}});ws['!cols']=cols.map(w=>({wch:w}));ws['!rows']=[{hpt:28}];return ws};
+  const wb=XLSX.utils.book_new();
+  // Dashboard
+  const d={}; const big={font:{name:'Roboto',bold:true,sz:16},alignment:{horizontal:'left'}}; const lab={font:{name:'Roboto',bold:true,color:{rgb:'666666'}},fill:{fgColor:{rgb:'F3F3F3'}}};
+  d.A1={v:'HOPI VIRTUAL Business Dashboard',t:'s',s:{font:{name:'Roboto',bold:true,sz:18}}};
+  d.A2={v:'Vygenerováno z adminu '+new Date().toLocaleString('cs-CZ'),t:'s',s:{font:{name:'Roboto',sz:9,color:{rgb:'888888'}}}};
+  const tiles=[['A3','Celkový obrat',E.obrat,KC],['C3','Hrubý zisk',E.profit,KC],['E3','Investice',E.inv,KC2],
+    ['A6','Objednávky',E.orders,'0'],['C6','Marže',E.margin/100,PC],['E6','Hodnota skladu',E.stock.cost,KC],
+    ['A9','ROI',E.roi/100,PC],['C9','Průměrná objednávka',E.avg,KC],['E9','Prodané kusy',E.kusy,'0'],
+    ['A12','Provozní náklady',E.opexTotal,KC2],['C12','Čistý zisk',E.net,KC2]];
+  tiles.forEach(([a,l,v,z])=>{const c=XLSX.utils.decode_cell(a);d[a]={v:l,t:'s',s:lab};d[XLSX.utils.encode_cell({r:c.r+1,c:c.c})]={v:Math.round(v*100)/100,t:'n',z,s:{...big,numFmt:z}}});
+  d['!ref']='A1:F13'; d['!cols']=[{wch:22},{wch:4},{wch:22},{wch:4},{wch:22},{wch:4}];
+  XLSX.utils.book_append_sheet(wb,d,'Dashboard');
+  XLSX.utils.book_append_sheet(wb,sheet(['Měsíc','Obrat','Náklady zboží','Hrubý zisk','Doprava od zákazníků','Provoz','Čistý zisk','Marže','Objednávky','Prodané kusy','Průměrná objednávka'],
+    E.monthRows.slice().reverse().map(m=>[hvMonthLabel(m.key),m.obrat,m.costs,m.profit,m.ship,m.opex,m.net,m.goodsNet>0?m.profit/m.goodsNet:0,m.orders,m.kusy,m.orders?m.obrat/m.orders:0]),
+    [16,13,15,13,14,12,13,9,12,13,18],[null,KC,KC,KC2,KC,KC2,KC2,PC,'0','0',KC]),'Statistiky');
+  XLSX.utils.book_append_sheet(wb,sheet(['Datum','Položka','Cena celkem','Počet kusů','Cena za kus'],
+    inv.map((x,i)=>[x.date,x.name,Number(x.total)||0,Number(x.qty)||0,{f:`IF(D${i+2}=0,0,C${i+2}/D${i+2})`,v:x.qty?x.total/x.qty:0,z:KC2}]),[12,40,14,12,13],[null,null,KC2,'0',KC2]),'Investice');
+  const opKeys=Object.keys(o.months).sort();
+  XLSX.utils.book_append_sheet(wb,sheet(['Měsíc',...o.categories,'Celkem'],
+    opKeys.map((k,i)=>[hvMonthLabel(k),...o.categories.map(c=>Number(o.months[k][c])||0),{f:`SUM(B${i+2}:${XLSX.utils.encode_col(o.categories.length)}${i+2})`,v:o.categories.reduce((a,c)=>a+(Number(o.months[k][c])||0),0),z:KC2,b:true}]),
+    [16,...o.categories.map(()=>12),13],[null,...o.categories.map(()=>KC2)]),'Provoz');
+  const sk=[];getProducts().forEach(p=>{const e=hvStockEntries(p);if(!e)return;e.forEach(x=>sk.push([p.name+(x.size?' – '+x.size:''),x.count,hvUnitCost(p),Number(p.price)||0]))});
+  XLSX.utils.book_append_sheet(wb,sheet(['Produkt','Sklad','Nákupní cena','Prodejní cena','Hodnota skladu'],
+    sk.map((r,i)=>[...r,{f:`B${i+2}*C${i+2}`,v:r[1]*r[2],z:KC}]),[48,8,13,13,15],[null,'0',KC,KC]),'Sklad');
+  XLSX.utils.book_append_sheet(wb,sheet(['Produkt','Prodáno','Obrat','Náklady','Zisk','Marže %'],
+    E.prodRows.map((r,i)=>[r.name,r.qty,Math.round(r.rev*100)/100,r.cost,{f:`C${i+2}-D${i+2}`,v:r.profit,z:KC2},{f:`IF(C${i+2}=0,0,E${i+2}/C${i+2})`,v:r.margin/100,z:PC}]),[48,9,13,13,13,10],[null,'0',KC2,KC]),'Produkty');
+  XLSX.utils.book_append_sheet(wb,sheet(['Ukazatel','Cíl','Aktuálně','Splnění'],[
+    ['Obrat',T.obrat,E.obrat,{f:'IF(B2=0,0,C2/B2)',v:T.obrat?E.obrat/T.obrat:0,z:PC}],
+    ['Čistý zisk',T.zisk,E.net,{f:'IF(B3=0,0,C3/B3)',v:T.zisk?E.net/T.zisk:0,z:PC}],
+    ['Objednávky',T.objednavky,E.orders,{f:'IF(B4=0,0,C4/B4)',v:T.objednavky?E.orders/T.objednavky:0,z:PC}],
+    ['ROI',T.roi/100,E.roi/100,{f:'IF(B5=0,0,C5/B5)',v:T.roi?E.roi/T.roi:0,z:PC}],
+    ['Průměrná objednávka',T.prumer,E.avg,{f:'IF(B6=0,0,C6/B6)',v:T.prumer?E.avg/T.prumer:0,z:PC}]].map((r,i)=>i===3?[r[0],{v:r[1],z:PC},{v:r[2],z:PC},r[3]]:r),
+    [22,12,12,10],[null,KC,KC]),'KPI');
+  XLSX.writeFile(wb,`hopi-dashboard-${ovwToInput(new Date())}.xlsx`);
+  showToast('✅ Dashboard vyexportován');
+};
+
+// ============== OZNÁMENÍ (vyskakovací okno pro zákazníky) ==============
+const HV_ANN_WHERE={all:'Celý e-shop',home:'Úvodní stránka',product:'Detail produktu',cart:'Košík a pokladna'};
+const HV_ANN_FREQ={session:'Jednou za návštěvu',once:'Jen jednou (dokud ho nezměníš)',always:'Při každém otevření e-shopu'};
+function getAnnouncements(){const v=getAppSetting('hopi_announcements',[]);return Array.isArray(v)?v:[]}
+function hvAnnState(a,now){
+  now=now||Date.now();
+  if(!a.active)return ['Vypnuto','#8E8E93'];
+  if(a.from&&new Date(a.from).getTime()>now)return ['Naplánováno','#FF9500'];
+  if(a.to&&new Date(a.to).getTime()<now)return ['Skončilo','#8E8E93'];
+  return ['Aktivní','#34C759'];
+}
+function hvAnnLinkTarget(link){
+  const l=String(link||'').trim(); if(!l)return null;
+  if(/^https?:\/\//i.test(l))return {ext:true,url:l};
+  return {ext:false,route:l.replace(/^#?\/?/,'')||'home'};
+}
+function hvAnnTextHtml(t){return escapeHtml(t||'').replace(/\n/g,'<br>')}
+
+// ---- vykreslení okna (zákazník i náhled v adminu) ----
+function hvAnnPopupHtml(a,preview){
+  const t=hvAnnLinkTarget(a.link);
+  const cta=(a.btn&&t)?`<button class="hva-cta" onclick="hvAnnCta(${preview?'true':'false'})">${escapeHtml(a.btn)}</button>`:'';
+  return `<div class="hva-overlay" onclick="if(event.target===this)hvAnnClose()">
+    <div class="hva-card" role="dialog" aria-modal="true" aria-labelledby="hvaTitle" tabindex="-1">
+      <button class="hva-x" onclick="hvAnnClose()" aria-label="Zavřít"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      ${preview?'<div class="hva-prev">Náhled</div>':''}
+      <h2 id="hvaTitle">${escapeHtml(a.title||'')}</h2>
+      <p>${hvAnnTextHtml(a.text)}</p>
+      <div class="hva-actions">${cta}<button class="hva-close" onclick="hvAnnClose()">${cta?'Zavřít':'Rozumím'}</button></div>
+    </div>
+  </div>`;
+}
+const HV_ANN_CSS=`
+.hva-overlay{position:fixed;inset:0;z-index:2147480000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.28);-webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%);animation:hvaFade .35s cubic-bezier(.32,.72,0,1)}
+.hva-card{position:relative;width:min(460px,100%);max-height:calc(100dvh - 40px);overflow:auto;border-radius:36px;padding:30px 28px 24px;color:#000;
+  background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(28px) saturate(180%);backdrop-filter:blur(28px) saturate(180%);
+  border:1px solid rgba(255,255,255,.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 24px 64px rgba(0,0,0,.28),0 2px 6px rgba(0,0,0,.08);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;animation:hvaPop .45s cubic-bezier(.32,.72,0,1)}
+.hva-card:focus{outline:none}
+.hva-card h2{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:0 44px 10px 0;font-family:inherit;text-transform:none;color:#000}
+.hva-card p{font-size:16.5px;line-height:1.5;color:rgba(0,0,0,.72);margin:0 0 22px}
+.hva-x{position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.55);color:#000;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.hva-actions{display:flex;flex-direction:column;gap:8px}
+.hva-cta,.hva-close{height:52px;border-radius:999px;border:0;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;transition:transform .2s cubic-bezier(.32,.72,0,1)}
+.hva-cta{background:#008A3F;color:#fff;box-shadow:0 6px 18px rgba(0,138,63,.35)}
+.hva-close{background:rgba(118,118,128,.16);color:#000}
+.hva-cta:active,.hva-close:active,.hva-x:active{transform:scale(.97)}
+.hva-cta:focus-visible,.hva-close:focus-visible,.hva-x:focus-visible{outline:2px solid #008A3F;outline-offset:2px}
+.hva-prev{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a5100;background:rgba(255,149,0,.18);border-radius:999px;padding:4px 10px;margin-bottom:12px}
+@keyframes hvaFade{from{opacity:0}to{opacity:1}}
+@keyframes hvaPop{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.hva-card{background:rgba(255,255,255,.96)}.hva-overlay{background:rgba(0,0,0,.55)}}
+@media (prefers-reduced-transparency:reduce){.hva-card{background:#fff;backdrop-filter:none;-webkit-backdrop-filter:none}}
+@media (prefers-reduced-motion:reduce){.hva-overlay,.hva-card{animation:none}}
+@media (max-width:480px){.hva-overlay{align-items:flex-end;padding:12px}.hva-card{border-radius:32px;padding:26px 22px 20px}.hva-card h2{font-size:25px}}
+`;
+function hvAnnEnsureCss(){if(document.getElementById('hvAnnCss'))return;const s=document.createElement('style');s.id='hvAnnCss';s.textContent=HV_ANN_CSS;document.head.appendChild(s)}
+let _hvAnnCurrent=null;
+function hvAnnOpen(a,preview){
+  hvAnnEnsureCss(); hvAnnClose(true);
+  _hvAnnCurrent={a,preview};
+  const w=document.createElement('div'); w.id='hvAnnRoot'; w.innerHTML=hvAnnPopupHtml(a,preview); document.body.appendChild(w);
+  document.addEventListener('keydown',hvAnnEsc);
+  setTimeout(()=>{w.querySelector('.hva-card')?.focus({preventScroll:true})},50);
+}
+function hvAnnEsc(e){if(e.key==='Escape')hvAnnClose()}
+window.hvAnnClose=function(silent){
+  document.getElementById('hvAnnRoot')?.remove(); document.removeEventListener('keydown',hvAnnEsc);
+  if(!silent)_hvAnnCurrent=null;
+};
+window.hvAnnCta=function(preview){
+  const a=_hvAnnCurrent&&_hvAnnCurrent.a; const t=a&&hvAnnLinkTarget(a.link); hvAnnClose();
+  if(!t)return;
+  if(preview){showToast('Tlačítko vede na: '+(t.ext?t.url:'#'+t.route));return}
+  if(t.ext)location.href=t.url; else go(t.route);
+};
+
+// ---- kdy ukázat zákazníkovi ----
+window._hvAnnShownThisLoad=window._hvAnnShownThisLoad||{};
+function hvAnnMatches(a,path){
+  if(a.where==='home')return path==='home';
+  if(a.where==='product')return path==='product';
+  if(a.where==='cart')return path==='cart'||path==='checkout';
+  return true;
+}
+function hvAnnSeenKey(a){return 'hopi_ann_'+a.id+'_'+(a.updatedAt||0)}
+function hvMaybeShowAnnouncement(path){
+  if(['admin','admin-login','success','payment-cancelled'].includes(path))return;
+  if(document.getElementById('hvAnnRoot'))return;
+  const now=Date.now();
+  const list=getAnnouncements().filter(a=>hvAnnState(a,now)[0]==='Aktivní'&&a.title&&hvAnnMatches(a,path))
+    .sort((x,y)=>(y.updatedAt||0)-(x.updatedAt||0));
+  for(const a of list){
+    const key=hvAnnSeenKey(a);
+    let seen=false;
+    try{
+      if(a.freq==='once')seen=!!localStorage.getItem(key);
+      else if(a.freq==='always')seen=!!window._hvAnnShownThisLoad[key];
+      else seen=!!sessionStorage.getItem(key);
+    }catch(e){seen=!!window._hvAnnShownThisLoad[key]}
+    if(seen)continue;
+    try{ if(a.freq==='once')localStorage.setItem(key,'1'); else if(a.freq!=='always')sessionStorage.setItem(key,'1'); }catch(e){}
+    window._hvAnnShownThisLoad[key]=1;
+    setTimeout(()=>{ if(getRoute().path===path&&!document.body.classList.contains('admin-body'))hvAnnOpen(a,false) },700);
+    return;
+  }
+}
+
+// ---- admin: seznam ----
+window.hvAnnToggle=async function(id){
+  const list=getAnnouncements().map(a=>a.id===id?{...a,active:!a.active,updatedAt:a.active?a.updatedAt:Date.now()}:a);
+  await hvSave('hopi_announcements',list,'✅ Uloženo'); viewAdmin();
+};
+window.hvAnnDel=async function(id){
+  const a=getAnnouncements().find(x=>x.id===id); if(!a||!confirm('Smazat oznámení „'+a.title+'“?'))return;
+  await hvSave('hopi_announcements',getAnnouncements().filter(x=>x.id!==id),'Smazáno'); viewAdmin();
+};
+window.hvAnnPreview=function(id){const a=getAnnouncements().find(x=>x.id===id); if(a)hvAnnOpen(a,true)};
+function viewAnnouncements(){
+  const list=getAnnouncements().slice().sort((x,y)=>(y.updatedAt||0)-(x.updatedAt||0));
+  const fmt=d=>d?new Date(d).toLocaleString('cs-CZ',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  return `
+  <div class="hv-dash">
+    ${hvPageHead('Oznámení','Vyskakovací okno pro zákazníky při otevření e-shopu')}
+    <div class="hv-panel">
+      <div class="hv-panelhead">
+        <div class="ovw-title"><h2>Všechna oznámení</h2><span>${list.length}</span></div>
+        <div class="ovw-actions"><button class="ovw-btn primary" onclick="hvAnnEdit()">+ Nové oznámení</button></div>
+      </div>
+      ${list.length?`<div class="an-list">${list.map(a=>{const [st,col]=hvAnnState(a);return `
+        <div class="an-row">
+          <div class="an-main">
+            <div class="an-top"><b>${escapeHtml(a.title)}</b><span class="ovw-pill" style="--c:${col};color:${col};background:color-mix(in srgb,${col} 13%,white);display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-weight:600;font-size:12.5px"><i style="width:6px;height:6px;border-radius:50%;background:currentColor"></i>${st}</span></div>
+            <div class="an-text">${escapeHtml((a.text||'').slice(0,140))}${(a.text||'').length>140?'…':''}</div>
+            <div class="an-meta">${HV_ANN_WHERE[a.where]||HV_ANN_WHERE.all} · ${HV_ANN_FREQ[a.freq]||HV_ANN_FREQ.session}${a.from?` · od ${fmt(a.from)}`:''}${a.to?` · do ${fmt(a.to)}`:''}${a.btn&&a.link?` · tlačítko „${escapeHtml(a.btn)}“`:''}</div>
+          </div>
+          <div class="an-act">
+            <button class="hv-switch ${a.active?'on':''}" role="switch" aria-checked="${a.active?'true':'false'}" title="${a.active?'Vypnout':'Zapnout'}" onclick="hvAnnToggle('${a.id}')"><i></i></button>
+            <button class="ovw-btn" onclick="hvAnnPreview('${a.id}')">Náhled</button>
+            <button class="ovw-btn" onclick="hvAnnEdit('${a.id}')">Upravit</button>
+            <button class="ec-del" title="Smazat" onclick="hvAnnDel('${a.id}')">×</button>
+          </div>
+        </div>`}).join('')}</div>`:`<div class="ovw-empty"><div class="t">Zatím žádné oznámení</div><div class="d">Vytvoř první – třeba „Dovolená, odesíláme od pondělí“ nebo „Nové kšiltovky skladem“.</div></div>`}
+    </div>
+    <p class="hv-note">Zákazníkovi se ukáže vždy jen jedno okno – nejnověji upravené aktivní oznámení, které sedí na stránku. Když oznámení upravíš, uvidí ho zákazníci znovu.</p>
+  </div>`;
+}
+
+// ---- admin: editor (skleněný panel) ----
+window.hvAnnEdit=function(id){
+  const a=id?getAnnouncements().find(x=>x.id===id):null;
+  const v=a||{title:'',text:'',btn:'',link:'',where:'all',freq:'session',from:'',to:'',active:true};
+  const radios=(name,map,val)=>Object.entries(map).map(([k,l])=>`<label class="an-chip"><input type="radio" name="${name}" value="${k}" ${val===k?'checked':''}><span>${l}</span></label>`).join('');
+  const toLocal=d=>{if(!d)return'';const x=new Date(d);const p=n=>String(n).padStart(2,'0');return `${x.getFullYear()}-${p(x.getMonth()+1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`};
+  hvAnnEnsureCss();
+  const w=document.createElement('div'); w.id='hvAnnEditor';
+  w.innerHTML=`<div class="hva-overlay" onclick="if(event.target===this)hvAnnEditClose()">
+    <div class="hva-card an-editor" role="dialog" aria-modal="true" aria-labelledby="anEdTitle">
+      <button class="hva-x" onclick="hvAnnEditClose()" aria-label="Zavřít"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <h2 id="anEdTitle">${a?'Upravit oznámení':'Nové oznámení'}</h2>
+      <p class="an-sub">Vyskakovací okno pro zákazníky při otevření e-shopu.</p>
+      <input type="hidden" id="anId" value="${a?a.id:''}">
+      <label class="an-l" for="anTitle">Nadpis</label>
+      <input id="anTitle" class="an-in" type="text" maxlength="80" placeholder="např. Dovolená do 3. 11." value="${escapeHtml(v.title)}" oninput="hvAnnValid()">
+      <label class="an-l" for="anText">Text</label>
+      <textarea id="anText" class="an-in" rows="4" maxlength="600" placeholder="Co se děje a co to pro zákazníka znamená." oninput="hvAnnValid()">${escapeHtml(v.text)}</textarea>
+      <label class="an-l" for="anBtn">Text tlačítka</label>
+      <input id="anBtn" class="an-in" type="text" maxlength="40" placeholder="např. Zobrazit kšiltovky" value="${escapeHtml(v.btn)}">
+      <div class="an-h">Nepovinné. Bez odkazu se tlačítko nezobrazí.</div>
+      <label class="an-l" for="anLink">Odkaz tlačítka</label>
+      <input id="anLink" class="an-in" type="text" placeholder="product?id=12" value="${escapeHtml(v.link)}">
+      <div class="an-h">Stránka u nás (např. <b>product?id=12</b>, <b>cart</b>, <b>info?t=doprava</b>) nebo celá adresa (https://…).</div>
+      <div class="an-l">Kde se ukáže</div>
+      <div class="an-chips">${radios('anWhere',HV_ANN_WHERE,v.where||'all')}</div>
+      <div class="an-l">Jak často</div>
+      <div class="an-chips">${radios('anFreq',HV_ANN_FREQ,v.freq||'session')}</div>
+      <div class="an-2">
+        <div><label class="an-l" for="anFrom">Zobrazovat od</label><input id="anFrom" class="an-in" type="datetime-local" value="${toLocal(v.from)}"></div>
+        <div><label class="an-l" for="anTo">do</label><input id="anTo" class="an-in" type="datetime-local" value="${toLocal(v.to)}"></div>
+      </div>
+      <div class="an-h">Nepovinné – prázdné znamená hned a bez konce.</div>
+      <label class="an-activ"><span>Zapnuté</span><input type="checkbox" id="anActive" ${v.active?'checked':''}><i class="hv-switch-ui"></i></label>
+      <div class="an-foot">
+        <button class="hva-close an-btn" onclick="hvAnnEditPreview()">Náhled</button>
+        <button class="hva-cta an-btn" id="anSave" onclick="hvAnnSave()">Uložit</button>
+      </div>
+    </div></div>`;
+  document.body.appendChild(w); hvAnnValid();
+  setTimeout(()=>document.getElementById('anTitle')?.focus(),60);
+};
+window.hvAnnEditClose=function(){document.getElementById('hvAnnEditor')?.remove()};
+window.hvAnnValid=function(){
+  const ok=(document.getElementById('anTitle')?.value||'').trim()&&(document.getElementById('anText')?.value||'').trim();
+  const b=document.getElementById('anSave'); if(b){b.disabled=!ok;b.style.opacity=ok?1:.45;b.style.cursor=ok?'pointer':'default'}
+  return !!ok;
+};
+function hvAnnReadForm(){
+  const g=id=>(document.getElementById(id)?.value||'').trim();
+  const r=n=>(document.querySelector(`input[name="${n}"]:checked`)||{}).value;
+  const iso=v=>v?new Date(v).toISOString():'';
+  return {title:g('anTitle'),text:(document.getElementById('anText')?.value||'').trim(),btn:g('anBtn'),link:g('anLink'),where:r('anWhere')||'all',freq:r('anFreq')||'session',from:iso(g('anFrom')),to:iso(g('anTo')),active:!!document.getElementById('anActive')?.checked};
+}
+window.hvAnnEditPreview=function(){
+  const f=hvAnnReadForm(); if(!f.title&&!f.text){showToast('Napiš nadpis a text','error');return}
+  hvAnnOpen(f,true);
+};
+window.hvAnnSave=async function(){
+  if(!hvAnnValid())return;
+  const f=hvAnnReadForm();
+  if(f.from&&f.to&&new Date(f.to)<new Date(f.from)){showToast('Konec je dřív než začátek','error');return}
+  const id=document.getElementById('anId')?.value;
+  const list=getAnnouncements();
+  const item={...f,id:id||('a'+Date.now()),updatedAt:Date.now()};
+  const next=id?list.map(x=>x.id===id?item:x):list.concat([item]);
+  const ok=await hvSave('hopi_announcements',next,id?'✅ Oznámení upraveno':'✅ Oznámení vytvořeno');
+  if(ok===false)return;
+  hvAnnEditClose(); viewAdmin();
+};
+
 function closeMobileSidebar(){
   document.querySelector('.admin-sidebar')?.classList.remove('mobile-open');
 }
@@ -5764,6 +6592,10 @@ function viewAdmin(){
       <main class="admin-main">
         ${adminOrderId?viewOrderDetail(adminOrderId):(
           adminView==='overview'?viewAdminOverview():
+          adminView==='econ'?viewEconomy():
+          adminView==='announce'?viewAnnouncements():
+          adminView==='investments'?viewInvestments():
+          adminView==='opex'?viewOpex():
           adminView==='orders'||adminView==='ordersOverview'?viewOrdersOverview():
           adminView==='ordersClassic'?viewOrdersList('orders'):
           adminView==='processing'||adminView==='history'?viewOrdersList(adminView):
@@ -6972,63 +7804,6 @@ window.clearTracking=function(id){
   setOrders(orders);
   showToast('Tracking vymazán');
   viewAdmin();
-}
-
-function viewProductsAdmin(){
-  const products=getProducts();
-  return `
-    <div class="view-head">
-      <div><h1>Produkty</h1><div class="sub">Správa katalogu · změny vidíš hned na webu</div></div>
-      <div class="view-actions">
-        <button class="abtn" onclick="resetProd()">↺ Výchozí</button>
-        <button class="abtn" onclick="go('home')">↗ Otevřít web</button>
-        <button class="abtn abtn-primary" onclick="openProductModal()">+ Přidat produkt</button>
-      </div>
-    </div>
-    <div class="admin-content">
-      <div class="panel">
-        <div class="panel-head"><h3>Všechny produkty</h3><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">[ ${products.length} ]</span></div>
-        <table class="atable">
-          <thead><tr><th>Foto</th><th>Název</th><th>Kategorie</th><th>Cena</th><th>Náklady</th><th>Marže</th><th>Skladem</th><th>Velikosti</th><th>Badge</th><th style="text-align:right">Akce</th></tr></thead>
-          <tbody>
-            ${products.length===0?'<tr><td colspan="10" class="table-empty"><strong>Žádné produkty</strong>Klikni "+ Přidat produkt".</td></tr>':products.map(p=>{
-              const st=stockStatus(p);
-              const hasCosts=p.productCost!=null||p.packagingCost!=null;
-              const totalCostProd=(p.productCost!=null?p.productCost:0)+(p.packagingCost!=null?p.packagingCost:0);
-              const marginKc=hasCosts?p.price-totalCostProd:null;
-              const marginPct=(hasCosts&&p.price>0)?(marginKc/p.price*100):null;
-              const marginColor=marginKc==null?'var(--muted)':marginKc>=0?'var(--green)':'var(--red)';
-              return `
-              <tr>
-                <td><div class="p-thumb">${(p.images&&p.images.length)?`<img src="${p.images[0]}">`:(p.photo?`<img src="${p.photo}">`:'<span>HOPI</span>')}</div></td>
-                <td><strong>${escapeHtml(p.name)}</strong></td>
-                <td>${escapeHtml(p.categoryLabel||CATEGORY_LABELS[p.category]||p.category)}</td>
-                <td style="font-family:'JetBrains Mono',monospace;font-weight:700">${formatPrice(p.price)} Kč</td>
-                <td style="font-family:'JetBrains Mono',monospace;font-size:12px">${hasCosts?`<span title="Produkt: ${p.productCost!=null?p.productCost+'Kč':'—'} + Balení: ${p.packagingCost!=null?p.packagingCost+'Kč':'—'}">${formatPrice(totalCostProd)} Kč</span>`:'<span style="color:var(--muted);font-size:11px">nenastaveno</span>'}</td>
-                <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:${marginColor}">${marginKc!=null?`${formatPrice(Math.round(marginKc))} Kč<div style="font-size:10px;font-weight:400;color:${marginColor}">${marginPct.toFixed(1)}%</div>`:'<span style="color:var(--muted);font-size:11px">—</span>'}</td>
-                <td>
-                  ${p.stock===undefined?'<span style="color:var(--muted);font-size:11px">neomezeno</span>':isMultiSize(p)&&p.stock!==null&&typeof p.stock==='object'?`
-                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.8">
-                      ${(p.sizes||'').split('/').map(s=>s.trim()).filter(Boolean).map(sz=>{const cnt=Number(p.stock[sz])||0;const col=cnt===0?'var(--red)':cnt<=3?'#ff9800':'var(--green)';return `<span style="color:${col}">${escapeHtml(sz)}:${cnt}</span>`;}).join('<span style="color:var(--border)"> / </span>')}
-                    </div>
-                  `:`
-                    <div style="display:flex;align-items:center;gap:8px">
-                      <strong style="color:${stockStatus(p).count===0?'var(--red)':(stockStatus(p).count<=10?'#ff9800':'var(--green)')};font-family:'JetBrains Mono',monospace">${stockStatus(p).count} ks</strong>
-                      <button class="stock-quick-btn" onclick="adjustStock(${p.id},1)" title="+1">+</button>
-                      <button class="stock-quick-btn" onclick="adjustStock(${p.id},-1)" title="-1">−</button>
-                    </div>
-                  `}
-                </td>
-                <td>${escapeHtml(p.sizes||'—')}</td>
-                <td>${p.badge?`<span style="background:#e8f5e9;color:#2e7d32;padding:3px 8px;font-size:11px;font-weight:700;text-transform:uppercase">${escapeHtml(p.badge)}</span>`:'—'}</td>
-                <td style="text-align:right"><button class="abtn abtn-sm" onclick="openProductModal(${p.id})">Upravit</button></td>
-              </tr>
-            `}).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
 }
 
 function viewWebsiteSettings(){
