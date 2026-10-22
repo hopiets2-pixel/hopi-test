@@ -105,7 +105,7 @@ nav a:hover::after{width:100%}
 .tab{flex:1;padding:12px;background:transparent;border:none;color:var(--muted);cursor:pointer;font-family:'Archivo',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;border-bottom:2px solid transparent}
 .tab.active{color:#fff;border-bottom-color:var(--green)}
 
-footer{background:#000;padding:80px 40px 30px;border-top:1px solid var(--border);position:relative;z-index:2}
+footer{background:#000;padding:80px 40px 110px;border-top:1px solid var(--border);position:relative;z-index:2}
 .footer-inner{max-width:1400px;margin:0 auto}
 .footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:60px;padding-bottom:60px;border-bottom:1px solid var(--border)}
 .footer-brand h3{font-family:'Archivo Black',sans-serif;font-size:clamp(36px,5vw,56px);line-height:0.95;text-transform:uppercase;letter-spacing:-0.02em;margin-bottom:20px}
@@ -5515,8 +5515,7 @@ function viewAdmin(){
       <aside class="admin-sidebar">
         <ul>
           <div class="sidebar-section">Správa</div>
-          <li><a class="${adminView==='orders'||adminView==='processing'||adminView==='history'?'active':''}" onclick="adminView='orders';adminOrderId=null;viewAdmin()">📦 <span>Objednávky</span>${newCount>0?`<span class="sidebar-badge">${newCount}</span>`:''}</a></li>
-          <li><a class="${adminView==='ordersOverview'?'active':''}" onclick="adminView='ordersOverview';adminOrderId=null;viewAdmin()">📋 <span>Přehled a export</span></a></li>
+          <li><a class="${adminView==='orders'||adminView==='ordersClassic'||adminView==='ordersOverview'||adminView==='processing'||adminView==='history'?'active':''}" onclick="adminView='orders';adminOrderId=null;viewAdmin()">📦 <span>Objednávky</span>${newCount>0?`<span class="sidebar-badge">${newCount}</span>`:''}</a></li>
           <div class="sidebar-section">Katalog</div>
           <li><a class="${adminView==='products'?'active':''}" onclick="adminView='products';adminOrderId=null;viewAdmin()">👕 <span>Produkty</span></a></li>
           <div class="sidebar-section">Komunikace</div>
@@ -5537,8 +5536,9 @@ function viewAdmin(){
       </aside>
       <main class="admin-main">
         ${adminOrderId?viewOrderDetail(adminOrderId):(
-          adminView==='orders'||adminView==='processing'||adminView==='history'?viewOrdersList(adminView):
-          adminView==='ordersOverview'?viewOrdersOverview():
+          adminView==='orders'||adminView==='ordersOverview'?viewOrdersOverview():
+          adminView==='ordersClassic'?viewOrdersList('orders'):
+          adminView==='processing'||adminView==='history'?viewOrdersList(adminView):
           adminView==='products'?viewProductsAdmin():
           adminView==='emails'?viewEmailsAdmin():
           adminView==='complaints'?viewComplaintsAdmin():
@@ -5829,6 +5829,7 @@ function viewOrdersList(legacyType){
         <div class="sub">${filtered.length} objednávek${searchQuery?' · hledáno "'+escapeHtml(searchQuery)+'"':''}</div>
       </div>
       <div class="view-actions">
+        <button class="abtn" onclick="adminView='orders';adminOrderId=null;viewAdmin()">← Zpět na přehled</button>
         <button class="abtn abtn-primary" onclick="createTestOrder()">+ Test objednávka</button>
       </div>
     </div>
@@ -8653,7 +8654,7 @@ const OVW_ICONS={
   chevron:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
 };
 
-let ovwState={period:'month',from:'',to:'',status:'all',pay:'all',country:'all',q:'',activeOnly:false,showCosts:false};
+let ovwState={period:'all',from:'',to:'',status:'all',pay:'all',country:'all',q:'',activeOnly:false,showCosts:false};
 let _ovwSearchTimer=null;
 
 // ---- Nastavení nákladů (uloženo v Supabase app_settings → funguje na všech zařízeních) ----
@@ -8694,6 +8695,7 @@ function calcOrderBreakdown(o,cfg,products){
   const discount=Number(o.promo?.discount)||0;
   const shipping=Number(o.shipPrice)||0;
   const codFee=Number(o.codFee)||0;
+  const tip=Number(o.tip)||0; // spropitné (připraveno pro budoucí volbu v košíku – ukládej jako order.tip)
   const total=Number(o.total)||0;
   const country=(o.customer?.country||'cz').toLowerCase()==='sk'?'sk':'cz';
   const shipCost=country==='sk'?Number(cfg.shipSK)||0:Number(cfg.shipCZ)||0;
@@ -8702,7 +8704,7 @@ function calcOrderBreakdown(o,cfg,products){
   const costs=goodsCost+packCost+shipCost+gopayFee;
   const profit=Math.round((total-costs)*100)/100;
   const margin=total>0?profit/total*100:0;
-  return {goods,discount,shipping,codFee,total,goodsCost,packCost,shipCost,gopayFee,costs,profit,margin,country,viaGoPay,missingCost};
+  return {goods,discount,shipping,codFee,tip,total,goodsCost,packCost,shipCost,gopayFee,costs,profit,margin,country,viaGoPay,missingCost};
 }
 
 // ---- Filtrování ----
@@ -8761,7 +8763,7 @@ window.ovwSearch=function(val){
   },250);
 };
 window.ovwReset=function(){
-  ovwState={...ovwState,period:'month',from:'',to:'',status:'all',pay:'all',country:'all',q:'',activeOnly:false};
+  ovwState={...ovwState,period:'all',from:'',to:'',status:'all',pay:'all',country:'all',q:'',activeOnly:false};
   viewAdmin();
 };
 window.ovwRefresh=async function(){
@@ -8796,7 +8798,7 @@ function viewOrdersOverview(){
   const rows=list.map(o=>({o,b:calcOrderBreakdown(o,cfg,products)}));
   const counted=rows.filter(r=>r.o.status!=='cancelled');
   const sum=k=>counted.reduce((s,r)=>s+(r.b[k]||0),0);
-  const T={total:sum('total'),goods:sum('goods'),discount:sum('discount'),shipping:sum('shipping'),codFee:sum('codFee'),goodsCost:sum('goodsCost'),packCost:sum('packCost'),shipCost:sum('shipCost'),gopayFee:sum('gopayFee'),profit:sum('profit')};
+  const T={tip:sum('tip'),total:sum('total'),goods:sum('goods'),discount:sum('discount'),shipping:sum('shipping'),codFee:sum('codFee'),goodsCost:sum('goodsCost'),packCost:sum('packCost'),shipCost:sum('shipCost'),gopayFee:sum('gopayFee'),profit:sum('profit')};
   T.costs=T.goodsCost+T.packCost+T.shipCost+T.gopayFee;
   T.margin=T.total>0?T.profit/T.total*100:0;
   const cancelledCount=rows.length-counted.length;
@@ -8804,7 +8806,7 @@ function viewOrdersOverview(){
   const {from,to}=ovwRange();
   const fromVal=ovwState.period==='custom'?ovwState.from:(from?ovwToInput(from):'');
   const toVal=ovwState.period==='custom'?ovwState.to:(to?ovwToInput(new Date(to.getTime()-86400000)):'');
-  const filtersActive=ovwState.period!=='month'||ovwState.status!=='all'||ovwState.pay!=='all'||ovwState.country!=='all'||ovwState.q||ovwState.activeOnly;
+  const filtersActive=ovwState.period!=='all'||ovwState.status!=='all'||ovwState.pay!=='all'||ovwState.country!=='all'||ovwState.q||ovwState.activeOnly;
   const seg=(id,label)=>`<button class="${ovwState.period===id?'on':''}" onclick="ovwSet('period','${id}')">${label}</button>`;
   const sel=(key,opts)=>`<div class="ovw-select"><select onchange="ovwSet('${key}',this.value)">${opts.map(([v,l])=>`<option value="${v}" ${ovwState[key]===v?'selected':''}>${l}</option>`).join('')}</select>${OVW_ICONS.chevron}</div>`;
 
@@ -8817,15 +8819,28 @@ function viewOrdersOverview(){
     .ovw{--ovw-accent:#008A3F;--ovw-accent-tint:color-mix(in srgb,#008A3F 12%,white);--ovw-bg:#F2F2F7;--ovw-card:#fff;--ovw-line:rgba(60,60,67,.14);--ovw-soft:rgba(118,118,128,.12);--ovw-ink:#000;--ovw-muted:rgba(60,60,67,.6);--ovw-faint:rgba(60,60,67,.3);--ovw-green:#34C759;--ovw-orange:#FF9500;--ovw-red:#FF3B30;--ovw-blue:#007AFF;--ovw-indigo:#5856D6;--ovw-gray:#8E8E93;
       font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif;color:var(--ovw-ink);background:var(--ovw-bg);padding:28px clamp(16px,3vw,40px) 48px;min-height:100%;box-sizing:border-box;max-width:100%;overflow-x:hidden}
     .ovw *{box-sizing:border-box}
+    .ovw-page{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 18px}
+    .ovw-page h1{font-size:clamp(28px,4vw,34px);font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.1;font-family:inherit;text-transform:none}
+    .ovw-pagesub{font-size:15px;color:var(--ovw-muted);margin-top:3px}
+    .ovw-live{display:inline-flex;align-items:center;gap:7px;background:var(--ovw-soft);border-radius:999px;padding:7px 13px;font-weight:600;font-size:13.5px;white-space:nowrap}
+    .ovw-live i{width:8px;height:8px;border-radius:50%;background:var(--ovw-green);box-shadow:0 0 0 3px color-mix(in srgb,var(--ovw-green) 25%,transparent)}
+    .ovw-live.stage{color:#8a5100;background:color-mix(in srgb,var(--ovw-orange) 14%,white)} .ovw-live.stage i{background:var(--ovw-orange)}
+    .ovw-cardhead{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:20px 22px;border-bottom:1px solid var(--ovw-line)}
+    .ovw-title{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+    .ovw-title h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-.015em;font-family:inherit;text-transform:none}
+    .ovw-title span{font-size:14px;font-weight:600;color:var(--ovw-muted)}
+    .ovw-dot{width:8px;height:8px;border-radius:50%;background:var(--ovw-orange);display:inline-block;margin-left:2px}
+    .ovw-costs{padding:20px 22px;border-bottom:1px solid var(--ovw-line);background:#fafafb}
     .ovw-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
     .ovw-head h1{font-size:clamp(28px,4vw,36px);font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.1;font-family:inherit;text-transform:none}
     .ovw-head p{margin:6px 0 0;font-size:15px;color:var(--ovw-muted);line-height:1.45;max-width:720px}
     .ovw-head p b{color:var(--ovw-ink)} .ovw-head p b.pos{color:var(--ovw-accent)} .ovw-head p b.neg{color:var(--ovw-red)}
     .ovw-actions{display:flex;gap:8px;flex-wrap:wrap}
-    .ovw-btn{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 16px;border-radius:999px;border:0;background:var(--ovw-card);color:var(--ovw-ink);font-weight:600;font-size:14px;line-height:1;font-family:inherit;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .2s cubic-bezier(.32,.72,0,1),background .2s;white-space:nowrap}
+    .ovw-btn{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 14px;border-radius:12px;border:1px solid rgba(60,60,67,.18);background:var(--ovw-card);color:var(--ovw-ink);font-weight:600;font-size:14px;line-height:1;font-family:inherit;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.06);transition:transform .2s cubic-bezier(.32,.72,0,1),background .2s;white-space:nowrap}
     .ovw-btn:active{transform:scale(.97)} .ovw-btn:hover{background:#fafafa}
-    .ovw-btn.primary{background:var(--ovw-accent);color:#fff} .ovw-btn.primary:hover{background:color-mix(in srgb,var(--ovw-accent) 88%,black)}
-    .ovw-btn.on{background:var(--ovw-accent-tint);color:var(--ovw-accent)}
+    .ovw-btn.primary{background:var(--ovw-accent);color:#fff;border-color:var(--ovw-accent)} .ovw-btn.primary:hover{background:color-mix(in srgb,var(--ovw-accent) 88%,black)}
+    .ovw-btn.on{background:var(--ovw-accent-tint);color:var(--ovw-accent);border-color:color-mix(in srgb,var(--ovw-accent) 35%,white)}
+    .ovw-btn.quiet{color:var(--ovw-muted)}
     .ovw-btn:focus-visible,.ovw-seg button:focus-visible,.ovw select:focus-visible,.ovw input:focus-visible{outline:2px solid var(--ovw-accent);outline-offset:2px}
     .ovw-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
     .ovw-kpi{background:var(--ovw-card);border-radius:22px;padding:16px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04);min-width:0}
@@ -8850,7 +8865,7 @@ function viewOrdersOverview(){
     .ovw-reset{margin-left:auto}
     .ovw-tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
     .ovw-table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;min-width:900px}
-    .ovw-clip{max-width:210px} .ovw-clip>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ovw-clip{max-width:185px} .ovw-clip>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ovw-chev{color:var(--ovw-faint);width:24px;padding-left:0!important}
     .ovw-table th{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ovw-muted);text-align:left;padding:12px 8px;border-bottom:1px solid var(--ovw-line);white-space:nowrap;background:#fff;position:sticky;top:0}
     .ovw-table td{padding:12px 8px;border-bottom:1px solid var(--ovw-line);vertical-align:middle}
@@ -8886,50 +8901,44 @@ function viewOrdersOverview(){
       .ovw-filters{padding:16px} .ovw-f{width:100%} .ovw-seg{width:100%;justify-content:space-between} .ovw-seg button{flex:1;padding:0 6px;font-size:13px}
       .ovw-dates{display:grid!important;grid-template-columns:1fr 1fr;gap:10px;width:100%} .ovw-dates .ovw-f{width:auto} .ovw-dates input{width:100%}
       .ovw-select,.ovw-select select{width:100%} .ovw-reset{margin-left:0;width:100%;justify-content:center}
-      .ovw-actions{width:100%} .ovw-actions .ovw-btn{flex:1;justify-content:center;padding:0 10px}
+      .ovw-actions{width:100%} .ovw-actions .ovw-btn{flex:1 1 auto;justify-content:center;padding:0 10px} .ovw-cardhead{padding:16px}
       .ovw-kpis{grid-template-columns:1fr 1fr;gap:10px} .ovw-kpi{padding:14px} .ovw-kpi:last-child{grid-column:1/-1} .ovw-kpi .v{font-size:22px}
     }
     @media (prefers-reduced-motion:reduce){.ovw *{transition:none!important}}
   </style>
 
   <div class="ovw">
-    <div class="ovw-head">
-      <div>
-        <h1>Přehled objednávek</h1>
-        <p>${headline}</p>
-      </div>
-      <div class="ovw-actions">
-        <button class="ovw-btn ${ovwState.activeOnly?'on':''}" onclick="ovwSet('activeOnly',${!ovwState.activeOnly})">Jen aktivní</button>
-        <button class="ovw-btn ${ovwState.showCosts?'on':''}" onclick="ovwSet('showCosts',${!ovwState.showCosts})">${OVW_ICONS.settings} Náklady</button>
-        <button class="ovw-btn" onclick="ovwRefresh()">${OVW_ICONS.refresh} Obnovit</button>
-        <button class="ovw-btn primary" onclick="exportOverviewXLSX()" ${rows.length?'':'disabled style="opacity:.5;cursor:default"'}>${OVW_ICONS.download} Export XLSX</button>
-      </div>
-    </div>
-
-    ${!cfg.saved?`<div class="ovw-warn"><b>Nastav si skutečné náklady.</b> Poplatek GoPay a cenu dopravy teď počítám podle starého nastavení z Finance (${cfg.gopayPct} % GoPay, ${cfg.shipCZ} Kč za balík). Klikni na <b>Náklady</b> a zadej čísla ze smlouvy s GoPay a Zásilkovnou.</div>`:''}
-
-    ${ovwState.showCosts?`
-    <div class="ovw-card ovw-costs">
-      <h3>Náklady na objednávku</h3>
-      <p>Podle těchto čísel se počítá poplatek a zisk u každé objednávky. Nákupní cenu a balné zboží bereš z karty produktu (Produkty → Náklady).</p>
-      <div class="ovw-costs-grid">
-        <div class="ovw-f"><label for="ovwGopayPct">GoPay – procento z platby</label><input id="ovwGopayPct" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.gopayPct}" placeholder="např. 1.5"></div>
-        <div class="ovw-f"><label for="ovwGopayFixed">GoPay – fixně za platbu (Kč)</label><input id="ovwGopayFixed" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.gopayFixed}" placeholder="např. 3"></div>
-        <div class="ovw-f"><label for="ovwShipCZ">Zásilkovna CZ – cena balíku (Kč)</label><input id="ovwShipCZ" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.shipCZ}" placeholder="např. 62"></div>
-        <div class="ovw-f"><label for="ovwShipSK">Zásilkovna SK – cena balíku (Kč)</label><input id="ovwShipSK" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.shipSK}" placeholder="např. 95"></div>
-        <button class="ovw-btn primary" style="justify-content:center" onclick="saveOrderCostsConfig()">Uložit náklady</button>
-      </div>
-    </div>`:''}
-
-    <div class="ovw-kpis">
-      <div class="ovw-kpi"><div class="l">Tržby celkem</div><div class="v">${ovwKc(T.total,0)}</div><div class="s">${counted.length} obj.${cancelledCount?` · ${cancelledCount} zrušených nezapočteno`:''}</div></div>
-      <div class="ovw-kpi"><div class="l">Za zboží (po slevě)</div><div class="v">${ovwKc(T.goods-T.discount,0)}</div><div class="s">slevy −${ovwKc(T.discount,0)}</div></div>
-      <div class="ovw-kpi"><div class="l">Zaplaceno za dopravu</div><div class="v">${ovwKc(T.shipping+T.codFee,0)}</div><div class="s">tě stála ${ovwKc(T.shipCost,0)}</div></div>
-      <div class="ovw-kpi"><div class="l">Náklady</div><div class="v">${ovwKc(T.costs,0)}</div><div class="s">zboží ${ovwKc(T.goodsCost+T.packCost,0)} · GoPay ${ovwKc(T.gopayFee,0)}</div></div>
-      <div class="ovw-kpi ${T.profit>=0?'accent':'neg'}"><div class="l">Zisk</div><div class="v">${ovwKc(T.profit,0)}</div><div class="s">marže ${T.margin.toLocaleString('cs-CZ',{maximumFractionDigits:1})} %</div></div>
+    <div class="ovw-page">
+      <div><h1>Objednávky</h1><div class="ovw-pagesub">HOPI VIRTUAL e-shop</div></div>
+      <span class="ovw-live ${HOPI_IS_STAGE?'stage':''}"><i></i>${HOPI_IS_STAGE?'Testovací prostředí':'Živě'}</span>
     </div>
 
     <div class="ovw-card">
+      <div class="ovw-cardhead">
+        <div class="ovw-title"><h2>${ovwState.activeOnly?'Aktivní objednávky':'Všechny objednávky'}</h2><span>${rows.length}&nbsp;${rows.length===1?'záznam':(rows.length>=2&&rows.length<=4?'záznamy':'záznamů')}</span></div>
+        <div class="ovw-actions">
+          <button class="ovw-btn ${ovwState.activeOnly?'on':'quiet'}" onclick="ovwSet('activeOnly',${!ovwState.activeOnly})">Jen aktivní</button>
+          <button class="ovw-btn ${ovwState.showCosts?'on':''}" onclick="ovwSet('showCosts',${!ovwState.showCosts})">${OVW_ICONS.settings} Náklady${!cfg.saved?'<span class="ovw-dot" title="Nastav skutečné náklady"></span>':''}</button>
+          <button class="ovw-btn" onclick="exportOverviewXLSX()" ${rows.length?'':'disabled style="opacity:.5;cursor:default"'}>${OVW_ICONS.download} Export XLSX</button>
+          <button class="ovw-btn" onclick="ovwRefresh()">${OVW_ICONS.refresh} Obnovit</button>
+          <button class="ovw-btn quiet" onclick="adminView='ordersClassic';adminOrderId=null;viewAdmin()" title="Složky, štítky a hromadné akce">Složky</button>
+          ${HOPI_IS_STAGE?'<button class="ovw-btn quiet" onclick="createTestOrder()">+ Test</button>':''}
+        </div>
+      </div>
+
+      ${ovwState.showCosts?`
+      <div class="ovw-costs">
+        <h3>Náklady na objednávku</h3>
+        <p>${cfg.saved?'':'<b style="color:#8a5100">Zatím se počítá podle starého nastavení z Finance – zadej čísla ze smlouvy s GoPay a Zásilkovnou.</b><br>'}Podle těchto čísel se počítá poplatek a zisk u každé objednávky. Nákupní cenu a balné bereš z karty produktu.</p>
+        <div class="ovw-costs-grid">
+          <div class="ovw-f"><label for="ovwGopayPct">GoPay – % z platby</label><input id="ovwGopayPct" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.gopayPct}" placeholder="např. 1.5"></div>
+          <div class="ovw-f"><label for="ovwGopayFixed">GoPay – fixně (Kč)</label><input id="ovwGopayFixed" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.gopayFixed}" placeholder="např. 3"></div>
+          <div class="ovw-f"><label for="ovwShipCZ">Zásilkovna CZ (Kč)</label><input id="ovwShipCZ" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.shipCZ}" placeholder="např. 62"></div>
+          <div class="ovw-f"><label for="ovwShipSK">Zásilkovna SK (Kč)</label><input id="ovwShipSK" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.shipSK}" placeholder="např. 95"></div>
+          <button class="ovw-btn primary" style="justify-content:center;height:40px" onclick="saveOrderCostsConfig()">Uložit náklady</button>
+        </div>
+      </div>`:''}
+
       <div class="ovw-filters">
         <div class="ovw-f"><label>Období</label>
           <div class="ovw-seg">${seg('today','Dnes')}${seg('7d','7 dní')}${seg('30d','30 dní')}${seg('month','Tento měsíc')}${seg('all','Vše')}</div>
@@ -8963,8 +8972,8 @@ function viewOrdersOverview(){
               <td><div class="ovw-clip" title="${escapeHtml(o.shipBranch||'')}"><div class="ovw-main">${escapeHtml(name)}</div><div class="ovw-sub">${escapeHtml((o.customer?.city||'').trim())} · ${escapeHtml(OVW_SHIP_SHORT[o.ship]||o.ship||'')} ${b.country.toUpperCase()}</div></div></td>
               <td><div style="font-weight:600;white-space:nowrap">${escapeHtml(OVW_PAY_LABELS[o.pay]||o.pay||'—')}</div>${o.promo?.code?`<div class="ovw-sub">kód ${escapeHtml(o.promo.code)}</div>`:''}</td>
               <td class="r">${ovwKc(b.goods)}${b.discount?`<div class="ovw-sub ovw-neg">sleva −${ovwKc(b.discount)}</div>`:''}</td>
-              <td class="r">${ovwKc(b.shipping+b.codFee)}${b.codFee?`<div class="ovw-sub">z toho dobírka ${ovwKc(b.codFee,0)}</div>`:''}</td>
-              <td class="r" style="font-weight:800">${ovwKc(b.total)}</td>
+              <td class="r">${ovwKc(b.shipping+b.codFee)}${b.codFee?`<div class="ovw-sub">dobírka ${ovwKc(b.codFee,0)}</div>`:''}</td>
+              <td class="r" style="font-weight:800">${ovwKc(b.total)}${b.tip?`<div class="ovw-sub" style="font-weight:400">spropitné ${ovwKc(b.tip,0)}</div>`:''}</td>
               <td class="r">−${ovwKc(b.costs,0)}<div class="ovw-sub" ${b.missingCost?'style="color:var(--ovw-orange)"':''}>zboží ${ovwKc(b.goodsCost+b.packCost,0)}${b.missingCost?' (chybí cena)':''}<br>doprava ${ovwKc(b.shipCost,0)}${b.viaGoPay?'<br>GoPay '+ovwKc(b.gopayFee,0):''}</div></td>
               <td class="r" style="font-weight:800"><span class="${b.profit>=0?'ovw-pos':'ovw-neg'}">${ovwKc(b.profit,0)}</span><div class="ovw-sub">${b.margin.toLocaleString('cs-CZ',{maximumFractionDigits:0})} %</div></td>
               <td class="ovw-chev">${OVW_ICONS.chevron}</td>
@@ -8989,6 +8998,7 @@ function viewOrdersOverview(){
             <span>Zboží</span><span>${ovwKc(b.goods)}</span>
             ${b.discount?`<span>Sleva${o.promo?.code?' ('+escapeHtml(o.promo.code)+')':''}</span><span class="ovw-neg">−${ovwKc(b.discount)}</span>`:''}
             <span>Doprava</span><span>${ovwKc(b.shipping+b.codFee)}</span>
+            ${b.tip?`<span>Spropitné</span><span>${ovwKc(b.tip,0)}</span>`:''}
             <span class="tot">Celkem</span><span class="tot">${ovwKc(b.total)}</span>
             <span>Náklady zboží</span><span>−${ovwKc(b.goodsCost+b.packCost,0)}</span>
             <span>Doprava nás</span><span>−${ovwKc(b.shipCost,0)}</span>
@@ -9006,11 +9016,12 @@ function viewOrdersOverview(){
 
 // ---- Export do Excelu (.xlsx) ----
 function ovwLoadXLSX(){
-  if(window.XLSX)return Promise.resolve(window.XLSX);
+  // xlsx-js-style = SheetJS s podporou barev a formátování buněk
+  if(window.XLSX&&window.XLSX._hopiStyled)return Promise.resolve(window.XLSX);
   return new Promise((res,rej)=>{
     const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload=()=>res(window.XLSX);
+    s.src='https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+    s.onload=()=>{window.XLSX._hopiStyled=true;res(window.XLSX)};
     s.onerror=()=>rej(new Error('Knihovnu pro Excel se nepodařilo načíst'));
     document.head.appendChild(s);
   });
@@ -9020,96 +9031,135 @@ window.exportOverviewXLSX=async function(){
   try{XLSX=await ovwLoadXLSX()}catch(e){showToast('❌ '+e.message,'error');return}
   const cfg=getOrderCostsConfig();
   const products=getProducts();
-  const list=getOverviewOrders();
+  const list=getOverviewOrders().slice().sort((a,b)=>new Date(b.date)-new Date(a.date));
   if(!list.length){showToast('Není co exportovat','error');return}
   const r2=n=>Math.round((Number(n)||0)*100)/100;
-  const statusLabel=s=>(STATUSES[s]&&STATUSES[s].label)||s;
 
-  const orderRows=list.map(o=>{
+  // ---- styly ----
+  const border={top:{style:'thin',color:{rgb:'D9D9D9'}},bottom:{style:'thin',color:{rgb:'D9D9D9'}},left:{style:'thin',color:{rgb:'D9D9D9'}},right:{style:'thin',color:{rgb:'D9D9D9'}}};
+  const base={font:{name:'Roboto',sz:11},border,alignment:{vertical:'center'}};
+  const KC='#,##0" Kč"', KC2='#,##0.00" Kč"';
+  const hdr={font:{name:'Roboto',sz:11,bold:true},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{...border,bottom:{style:'medium',color:{rgb:'999999'}}},fill:{fgColor:{rgb:'F3F3F3'}}};
+  const pill=(rgb,fontRgb)=>({...base,font:{name:'Roboto',sz:11,bold:true,color:{rgb:fontRgb||'FFFFFF'}},fill:{fgColor:{rgb}},alignment:{horizontal:'center',vertical:'center'}});
+  const STATUS_X={new:['Nová','4A90E2'],accepted:['Přijato','7B68EE'],processing:['Zpracovává se','F5A623'],shipped:['Odesláno','5856D6'],delivered:['Doručená','5CC45C'],cancelled:['Zrušená','F28B82']};
+  const PAY_X={card:['kartou','3D8FD6'],applepay:['Apple Pay','3D8FD6'],googlepay:['Google Pay','3D8FD6'],transfer:['převodem','9B6FD6'],cod:['dobírka','5CC45C']};
+
+  // ---- list 1: Objednávky (podle vzoru) ----
+  const H=['Datum','Stav','Číslo obj','Vytvořeno','Zákazník','Cena obalů','Cena dopravy','Cena objednávky','Za zboží','Platební metoda','Doplatek','Slevový kupon','Sleva','Spropitné','Nákupní cena','Doprava nás stála','Poplatek GoPay','Zisk'];
+  const ws={};
+  const put=(r,c,cell)=>{ws[XLSX.utils.encode_cell({r,c})]=cell};
+  const col=c=>XLSX.utils.encode_col(c);
+  H.forEach((h,c)=>put(0,c,{v:h,t:'s',s:hdr}));
+  const n=list.length;
+  list.forEach((o,i)=>{
+    const r=i+1, ex=r+1; // ex = číslo řádku v Excelu
     const b=calcOrderBreakdown(o,cfg,products);
     const d=new Date(o.date);
-    return {
-      'Číslo':o.id,
-      'Datum':d.toLocaleDateString('cs-CZ'),
-      'Čas':d.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'}),
-      'Stav':statusLabel(o.status),
-      'Jméno':[o.customer?.firstName,o.customer?.lastName].filter(Boolean).join(' ').trim(),
-      'E-mail':o.customer?.email||'',
-      'Telefon':o.customer?.phone||'',
-      'Město':(o.customer?.city||'').trim(),
-      'Země':b.country.toUpperCase(),
-      'Doprava – způsob':OVW_SHIP_LABELS[o.ship]||o.ship||'',
-      'Výdejní místo':o.shipBranch||'',
-      'Platba':OVW_PAY_LABELS[o.pay]||o.pay||'',
-      'Slevový kód':o.promo?.code||'',
-      'Počet kusů':(o.items||[]).reduce((s,i)=>s+(i.qty||0),0),
-      'Zboží (Kč)':r2(b.goods),
-      'Sleva (Kč)':r2(b.discount),
-      'Doprava zákazník (Kč)':r2(b.shipping),
-      'Dobírka (Kč)':r2(b.codFee),
-      'Celkem zaplaceno (Kč)':r2(b.total),
-      'Nákupní cena zboží (Kč)':r2(b.goodsCost),
-      'Balné (Kč)':r2(b.packCost),
-      'Doprava nás stála (Kč)':r2(b.shipCost),
-      'Poplatek GoPay (Kč)':r2(b.gopayFee),
-      'Náklady celkem (Kč)':r2(b.costs),
-      'Zisk (Kč)':r2(b.profit),
-      'Marže (%)':r2(b.margin),
-      'Číslo faktury':o.invoiceNumber||'',
-      'Sledovací číslo':o.tracking?.number||o.packeta_barcode||'',
-    };
+    const cancelled=o.status==='cancelled';
+    const [stL,stC]=STATUS_X[o.status]||[o.status,'999999'];
+    const [pL,pC]=PAY_X[o.pay]||[o.pay||'',''];
+    const name=[o.customer?.firstName,o.customer?.lastName].filter(Boolean).join(' ').trim();
+    const money=(c,v,fmt)=>put(r,c,cancelled?{v:'',t:'s',s:base}:{v:r2(v),t:'n',z:fmt||KC,s:{...base,numFmt:fmt||KC}});
+    put(r,0,{v:new Date(d.getFullYear(),d.getMonth(),d.getDate()),t:'d',z:'d. m. yyyy',s:{...base,numFmt:'d. m. yyyy',alignment:{horizontal:'left',vertical:'center'}}});
+    put(r,1,{v:stL,t:'s',s:pill(stC)});
+    put(r,2,{v:o.id,t:'s',s:base});
+    put(r,3,{v:d.toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'}),t:'s',s:base});
+    put(r,4,{v:name,t:'s',s:base});
+    money(5,b.packCost);
+    money(6,b.shipping);
+    money(7,b.total);
+    money(8,b.goods-b.discount);
+    put(r,9,{v:pL,t:'s',s:pC?pill(pC):base});
+    money(10,b.codFee);
+    put(r,11,{v:o.promo?.code||'',t:'s',s:base});
+    money(12,b.discount);
+    money(13,b.tip);
+    money(14,b.goodsCost);
+    money(15,b.shipCost);
+    money(16,b.gopayFee,KC2);
+    if(cancelled)put(r,17,{v:'',t:'s',s:base});
+    else put(r,17,{t:'n',v:r2(b.profit),f:`H${ex}-F${ex}-O${ex}-P${ex}-Q${ex}`,z:KC2,s:{...base,numFmt:KC2,font:{name:'Roboto',sz:11,bold:true,color:{rgb:b.profit>=0?'1E7B34':'C62828'}}}});
   });
-  const valid=list.map((o,i)=>({o,r:orderRows[i]})).filter(x=>x.o.status!=='cancelled').map(x=>x.r);
-  const sumKey=k=>r2(valid.reduce((s,r)=>s+(Number(r[k])||0),0));
-  const totalRow={'Číslo':'SOUČET (bez zrušených)'};
-  ['Počet kusů','Zboží (Kč)','Sleva (Kč)','Doprava zákazník (Kč)','Dobírka (Kč)','Celkem zaplaceno (Kč)','Nákupní cena zboží (Kč)','Balné (Kč)','Doprava nás stála (Kč)','Poplatek GoPay (Kč)','Náklady celkem (Kč)','Zisk (Kč)'].forEach(k=>totalRow[k]=sumKey(k));
-  totalRow['Marže (%)']=totalRow['Celkem zaplaceno (Kč)']?r2(totalRow['Zisk (Kč)']/totalRow['Celkem zaplaceno (Kč)']*100):0;
 
-  const itemRows=[];
+  // ---- souhrn vpravo (vzorce → přepočítá se, když v Excelu něco upravíš) ----
+  const L=19, V=20, last=n+1; // sloupce T a U
+  const rng=c=>`${col(c)}2:${col(c)}${last}`;
+  const lbl=(rgb)=>({font:{name:'Roboto',sz:11,bold:true},fill:{fgColor:{rgb}},border,alignment:{vertical:'center'}});
+  const val=(rgb,fmt)=>({font:{name:'Roboto',sz:11,bold:true},fill:{fgColor:{rgb}},border,numFmt:fmt||KC,alignment:{horizontal:'right',vertical:'center'}});
+  const counted=list.filter(o=>o.status!=='cancelled').map(o=>calcOrderBreakdown(o,cfg,products));
+  const S=k=>r2(counted.reduce((s,b)=>s+(Number(b[k])||0),0));
+  const sumRows=[
+    ['Tržby celkem',`SUM(${rng(7)})`,S('total'),'F6A33A'],
+    ['Za zboží celkem',`SUM(${rng(8)})`,r2(S('goods')-S('discount')),'F6A33A'],
+    ['Doprava celkem (zákazníci)',`SUM(${rng(6)})`,S('shipping'),'72F0F7'],
+    ['Doplatky (dobírka)',`SUM(${rng(10)})`,S('codFee'),'72F0F7'],
+    ['Spropitné celkem',`SUM(${rng(13)})`,S('tip'),'72F0F7'],
+    ['Slevy celkem',`SUM(${rng(12)})`,S('discount'),'FFE082'],
+    null,
+    ['Nákupní cena celkem',`SUM(${rng(14)})`,S('goodsCost'),'E0E0E0'],
+    ['Obaly celkem',`SUM(${rng(5)})`,S('packCost'),'E0E0E0'],
+    ['Doprava nás stála',`SUM(${rng(15)})`,S('shipCost'),'E0E0E0'],
+    ['Poplatky GoPay',`SUM(${rng(16)})`,S('gopayFee'),'E0E0E0',KC2],
+    null,
+    ['ZISK CELKEM',`SUM(${rng(17)})`,S('profit'),'7CFC5C',KC2],
+  ];
+  let rr=2; let profitRow=0, revenueRow=3;
+  sumRows.forEach(x=>{
+    if(x){
+      put(rr,L,{v:x[0],t:'s',s:lbl(x[3])});
+      put(rr,V,{t:'n',v:x[2],f:x[1],z:x[4]||KC,s:val(x[3],x[4])});
+      if(x[0]==='ZISK CELKEM')profitRow=rr+1;
+    }
+    rr++;
+  });
+  put(rr,L,{v:'Marže',t:'s',s:lbl('7CFC5C')});
+  const tot=S('total');
+  put(rr,V,{t:'n',v:tot?S('profit')/tot:0,f:`IF(U${revenueRow}=0,0,U${profitRow}/U${revenueRow})`,z:'0.0 %',s:val('7CFC5C','0.0 %')});
+  rr+=2;
+  put(rr,L,{v:'Počet objednávek',t:'s',s:lbl('F3F3F3')});
+  put(rr,V,{t:'n',v:counted.length,s:val('F3F3F3','0')});
+  rr++;
+  put(rr,L,{v:'Zrušené (nezapočteno)',t:'s',s:lbl('F3F3F3')});
+  put(rr,V,{t:'n',v:n-counted.length,s:val('F3F3F3','0')});
+  rr+=2;
+  put(rr,L,{v:'Nastavení nákladů',t:'s',s:{font:{name:'Roboto',sz:11,bold:true}}}); rr++;
+  [['GoPay – procento',r2(cfg.gopayPct)/100,'0.00 %'],['GoPay – fixně za platbu',r2(cfg.gopayFixed),KC2],['Zásilkovna CZ – balík',r2(cfg.shipCZ),KC],['Zásilkovna SK – balík',r2(cfg.shipSK),KC]].forEach(([a,v,f])=>{
+    put(rr,L,{v:a,t:'s',s:{...base}});
+    put(rr,V,{v,t:'n',z:f,s:{...base,numFmt:f,alignment:{horizontal:'right'}}});
+    rr++;
+  });
+  put(rr+1,L,{v:'Vyexportováno '+new Date().toLocaleString('cs-CZ'),t:'s',s:{font:{name:'Roboto',sz:9,color:{rgb:'888888'}}}});
+
+  ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(rr+1,last),c:V}});
+  ws['!cols']=[12,14,12,11,22,12,13,16,12,16,11,15,10,11,13,16,14,13,3,28,14].map(w=>({wch:w}));
+  ws['!rows']=[{hpt:30}];
+  ws['!autofilter']={ref:`A1:R${last}`};
+
+  // ---- list 2: Položky ----
+  const items=[];
   list.forEach(o=>(o.items||[]).forEach(i=>{
     const p=products.find(x=>x.id===Number(i.productId))||{};
-    itemRows.push({
-      'Objednávka':o.id,
-      'Datum':new Date(o.date).toLocaleDateString('cs-CZ'),
-      'Stav':statusLabel(o.status),
-      'Produkt':p.name||('Produkt #'+i.productId),
-      'Varianta':i.size||'',
-      'Kusů':i.qty,
-      'Prodejní cena/ks (Kč)':r2(p.price),
-      'Prodej celkem (Kč)':r2((Number(p.price)||0)*i.qty),
-      'Nákupní cena/ks (Kč)':r2(p.productCost),
-      'Balné/ks (Kč)':r2(p.packagingCost),
-      'Náklady celkem (Kč)':r2(((Number(p.productCost)||0)+(Number(p.packagingCost)||0))*i.qty),
-    });
+    items.push([o.id,new Date(o.date).toLocaleDateString('cs-CZ'),(STATUS_X[o.status]||[o.status])[0],p.name||('Produkt #'+i.productId),i.size||'',i.qty,r2(p.price),r2((Number(p.price)||0)*i.qty),r2(p.productCost),r2(p.packagingCost),r2(((Number(p.productCost)||0)+(Number(p.packagingCost)||0))*i.qty)]);
   }));
+  const H2=['Číslo obj','Datum','Stav','Produkt','Varianta','Kusů','Cena/ks','Prodej celkem','Nákupní cena/ks','Obal/ks','Náklady celkem'];
+  const ws2={};
+  H2.forEach((h,c)=>ws2[XLSX.utils.encode_cell({r:0,c})]={v:h,t:'s',s:hdr});
+  items.forEach((row,i)=>row.forEach((v,c)=>{
+    const isMoney=c>=6;
+    ws2[XLSX.utils.encode_cell({r:i+1,c})]=typeof v==='number'?{v,t:'n',z:isMoney?KC:'0',s:{...base,numFmt:isMoney?KC:'0'}}:{v:String(v),t:'s',s:base};
+  }));
+  ws2['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(items.length,1),c:H2.length-1}});
+  ws2['!cols']=[12,12,13,42,22,7,11,14,15,10,15].map(w=>({wch:w}));
 
   const wb=XLSX.utils.book_new();
-  const ws1=XLSX.utils.json_to_sheet([...orderRows,{},totalRow]);
-  ws1['!cols']=Object.keys(orderRows[0]).map(k=>({wch:Math.max(10,Math.min(32,k.length+2))}));
-  ws1['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:orderRows.length,c:Object.keys(orderRows[0]).length-1}})};
-  XLSX.utils.book_append_sheet(wb,ws1,'Objednávky');
-  if(itemRows.length){
-    const ws2=XLSX.utils.json_to_sheet(itemRows);
-    ws2['!cols']=Object.keys(itemRows[0]).map(k=>({wch:Math.max(10,Math.min(40,k.length+2))}));
-    XLSX.utils.book_append_sheet(wb,ws2,'Položky');
-  }
-  const ws3=XLSX.utils.aoa_to_sheet([
-    ['Nastavení nákladů použité v exportu'],
-    ['GoPay – procento z platby (%)',r2(cfg.gopayPct)],
-    ['GoPay – fixně za platbu (Kč)',r2(cfg.gopayFixed)],
-    ['Zásilkovna CZ – cena balíku (Kč)',r2(cfg.shipCZ)],
-    ['Zásilkovna SK – cena balíku (Kč)',r2(cfg.shipSK)],
-    [],
-    ['Vyexportováno',new Date().toLocaleString('cs-CZ')],
-  ]);
-  ws3['!cols']=[{wch:36},{wch:22}];
-  XLSX.utils.book_append_sheet(wb,ws3,'Nastavení');
+  XLSX.utils.book_append_sheet(wb,ws,'Objednávky');
+  XLSX.utils.book_append_sheet(wb,ws2,'Položky');
 
   const {from,to}=ovwRange();
   const fmt=d=>ovwToInput(d);
   const range=from?`${fmt(from)}_${fmt(new Date((to||new Date()).getTime()-86400000))}`:'vse';
   XLSX.writeFile(wb,`hopi-objednavky-${range}.xlsx`);
-  showToast(`✅ Exportováno ${list.length} objednávek`);
+  showToast(`✅ Exportováno ${n} objednávek`);
 };
 
 
