@@ -932,7 +932,7 @@ if(HOPI_IS_STAGE){
   document.addEventListener('DOMContentLoaded', () => {
     const b = document.createElement('div');
     b.textContent = '🧪 TESTOVACÍ PROSTŘEDÍ';
-    b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:2147483647;background:#ff9800;color:#111;font:700 12px/1 system-ui,sans-serif;letter-spacing:.5px;padding:8px 12px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none';
+    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:10px;white-space:nowrap;z-index:2147483647;background:#ff9800;color:#111;font:700 12px/1 system-ui,sans-serif;letter-spacing:.5px;padding:8px 12px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.35);pointer-events:none';
     document.body.appendChild(b);
   });
 }
@@ -5466,9 +5466,269 @@ window.adminLogout=async function(){
   setTimeout(()=>go('admin-login'),400);
 }
 
-let adminView='orders';
+let adminView='overview';
 let dopravaTab='zasilkovna';
 let adminOrderId=null;
+
+// ============== ADMIN NAVIGACE (skupiny podle vzoru: Přehled → Provoz → Statistiky → … → Správa) ==============
+const HV_I={
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  receipt:'<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8M8 11h8M8 15h5"/>',
+  list:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
+  invoice:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/>',
+  chart:'<path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/>',
+  wallet:'<path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>',
+  shirt:'<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+  megaphone:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  tag:'<path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+  star:'<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
+  alert:'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  sliders:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  globe:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  card:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  truck:'<path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+  cloud:'<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',
+  chevron:'<path d="m6 9 6 6 6-6"/>',
+  external:'<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  box:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.27 6.96 8.73 5.05 8.73-5.05M12 22.08V12"/>',
+};
+function hvIcon(name,size,extra){return `<svg width="${size||20}" height="${size||20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra||''}>${HV_I[name]||''}</svg>`}
+
+function getAdminNav(){
+  const orders=getOrders();
+  const newCount=orders.filter(o=>(o.status||'new')==='new').length;
+  const complaintsPending=(typeof getComplaints==='function'?getComplaints():[]).filter(c=>c.status==='pending').length;
+  return [
+    {id:'overview',label:'Přehled',icon:'grid',view:'overview'},
+    {id:'provoz',label:'Provoz',icon:'receipt',children:[
+      {view:'orders',label:'Objednávky',icon:'list',badge:newCount,also:['ordersClassic','ordersOverview','processing','history']},
+      {view:'invoices',label:'Fakturace',icon:'invoice'},
+    ]},
+    {id:'stat',label:'Statistiky',icon:'chart',children:[
+      {view:'stats',label:'Statistiky',icon:'chart'},
+      {view:'finance',label:'Finance',icon:'wallet'},
+    ]},
+    {id:'katalog',label:'Produkty',icon:'shirt',view:'products'},
+    {id:'marketing',label:'Nabídka a marketing',icon:'megaphone',children:[
+      {view:'monetize',label:'Slevy a upsell',icon:'tag'},
+      {view:'emails',label:'E-maily',icon:'mail'},
+    ]},
+    {id:'kvalita',label:'Kvalita',icon:'star',iconColor:'#FF9F0A',iconFill:true,children:[
+      {view:'complaints',label:'Reklamace',icon:'alert',badge:complaintsPending},
+    ]},
+    {id:'sprava',label:'Správa',icon:'gear',children:[
+      {view:'settings',label:'Nastavení shopu',icon:'sliders'},
+      {view:'website',label:'Nastavení webu',icon:'globe'},
+      {view:'payments',label:'Platby',icon:'card'},
+      {view:'shipping',label:'Doprava',icon:'truck'},
+      {view:'sheets',label:'Záloha (Sheets)',icon:'cloud'},
+    ]},
+  ];
+}
+let adminNavOpen=null;
+function hvIsActive(item){return adminView===item.view||(item.also||[]).includes(adminView)}
+function hvGroupOfView(nav){const g=nav.find(g=>g.children&&g.children.some(hvIsActive));return g?g.id:null}
+window.hvGo=function(view){
+  adminView=view;adminOrderId=null;
+  window.scrollTo({top:0});
+  viewAdmin();
+};
+window.hvToggle=function(id){
+  adminNavOpen=(adminNavOpen===id)?'':id;
+  const nav=getAdminNav();
+  const d=document.getElementById('hvNavDesktop'); if(d)d.innerHTML=hvNavDesktopItems(nav);
+  const m=document.getElementById('hvNavMobile'); if(m){const x=m.scrollLeft;m.innerHTML=hvNavMobileItems(nav);m.scrollLeft=x;
+    const g=m.querySelector('.hv-pill.group.open'); if(g&&g.nextElementSibling)g.nextElementSibling.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});}
+};
+window.hvToggleIdentity=function(){document.getElementById('hvIdentityMenu')?.classList.toggle('show')};
+
+function hvBadge(n){return n>0?`<span class="hv-badge">${n}</span>`:''}
+function hvNavDesktopItems(nav){
+  return nav.map(g=>{
+    const ic=hvIcon(g.icon,20,g.iconFill?`style="color:${g.iconColor};fill:${g.iconColor}"`:'');
+    if(!g.children){
+      return `<a class="hv-item ${hvIsActive(g)?'active':''}" onclick="hvGo('${g.view}')">${ic}<span>${g.label}</span></a>`;
+    }
+    const open=adminNavOpen===g.id;
+    const childBadge=g.children.reduce((s,c)=>s+(c.badge||0),0);
+    return `<div class="hv-group ${open?'open':''}">
+      <a class="hv-item hv-head" onclick="hvToggle('${g.id}')">${ic}<span>${g.label}</span>${!open?hvBadge(childBadge):''}<i class="hv-chev">${hvIcon('chevron',18)}</i></a>
+      ${open?`<div class="hv-children">${g.children.map(c=>`<a class="hv-item hv-child ${hvIsActive(c)?'active':''}" onclick="hvGo('${c.view}')">${hvIcon(c.icon,18)}<span>${c.label}</span>${hvBadge(c.badge)}</a>`).join('')}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function hvNavMobileItems(nav){
+  return nav.map(g=>{
+    const ic=hvIcon(g.icon,18,g.iconFill?`style="color:${g.iconColor};fill:${g.iconColor}"`:'');
+    if(!g.children){
+      return `<button class="hv-pill ${hvIsActive(g)?'active':''}" onclick="hvGo('${g.view}')">${ic}${g.label}</button>`;
+    }
+    const open=adminNavOpen===g.id;
+    const childBadge=g.children.reduce((s,c)=>s+(c.badge||0),0);
+    return `<button class="hv-pill group ${open?'open':''} ${g.children.some(hvIsActive)?'has-active':''}" onclick="hvToggle('${g.id}')">${ic}${g.label}${!open?hvBadge(childBadge):''}<i class="hv-chev">${hvIcon('chevron',16)}</i></button>`+
+      (open?g.children.map(c=>`<button class="hv-pill child ${hvIsActive(c)?'active':''}" onclick="hvGo('${c.view}')">${hvIcon(c.icon,18)}${c.label}${hvBadge(c.badge)}</button>`).join(''):'');
+  }).join('');
+}
+function hvIdentityCard(newCount){
+  return `<div class="hv-identity" onclick="hvToggleIdentity()">
+      <div class="hv-logo">HV</div>
+      <div class="hv-idtext"><small>E-shop</small><b>HOPI VIRTUAL</b></div>
+      ${newCount>0?`<span class="hv-count" title="Nové objednávky">${newCount}</span>`:''}
+      <i class="hv-chev">${hvIcon('chevron',18)}</i>
+    </div>
+    <div class="hv-idmenu" id="hvIdentityMenu">
+      <a onclick="go('home')">${hvIcon('external',18)}Otevřít web</a>
+      <a onclick="adminLogout()">${hvIcon('logout',18)}Odhlásit se</a>
+    </div>`;
+}
+function renderAdminChrome(admin){
+  const nav=getAdminNav();
+  if(adminNavOpen===null)adminNavOpen=hvGroupOfView(nav)||'';
+  const ag=hvGroupOfView(nav); if(ag&&adminNavOpen==='')adminNavOpen=ag;
+  const newCount=getOrders().filter(o=>(o.status||'new')==='new').length;
+  const name=(admin&&admin.name)||'Admin';
+  const initials=name.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+  return `
+    <aside class="hv-side">
+      ${hvIdentityCard(newCount)}
+      <div class="hv-seclabel">Sekce</div>
+      <div id="hvNavDesktop">${hvNavDesktopItems(nav)}</div>
+      <div class="hv-user">
+        <div class="hv-avatar">${escapeHtml(initials)}</div>
+        <div class="hv-idtext"><b>${escapeHtml(name)}</b><small style="text-transform:none;letter-spacing:0">Administrátor</small></div>
+        <button class="hv-iconbtn" title="Otevřít web" onclick="go('home')">${hvIcon('external',18)}</button>
+        <button class="hv-iconbtn" title="Odhlásit se" onclick="adminLogout()">${hvIcon('logout',18)}</button>
+      </div>
+    </aside>
+    <div class="hv-mtop">
+      ${hvIdentityCard(newCount)}
+      <div class="hv-pills" id="hvNavMobile">${hvNavMobileItems(nav)}</div>
+    </div>`;
+}
+function hvAfterRender(){
+  const m=document.getElementById('hvNavMobile'); if(!m)return;
+  const a=m.querySelector('.hv-pill.active')||m.querySelector('.hv-pill.has-active');
+  if(a){const r=a.offsetLeft-16; m.scrollLeft=Math.max(0,r-(m.clientWidth-a.offsetWidth)/2);}
+}
+
+const HV_ADMIN_CSS=`
+.hv-shell{display:flex;min-height:100vh;background:#F2F2F7;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",system-ui,sans-serif}
+.hv-shell .admin-main{flex:1;min-width:0}
+.hv-side{width:290px;flex-shrink:0;background:#F7F7F9;border-right:1px solid rgba(60,60,67,.12);padding:18px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px;box-sizing:border-box}
+.hv-identity{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid rgba(60,60,67,.12);border-radius:20px;padding:12px 14px;cursor:pointer;user-select:none}
+.hv-logo{width:44px;height:44px;border-radius:13px;background:#008A3F;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;letter-spacing:.02em;flex-shrink:0}
+.hv-idtext{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.2}
+.hv-idtext small{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(60,60,67,.6)}
+.hv-idtext b{font-size:15px;font-weight:800;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hv-count{background:rgba(118,118,128,.12);border-radius:999px;padding:4px 10px;font-weight:700;font-size:13px;color:#000}
+.hv-chev{display:inline-flex;color:rgba(60,60,67,.6);font-style:normal;transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.hv-idmenu{display:none;background:#fff;border:1px solid rgba(60,60,67,.12);border-radius:16px;padding:6px;margin-top:-2px}
+.hv-idmenu.show{display:block}
+.hv-idmenu a{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;font-weight:600;font-size:15px;color:#000;cursor:pointer}
+.hv-idmenu a:hover{background:rgba(118,118,128,.1)}
+.hv-seclabel{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(60,60,67,.55);padding:16px 12px 6px}
+#hvNavDesktop{display:flex;flex-direction:column;gap:2px;flex:1}
+.hv-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;color:#1c1c1e;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;transition:background .2s}
+.hv-item:hover{background:rgba(118,118,128,.1)}
+.hv-item svg{flex-shrink:0;color:#3a3a3c}
+.hv-item span{flex:1;min-width:0}
+.hv-item span.hv-badge{flex:0 0 auto}
+.hv-item.active{background:color-mix(in srgb,#008A3F 12%,white);color:#006B30}
+.hv-item.active svg{color:#008A3F}
+.hv-group.open>.hv-head .hv-chev{transform:rotate(180deg)}
+.hv-children{margin:2px 0 6px 22px;padding-left:12px;border-left:2px solid rgba(60,60,67,.12);display:flex;flex-direction:column;gap:2px}
+.hv-child{font-size:15px;padding:9px 12px}
+.hv-badge{background:#FF3B30;color:#fff;border-radius:999px;min-width:20px;height:20px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-left:4px}
+.hv-user{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(60,60,67,.12);border-radius:20px;padding:10px 10px 10px 12px;margin-top:12px}
+.hv-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#34C759,#008A3F);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.hv-iconbtn{width:36px;height:36px;border-radius:11px;border:0;background:rgba(118,118,128,.1);color:#3a3a3c;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hv-iconbtn:hover{background:rgba(118,118,128,.18)}
+.hv-mtop{display:none}
+.hv-pills{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:2px 16px 14px;margin:0 -16px;scroll-padding:0 16px}
+.hv-pills::-webkit-scrollbar{display:none}
+.hv-pill{flex-shrink:0;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(60,60,67,.14);background:#fff;color:#1c1c1e;font:600 15px/1 -apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;cursor:pointer;white-space:nowrap;transition:background .2s,transform .2s cubic-bezier(.32,.72,0,1)}
+.hv-pill:active{transform:scale(.97)}
+.hv-pill svg{color:#3a3a3c}
+.hv-pill.group{background:rgba(118,118,128,.1);border-color:transparent}
+.hv-pill.group.open{background:#fff;border-color:rgba(60,60,67,.3)}
+.hv-pill.group.open .hv-chev{transform:rotate(180deg)}
+.hv-pill.active{background:color-mix(in srgb,#008A3F 12%,white);border-color:transparent;color:#006B30}
+.hv-pill.active svg{color:#008A3F}
+.ovw-page{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 18px}
+.ovw-page h1{font-size:clamp(28px,4vw,34px);font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.1;font-family:inherit;text-transform:none}
+.ovw-pagesub{font-size:15px;color:rgba(60,60,67,.6);margin-top:3px}
+.ovw-live{display:inline-flex;align-items:center;gap:7px;background:rgba(118,118,128,.12);border-radius:999px;padding:7px 13px;font-weight:600;font-size:13.5px;white-space:nowrap}
+.ovw-live i{width:8px;height:8px;border-radius:50%;background:#34C759;box-shadow:0 0 0 3px rgba(52,199,89,.25)}
+.ovw-live.stage{color:#8a5100;background:#FFF1DC} .ovw-live.stage i{background:#FF9500;box-shadow:0 0 0 3px rgba(255,149,0,.25)}
+.hv-dash{padding:28px clamp(16px,3vw,40px) 48px;font-family:inherit}
+.hv-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.hv-card{background:#fff;border-radius:26px;padding:22px 24px;box-shadow:0 1px 2px rgba(0,0,0,.04);cursor:pointer;transition:transform .2s cubic-bezier(.32,.72,0,1),box-shadow .2s;border:0;text-align:left;font-family:inherit;color:#000}
+.hv-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.07)} .hv-card:active{transform:scale(.98)}
+.hv-card-top{display:flex;align-items:center;gap:14px;font-size:17px;font-weight:600;color:rgba(60,60,67,.75)}
+.hv-tile{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hv-card-num{font-size:52px;font-weight:800;letter-spacing:-.03em;margin-top:14px;line-height:1;font-variant-numeric:tabular-nums}
+.hv-card-sub{font-size:14px;color:rgba(60,60,67,.6);margin-top:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hv-card{display:flex;flex-direction:column}
+@media (max-width:960px){
+  .hv-shell{display:block}
+  .hv-side{display:none}
+  .hv-mtop{display:block;background:#fff;padding:14px 16px 0;border-bottom:1px solid rgba(60,60,67,.12);position:sticky;top:0;z-index:200}
+  .hv-mtop .hv-idmenu{margin:8px 0 6px}
+  .hv-mtop .hv-identity{margin-bottom:12px}
+  .hv-cards{grid-template-columns:1fr 1fr;gap:12px}
+  .hv-card{padding:16px;border-radius:22px}
+  .hv-card-top{font-size:14.5px;gap:10px;align-items:flex-start;flex-direction:column}
+  .hv-tile{width:42px;height:42px;border-radius:12px}
+  .hv-card-num{font-size:40px;margin-top:10px}
+}
+@media (prefers-reduced-motion:reduce){.hv-shell *{transition:none!important}}
+`;
+function hvEnsureCss(){
+  if(document.getElementById('hvAdminCss'))return;
+  const st=document.createElement('style');st.id='hvAdminCss';st.textContent=HV_ADMIN_CSS;document.head.appendChild(st);
+}
+
+// ---- Přehled (první obrazovka adminu) ----
+function hvStockTotal(p){
+  let s=p.stock;
+  if(typeof s==='string'){try{s=JSON.parse(s)}catch(e){s=Number(s)}}
+  if(s&&typeof s==='object')return Object.values(s).reduce((a,v)=>a+(Number(v)||0),0);
+  return Number(s)||0;
+}
+window.hvOpenOrders=function(status){
+  if(typeof ovwState!=='undefined'){ovwState.period='all';ovwState.status=status||'all';ovwState.activeOnly=false;ovwState.q=''}
+  hvGo('orders');
+};
+function viewAdminOverview(){
+  const orders=getOrders();
+  const n=s=>orders.filter(o=>s.includes(o.status||'new')).length;
+  const pending=(typeof getComplaints==='function'?getComplaints():[]).filter(c=>c.status==='pending').length;
+  const low=getProducts().filter(p=>hvStockTotal(p)<=2);
+  const card=(icon,color,label,num,sub,onclick)=>`
+    <button class="hv-card" onclick="${onclick}">
+      <div class="hv-card-top"><span class="hv-tile" style="background:color-mix(in srgb,${color} 14%,white);color:${color}">${hvIcon(icon,24)}</span>${label}</div>
+      <div class="hv-card-num">${num}</div>
+      ${sub?`<div class="hv-card-sub">${sub}</div>`:''}
+    </button>`;
+  return `
+  <div class="hv-dash">
+    <div class="ovw-page">
+      <div><h1>Přehled</h1><div class="ovw-pagesub">HOPI VIRTUAL e-shop</div></div>
+      <span class="ovw-live ${HOPI_IS_STAGE?'stage':''}"><i></i>${HOPI_IS_STAGE?'Testovací prostředí':'Živě'}</span>
+    </div>
+    <div class="hv-cards">
+      ${card('inbox','#007AFF','Nové objednávky',n(['new']),'čekají na přijetí',"hvOpenOrders('new')")}
+      ${card('box','#FF9500','Ke zpracování',n(['accepted','processing']),'přijaté a balí se',"hvOpenOrders('todo')")}
+      ${card('alert','#FF3B30','Reklamace',pending,'čekají na vyřízení',"hvGo('complaints')")}
+      ${card('shirt','#5856D6','Málo skladem',low.length,low.length?escapeHtml(low.slice(0,2).map(p=>p.name.replace(/^HOPI VIRTUAL\s*[–-]\s*/,'')).join(', '))+(low.length>2?'…':''):'všechno je skladem',"hvGo('products')")}
+    </div>
+  </div>`;
+}
+
 
 function closeMobileSidebar(){
   document.querySelector('.admin-sidebar')?.classList.remove('mobile-open');
@@ -5479,6 +5739,8 @@ function viewAdmin(){
   // zavřít mobilní sidebar při přechodu
   closeMobileSidebar();
   document.body.classList.add('admin-body');
+  hvEnsureCss();
+  setTimeout(hvAfterRender,0);
   const admin=getAdminUser();
   // Sync ze Supabase JEN JEDNOU za session (aby se nenacháloval problikáváním)
   if(_supabaseReady && !window._supabaseAdminSynced){
@@ -5497,45 +5759,11 @@ function viewAdmin(){
   const processingCount=orders.filter(o=>['accepted','processing'].includes(o.status)).length;
 
   document.getElementById('app').innerHTML=`
-    <header class="topbar">
-      <button class="admin-mobile-menu" onclick="document.querySelector('.admin-sidebar').classList.toggle('mobile-open')" aria-label="Menu">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-      <a class="brand" onclick="go('home')">
-        <div class="brand-mark">HOPI</div>
-        <div class="brand-text">VIRTUAL<sup style="font-size:9px">®</sup><small>Admin</small></div>
-      </a>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:0.1em;display:flex;align-items:center;gap:10px" class="admin-user-badge">
-        <div style="width:30px;height:30px;background:var(--green);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:12px">${admin.name[0]}</div>
-        ${admin.name.toUpperCase()} · ADMIN
-      </div>
-      <a class="logout" onclick="adminLogout()">Odhlásit</a>
-    </header>
-    <div class="admin-layout">
-      <aside class="admin-sidebar">
-        <ul>
-          <div class="sidebar-section">Správa</div>
-          <li><a class="${adminView==='orders'||adminView==='ordersClassic'||adminView==='ordersOverview'||adminView==='processing'||adminView==='history'?'active':''}" onclick="adminView='orders';adminOrderId=null;viewAdmin()">📦 <span>Objednávky</span>${newCount>0?`<span class="sidebar-badge">${newCount}</span>`:''}</a></li>
-          <div class="sidebar-section">Katalog</div>
-          <li><a class="${adminView==='products'?'active':''}" onclick="adminView='products';adminOrderId=null;viewAdmin()">👕 <span>Produkty</span></a></li>
-          <div class="sidebar-section">Komunikace</div>
-          <li><a class="${adminView==='emails'?'active':''}" onclick="adminView='emails';adminOrderId=null;viewAdmin()">📧 <span>E-maily</span></a></li>
-          <li><a class="${adminView==='complaints'?'active':''}" onclick="adminView='complaints';adminOrderId=null;viewAdmin()">🔄 <span>Reklamace</span>${getComplaints().filter(c=>c.status==='pending').length>0?`<span class="sidebar-badge">${getComplaints().filter(c=>c.status==='pending').length}</span>`:''}</a></li>
-          <div class="sidebar-section">Přehled</div>
-          <li><a class="${adminView==='finance'?'active':''}" onclick="adminView='finance';adminOrderId=null;viewAdmin()">💰 <span>Finance</span></a></li>
-          <li><a class="${adminView==='invoices'?'active':''}" onclick="adminView='invoices';adminOrderId=null;viewAdmin()">📄 <span>Fakturace (iDoklad)</span></a></li>
-          <li><a class="${adminView==='monetize'?'active':''}" onclick="adminView='monetize';adminOrderId=null;viewAdmin()">💎 <span>Monetizace</span></a></li>
-          <li><a class="${adminView==='stats'?'active':''}" onclick="adminView='stats';adminOrderId=null;viewAdmin()">📊 <span>Statistiky</span></a></li>
-          <div class="sidebar-section">Web</div>
-          <li><a class="${adminView==='payments'?'active':''}" onclick="adminView='payments';adminOrderId=null;viewAdmin()">💳 <span>Platby (Snipcart)</span></a></li>
-          <li><a class="${adminView==='shipping'?'active':''}" onclick="adminView='shipping';adminOrderId=null;viewAdmin()">🚚 <span>Doprava</span></a></li>
-          <li><a class="${adminView==='sheets'?'active':''}" onclick="adminView='sheets';adminOrderId=null;viewAdmin()">☁️ <span>Backend (Sheets)</span></a></li>
-          <li><a class="${adminView==='website'?'active':''}" onclick="adminView='website';adminOrderId=null;viewAdmin()">🌐 <span>Nastavení webu</span></a></li>
-          <li><a class="${adminView==='settings'?'active':''}" onclick="adminView='settings';adminOrderId=null;viewAdmin()">⚙️ <span>Nastavení shopu</span></a></li>
-        </ul>
-      </aside>
+    <div class="hv-shell">
+      ${renderAdminChrome(admin)}
       <main class="admin-main">
         ${adminOrderId?viewOrderDetail(adminOrderId):(
+          adminView==='overview'?viewAdminOverview():
           adminView==='orders'||adminView==='ordersOverview'?viewOrdersOverview():
           adminView==='ordersClassic'?viewOrdersList('orders'):
           adminView==='processing'||adminView==='history'?viewOrdersList(adminView):
@@ -8640,7 +8868,7 @@ function calculateOrderMargin(order){
 }
 
 // ============== PŘEHLED OBJEDNÁVEK + ROZPIS NÁKLADŮ + EXPORT XLSX ==============
-// Samostatná sekce admin → "Přehled a export". Nic nemění na objednávkách, jen čte.
+// Sekce admin → Objednávky (přehled, rozpis a export). Nic nemění na objednávkách, jen čte.
 const OVW_PAY_LABELS={card:'Platební karta',applepay:'Apple Pay',googlepay:'Google Pay',transfer:'Bankovní převod',cod:'Dobírka'};
 const OVW_SHIP_LABELS={zasilkovna:'Zásilkovna – výdejní místo',zasilkovna_address:'Zásilkovna – na adresu',balikovna:'Balíkovna',ppl:'PPL',kuryr:'Kurýr'};
 const OVW_SHIP_SHORT={zasilkovna:'Zásilkovna',zasilkovna_address:'Zásilkovna adresa',balikovna:'Balíkovna',ppl:'PPL',kuryr:'Kurýr'};
@@ -8698,13 +8926,13 @@ function calcOrderBreakdown(o,cfg,products){
   const tip=Number(o.tip)||0; // spropitné (připraveno pro budoucí volbu v košíku – ukládej jako order.tip)
   const total=Number(o.total)||0;
   const country=(o.customer?.country||'cz').toLowerCase()==='sk'?'sk':'cz';
-  const shipCost=country==='sk'?Number(cfg.shipSK)||0:Number(cfg.shipCZ)||0;
-  const viaGoPay=OVW_GOPAY_METHODS.includes(o.pay)||!!o.gopayPaymentId;
-  const gopayFee=viaGoPay&&total>0?Math.round((total*(Number(cfg.gopayPct)||0)/100+(Number(cfg.gopayFixed)||0))*100)/100:0;
-  const costs=goodsCost+packCost+shipCost+gopayFee;
-  const profit=Math.round((total-costs)*100)/100;
-  const margin=total>0?profit/total*100:0;
-  return {goods,discount,shipping,codFee,tip,total,goodsCost,packCost,shipCost,gopayFee,costs,profit,margin,country,viaGoPay,missingCost};
+  // Náklady se berou JEN z karty produktu (Produkty → nákupní cena + balné)
+  const shipCost=0, gopayFee=0, viaGoPay=false;
+  const goodsNet=goods-discount;                 // za zboží po slevě
+  const costs=goodsCost+packCost;
+  const profit=Math.round((goodsNet-costs)*100)/100; // zisk ze zboží
+  const margin=goodsNet>0?profit/goodsNet*100:0;
+  return {goods,goodsNet,discount,shipping,codFee,tip,total,goodsCost,packCost,shipCost,gopayFee,costs,profit,margin,country,viaGoPay,missingCost};
 }
 
 // ---- Filtrování ----
@@ -8734,7 +8962,8 @@ function getOverviewOrders(){
     if(from&&d<from)return false;
     if(to&&d>=to)return false;
     if(ovwState.activeOnly&&['delivered','cancelled'].includes(o.status))return false;
-    if(ovwState.status!=='all'&&o.status!==ovwState.status)return false;
+    if(ovwState.status==='todo'){if(!['accepted','processing'].includes(o.status))return false}
+    else if(ovwState.status!=='all'&&o.status!==ovwState.status)return false;
     if(ovwState.pay!=='all'&&o.pay!==ovwState.pay)return false;
     const c=(o.customer?.country||'cz').toLowerCase()==='sk'?'sk':'cz';
     if(ovwState.country!=='all'&&c!==ovwState.country)return false;
@@ -8918,26 +9147,12 @@ function viewOrdersOverview(){
         <div class="ovw-title"><h2>${ovwState.activeOnly?'Aktivní objednávky':'Všechny objednávky'}</h2><span>${rows.length}&nbsp;${rows.length===1?'záznam':(rows.length>=2&&rows.length<=4?'záznamy':'záznamů')}</span></div>
         <div class="ovw-actions">
           <button class="ovw-btn ${ovwState.activeOnly?'on':'quiet'}" onclick="ovwSet('activeOnly',${!ovwState.activeOnly})">Jen aktivní</button>
-          <button class="ovw-btn ${ovwState.showCosts?'on':''}" onclick="ovwSet('showCosts',${!ovwState.showCosts})">${OVW_ICONS.settings} Náklady${!cfg.saved?'<span class="ovw-dot" title="Nastav skutečné náklady"></span>':''}</button>
           <button class="ovw-btn" onclick="exportOverviewXLSX()" ${rows.length?'':'disabled style="opacity:.5;cursor:default"'}>${OVW_ICONS.download} Export XLSX</button>
           <button class="ovw-btn" onclick="ovwRefresh()">${OVW_ICONS.refresh} Obnovit</button>
-          <button class="ovw-btn quiet" onclick="adminView='ordersClassic';adminOrderId=null;viewAdmin()" title="Složky, štítky a hromadné akce">Složky</button>
           ${HOPI_IS_STAGE?'<button class="ovw-btn quiet" onclick="createTestOrder()">+ Test</button>':''}
         </div>
       </div>
 
-      ${ovwState.showCosts?`
-      <div class="ovw-costs">
-        <h3>Náklady na objednávku</h3>
-        <p>${cfg.saved?'':'<b style="color:#8a5100">Zatím se počítá podle starého nastavení z Finance – zadej čísla ze smlouvy s GoPay a Zásilkovnou.</b><br>'}Podle těchto čísel se počítá poplatek a zisk u každé objednávky. Nákupní cenu a balné bereš z karty produktu.</p>
-        <div class="ovw-costs-grid">
-          <div class="ovw-f"><label for="ovwGopayPct">GoPay – % z platby</label><input id="ovwGopayPct" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.gopayPct}" placeholder="např. 1.5"></div>
-          <div class="ovw-f"><label for="ovwGopayFixed">GoPay – fixně (Kč)</label><input id="ovwGopayFixed" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.gopayFixed}" placeholder="např. 3"></div>
-          <div class="ovw-f"><label for="ovwShipCZ">Zásilkovna CZ (Kč)</label><input id="ovwShipCZ" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.shipCZ}" placeholder="např. 62"></div>
-          <div class="ovw-f"><label for="ovwShipSK">Zásilkovna SK (Kč)</label><input id="ovwShipSK" type="number" step="0.01" min="0" inputmode="decimal" value="${cfg.shipSK}" placeholder="např. 95"></div>
-          <button class="ovw-btn primary" style="justify-content:center;height:40px" onclick="saveOrderCostsConfig()">Uložit náklady</button>
-        </div>
-      </div>`:''}
 
       <div class="ovw-filters">
         <div class="ovw-f"><label>Období</label>
@@ -8947,7 +9162,7 @@ function viewOrdersOverview(){
           <div class="ovw-f"><label for="ovwFrom">Od</label><input id="ovwFrom" type="date" value="${fromVal}" onchange="ovwSet('from',this.value)"></div>
           <div class="ovw-f"><label for="ovwTo">Do</label><input id="ovwTo" type="date" value="${toVal}" onchange="ovwSet('to',this.value)"></div>
         </div>
-        <div class="ovw-f"><label>Stav</label>${sel('status',[['all','Vše'],['new','Nová'],['accepted','Přijato'],['processing','Zpracovává se'],['shipped','Odesláno'],['delivered','Doručeno'],['cancelled','Zrušeno']])}</div>
+        <div class="ovw-f"><label>Stav</label>${sel('status',[['all','Vše'],['todo','Ke zpracování'],['new','Nová'],['accepted','Přijato'],['processing','Zpracovává se'],['shipped','Odesláno'],['delivered','Doručeno'],['cancelled','Zrušeno']])}</div>
         <div class="ovw-f"><label>Platba</label>${sel('pay',[['all','Vše'],['card','Platební karta'],['applepay','Apple Pay'],['googlepay','Google Pay'],['transfer','Bankovní převod'],['cod','Dobírka']])}</div>
         <div class="ovw-f"><label>Země</label>${sel('country',[['all','Vše'],['cz','Česko'],['sk','Slovensko']])}</div>
         <div class="ovw-f ovw-search"><label for="ovwSearch">Hledat</label>${OVW_ICONS.search.replace('<svg','<svg style="top:33px"')}<input id="ovwSearch" type="text" value="${escapeHtml(ovwState.q)}" placeholder="Číslo, jméno, město, kód…" oninput="ovwSearch(this.value)"></div>
@@ -8974,7 +9189,7 @@ function viewOrdersOverview(){
               <td class="r">${ovwKc(b.goods)}${b.discount?`<div class="ovw-sub ovw-neg">sleva −${ovwKc(b.discount)}</div>`:''}</td>
               <td class="r">${ovwKc(b.shipping+b.codFee)}${b.codFee?`<div class="ovw-sub">dobírka ${ovwKc(b.codFee,0)}</div>`:''}</td>
               <td class="r" style="font-weight:800">${ovwKc(b.total)}${b.tip?`<div class="ovw-sub" style="font-weight:400">spropitné ${ovwKc(b.tip,0)}</div>`:''}</td>
-              <td class="r">−${ovwKc(b.costs,0)}<div class="ovw-sub" ${b.missingCost?'style="color:var(--ovw-orange)"':''}>zboží ${ovwKc(b.goodsCost+b.packCost,0)}${b.missingCost?' (chybí cena)':''}<br>doprava ${ovwKc(b.shipCost,0)}${b.viaGoPay?'<br>GoPay '+ovwKc(b.gopayFee,0):''}</div></td>
+              <td class="r">−${ovwKc(b.costs,0)}${b.packCost||b.missingCost?`<div class="ovw-sub" ${b.missingCost?'style="color:var(--ovw-orange)"':''}>${b.missingCost?'chybí cena':'z toho obal '+ovwKc(b.packCost,0)}</div>`:''}</td>
               <td class="r" style="font-weight:800"><span class="${b.profit>=0?'ovw-pos':'ovw-neg'}">${ovwKc(b.profit,0)}</span><div class="ovw-sub">${b.margin.toLocaleString('cs-CZ',{maximumFractionDigits:0})} %</div></td>
               <td class="ovw-chev">${OVW_ICONS.chevron}</td>
             </tr>`}).join('')}
@@ -9000,17 +9215,14 @@ function viewOrdersOverview(){
             <span>Doprava</span><span>${ovwKc(b.shipping+b.codFee)}</span>
             ${b.tip?`<span>Spropitné</span><span>${ovwKc(b.tip,0)}</span>`:''}
             <span class="tot">Celkem</span><span class="tot">${ovwKc(b.total)}</span>
-            <span>Náklady zboží</span><span>−${ovwKc(b.goodsCost+b.packCost,0)}</span>
-            <span>Doprava nás</span><span>−${ovwKc(b.shipCost,0)}</span>
-            ${b.viaGoPay?`<span>Poplatek GoPay</span><span>−${ovwKc(b.gopayFee,0)}</span>`:''}
-            <span class="tot">Zisk</span><span class="tot ${b.profit>=0?'ovw-pos':'ovw-neg'}" style="color:${b.profit>=0?'var(--ovw-accent)':'var(--ovw-red)'}!important">${ovwKc(b.profit,0)}</span>
+            <span>Náklady zboží</span><span>−${ovwKc(b.costs,0)}</span>
+            <span class="tot">Zisk ze zboží</span><span class="tot ${b.profit>=0?'ovw-pos':'ovw-neg'}" style="color:${b.profit>=0?'var(--ovw-accent)':'var(--ovw-red)'}!important">${ovwKc(b.profit,0)}</span>
           </div>
         </div>`}).join('')}
       </div>
       `}
     </div>
-    ${anyMissing?`<div class="ovw-warn" style="margin-top:0">U některých produktů chybí nákupní cena, takže je zisk u nich nadsazený. Doplň ji v Produkty → upravit produkt.</div>`:''}
-    <p style="font-size:12.5px;color:var(--ovw-muted);margin:4px 4px 0;line-height:1.5">Náklady zboží = nákupní cena + balné z karty produktu (aktuální hodnoty). GoPay se počítá jen u plateb kartou, Apple Pay a Google Pay. Zrušené objednávky se do součtů nepočítají.</p>
+    ${anyMissing?`<div class="ovw-warn" style="margin-top:0">U některých produktů chybí nákupní cena v sekci Produkty, takže je u nich zisk nadsazený.</div>`:''}
   </div>`;
 }
 
@@ -9045,7 +9257,7 @@ window.exportOverviewXLSX=async function(){
   const PAY_X={card:['kartou','3D8FD6'],applepay:['Apple Pay','3D8FD6'],googlepay:['Google Pay','3D8FD6'],transfer:['převodem','9B6FD6'],cod:['dobírka','5CC45C']};
 
   // ---- list 1: Objednávky (podle vzoru) ----
-  const H=['Datum','Stav','Číslo obj','Vytvořeno','Zákazník','Cena obalů','Cena dopravy','Cena objednávky','Za zboží','Platební metoda','Doplatek','Slevový kupon','Sleva','Spropitné','Nákupní cena','Doprava nás stála','Poplatek GoPay','Zisk'];
+  const H=['Datum','Stav','Číslo obj','Vytvořeno','Zákazník','Cena obalů','Cena dopravy','Cena objednávky','Za zboží','Platební metoda','Doplatek','Slevový kupon','Sleva','Spropitné','Nákupní cena','Zisk ze zboží'];
   const ws={};
   const put=(r,c,cell)=>{ws[XLSX.utils.encode_cell({r,c})]=cell};
   const col=c=>XLSX.utils.encode_col(c);
@@ -9075,14 +9287,12 @@ window.exportOverviewXLSX=async function(){
     money(12,b.discount);
     money(13,b.tip);
     money(14,b.goodsCost);
-    money(15,b.shipCost);
-    money(16,b.gopayFee,KC2);
-    if(cancelled)put(r,17,{v:'',t:'s',s:base});
-    else put(r,17,{t:'n',v:r2(b.profit),f:`H${ex}-F${ex}-O${ex}-P${ex}-Q${ex}`,z:KC2,s:{...base,numFmt:KC2,font:{name:'Roboto',sz:11,bold:true,color:{rgb:b.profit>=0?'1E7B34':'C62828'}}}});
+    if(cancelled)put(r,15,{v:'',t:'s',s:base});
+    else put(r,15,{t:'n',v:r2(b.profit),f:`I${ex}-F${ex}-O${ex}`,z:KC2,s:{...base,numFmt:KC2,font:{name:'Roboto',sz:11,bold:true,color:{rgb:b.profit>=0?'1E7B34':'C62828'}}}});
   });
 
   // ---- souhrn vpravo (vzorce → přepočítá se, když v Excelu něco upravíš) ----
-  const L=19, V=20, last=n+1; // sloupce T a U
+  const L=17, V=18, last=n+1; // sloupce R a S
   const rng=c=>`${col(c)}2:${col(c)}${last}`;
   const lbl=(rgb)=>({font:{name:'Roboto',sz:11,bold:true},fill:{fgColor:{rgb}},border,alignment:{vertical:'center'}});
   const val=(rgb,fmt)=>({font:{name:'Roboto',sz:11,bold:true},fill:{fgColor:{rgb}},border,numFmt:fmt||KC,alignment:{horizontal:'right',vertical:'center'}});
@@ -9098,23 +9308,21 @@ window.exportOverviewXLSX=async function(){
     null,
     ['Nákupní cena celkem',`SUM(${rng(14)})`,S('goodsCost'),'E0E0E0'],
     ['Obaly celkem',`SUM(${rng(5)})`,S('packCost'),'E0E0E0'],
-    ['Doprava nás stála',`SUM(${rng(15)})`,S('shipCost'),'E0E0E0'],
-    ['Poplatky GoPay',`SUM(${rng(16)})`,S('gopayFee'),'E0E0E0',KC2],
     null,
-    ['ZISK CELKEM',`SUM(${rng(17)})`,S('profit'),'7CFC5C',KC2],
+    ['ZISK ZE ZBOŽÍ',`SUM(${rng(15)})`,S('profit'),'7CFC5C',KC2],
   ];
-  let rr=2; let profitRow=0, revenueRow=3;
+  let rr=2; let profitRow=0, revenueRow=4; // marže = zisk / za zboží
   sumRows.forEach(x=>{
     if(x){
       put(rr,L,{v:x[0],t:'s',s:lbl(x[3])});
       put(rr,V,{t:'n',v:x[2],f:x[1],z:x[4]||KC,s:val(x[3],x[4])});
-      if(x[0]==='ZISK CELKEM')profitRow=rr+1;
+      if(x[0]==='ZISK ZE ZBOŽÍ')profitRow=rr+1;
     }
     rr++;
   });
   put(rr,L,{v:'Marže',t:'s',s:lbl('7CFC5C')});
-  const tot=S('total');
-  put(rr,V,{t:'n',v:tot?S('profit')/tot:0,f:`IF(U${revenueRow}=0,0,U${profitRow}/U${revenueRow})`,z:'0.0 %',s:val('7CFC5C','0.0 %')});
+  const tot=r2(S('goods')-S('discount'));
+  put(rr,V,{t:'n',v:tot?S('profit')/tot:0,f:`IF(S${revenueRow}=0,0,S${profitRow}/S${revenueRow})`,z:'0.0 %',s:val('7CFC5C','0.0 %')});
   rr+=2;
   put(rr,L,{v:'Počet objednávek',t:'s',s:lbl('F3F3F3')});
   put(rr,V,{t:'n',v:counted.length,s:val('F3F3F3','0')});
@@ -9122,18 +9330,13 @@ window.exportOverviewXLSX=async function(){
   put(rr,L,{v:'Zrušené (nezapočteno)',t:'s',s:lbl('F3F3F3')});
   put(rr,V,{t:'n',v:n-counted.length,s:val('F3F3F3','0')});
   rr+=2;
-  put(rr,L,{v:'Nastavení nákladů',t:'s',s:{font:{name:'Roboto',sz:11,bold:true}}}); rr++;
-  [['GoPay – procento',r2(cfg.gopayPct)/100,'0.00 %'],['GoPay – fixně za platbu',r2(cfg.gopayFixed),KC2],['Zásilkovna CZ – balík',r2(cfg.shipCZ),KC],['Zásilkovna SK – balík',r2(cfg.shipSK),KC]].forEach(([a,v,f])=>{
-    put(rr,L,{v:a,t:'s',s:{...base}});
-    put(rr,V,{v,t:'n',z:f,s:{...base,numFmt:f,alignment:{horizontal:'right'}}});
-    rr++;
-  });
+  put(rr,L,{v:'Náklady zboží = nákupní cena + obal z karty produktu',t:'s',s:{font:{name:'Roboto',sz:9,color:{rgb:'888888'}}}});
   put(rr+1,L,{v:'Vyexportováno '+new Date().toLocaleString('cs-CZ'),t:'s',s:{font:{name:'Roboto',sz:9,color:{rgb:'888888'}}}});
 
   ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(rr+1,last),c:V}});
-  ws['!cols']=[12,14,12,11,22,12,13,16,12,16,11,15,10,11,13,16,14,13,3,28,14].map(w=>({wch:w}));
+  ws['!cols']=[12,14,12,11,22,12,13,16,12,16,11,15,10,11,13,14,3,28,14].map(w=>({wch:w}));
   ws['!rows']=[{hpt:30}];
-  ws['!autofilter']={ref:`A1:R${last}`};
+  ws['!autofilter']={ref:`A1:P${last}`};
 
   // ---- list 2: Položky ----
   const items=[];
