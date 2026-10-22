@@ -5718,9 +5718,12 @@ const HV_ADMIN_CSS=`
 .an-l{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(0,0,0,.55);margin:16px 0 7px}
 .an-in{width:100%;box-sizing:border-box;border-radius:16px;border:1px solid rgba(60,60,67,.18);background:rgba(255,255,255,.9);padding:13px 15px;font-size:16px;font-family:inherit;color:#000;resize:vertical}
 .an-in:focus{outline:2px solid #008A3F;outline-offset:1px}
+.an-in.an-err{border-color:#FF3B30;box-shadow:0 0 0 3px rgba(255,59,48,.15)}
+input.an-in[type=datetime-local]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;min-height:50px;text-align:left}
+.an-2>div{min-width:0}
 .an-h{font-size:13px;color:rgba(0,0,0,.55);margin-top:6px;line-height:1.45}
 .an-chips{display:flex;flex-wrap:wrap;gap:8px}
-.an-chip{cursor:pointer} .an-chip input{position:absolute;opacity:0;pointer-events:none}
+.an-chip{cursor:pointer;-webkit-tap-highlight-color:transparent} .an-chip input{position:absolute;opacity:0;pointer-events:none}
 .an-chip span{display:inline-flex;align-items:center;height:38px;padding:0 14px;border-radius:999px;background:rgba(118,118,128,.14);font-size:14px;font-weight:600;color:#000;transition:background .2s}
 .an-chip input:checked+span{background:#008A3F;color:#fff}
 .an-chip input:focus-visible+span{outline:2px solid #008A3F;outline-offset:2px}
@@ -6393,7 +6396,7 @@ const HV_ANN_CSS=`
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.hva-card{background:rgba(255,255,255,.96)}.hva-overlay{background:rgba(0,0,0,.55)}}
 @media (prefers-reduced-transparency:reduce){.hva-card{background:#fff;backdrop-filter:none;-webkit-backdrop-filter:none}}
 @media (prefers-reduced-motion:reduce){.hva-overlay,.hva-card{animation:none}}
-@media (max-width:480px){.hva-overlay{align-items:flex-end;padding:12px}.hva-card{border-radius:32px;padding:26px 22px 20px}.hva-card h2{font-size:25px}}
+@media (max-width:480px){.hva-overlay{padding:16px}.hva-card{border-radius:32px;padding:26px 22px 20px}.hva-card h2{font-size:25px}}
 `;
 function hvAnnEnsureCss(){if(document.getElementById('hvAnnCss'))return;const s=document.createElement('style');s.id='hvAnnCss';s.textContent=HV_ANN_CSS;document.head.appendChild(s)}
 let _hvAnnCurrent=null;
@@ -6526,14 +6529,18 @@ window.hvAnnEdit=function(id){
         <button class="hva-cta an-btn" id="anSave" onclick="hvAnnSave()">Uložit</button>
       </div>
     </div></div>`;
-  document.body.appendChild(w); hvAnnValid();
+  document.body.appendChild(w);
   setTimeout(()=>document.getElementById('anTitle')?.focus(),60);
 };
 window.hvAnnEditClose=function(){document.getElementById('hvAnnEditor')?.remove()};
-window.hvAnnValid=function(){
-  const ok=(document.getElementById('anTitle')?.value||'').trim()&&(document.getElementById('anText')?.value||'').trim();
-  const b=document.getElementById('anSave'); if(b){b.disabled=!ok;b.style.opacity=ok?1:.45;b.style.cursor=ok?'pointer':'default'}
-  return !!ok;
+window.hvAnnValid=function(show){
+  const t=document.getElementById('anTitle'), x=document.getElementById('anText');
+  const okT=!!(t?.value||'').trim(), okX=!!(x?.value||'').trim();
+  if(show){
+    t?.classList.toggle('an-err',!okT); x?.classList.toggle('an-err',!okX);
+    if(!okT||!okX){showToast('Vyplň '+(!okT&&!okX?'nadpis a text':!okT?'nadpis':'text'),'error');(!okT?t:x)?.focus();}
+  }else{ if(okT)t?.classList.remove('an-err'); if(okX)x?.classList.remove('an-err'); }
+  return okT&&okX;
 };
 function hvAnnReadForm(){
   const g=id=>(document.getElementById(id)?.value||'').trim();
@@ -6546,7 +6553,7 @@ window.hvAnnEditPreview=function(){
   hvAnnOpen(f,true);
 };
 window.hvAnnSave=async function(){
-  if(!hvAnnValid())return;
+  if(!hvAnnValid(true))return;
   const f=hvAnnReadForm();
   if(f.from&&f.to&&new Date(f.to)<new Date(f.from)){showToast('Konec je dřív než začátek','error');return}
   const id=document.getElementById('anId')?.value;
