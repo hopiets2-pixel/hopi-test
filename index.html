@@ -5506,6 +5506,10 @@ const HV_I={
   inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
   box:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.27 6.96 8.73 5.05 8.73-5.05M12 22.08V12"/>',
 };
+function hvTile(it,size){
+  const sz=size||30, g=Math.round(sz*0.6);
+  return `<span class="hv-tic" style="width:${sz}px;height:${sz}px;background:${it.bg||'#8E8E93'}">${hvIcon(it.icon,g,it.fill?'style="fill:#fff"':'')}</span>`;
+}
 function hvIcon(name,size,extra){return `<svg width="${size||20}" height="${size||20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra||''}>${HV_I[name]||''}</svg>`}
 
 function getAdminNav(){
@@ -5513,35 +5517,35 @@ function getAdminNav(){
   const newCount=orders.filter(o=>(o.status||'new')==='new').length;
   const complaintsPending=(typeof getComplaints==='function'?getComplaints():[]).filter(c=>c.status==='pending').length;
   return [
-    {id:'overview',label:'Přehled',icon:'grid',view:'overview'},
-    {id:'provoz',label:'Provoz',icon:'receipt',children:[
-      {view:'orders',label:'Objednávky',icon:'list',badge:newCount,also:['ordersClassic','ordersOverview','processing','history']},
-      {view:'invoices',label:'Fakturace',icon:'invoice'},
+    {id:'overview',label:'Přehled',icon:'grid',bg:'#007AFF',view:'overview'},
+    {id:'provoz',label:'Provoz',icon:'receipt',bg:'#FF9500',children:[
+      {view:'orders',label:'Objednávky',icon:'list',bg:'#FF9500',badge:newCount,also:['ordersClassic','ordersOverview','processing','history']},
+      {view:'invoices',label:'Fakturace',icon:'invoice',bg:'#5856D6'},
     ]},
-    {id:'stat',label:'Statistiky',icon:'chart',children:[
-      {view:'stats',label:'Statistiky',icon:'chart'},
-      {view:'finance',label:'Finance',icon:'wallet'},
+    {id:'stat',label:'Statistiky',icon:'chart',bg:'#AF52DE',children:[
+      {view:'stats',label:'Statistiky',icon:'chart',bg:'#AF52DE'},
+      {view:'finance',label:'Finance',icon:'wallet',bg:'#34C759'},
     ]},
-    {id:'hosp',label:'Hospodaření',icon:'wallet',children:[
-      {view:'econ',label:'Přehled hospodaření',icon:'chart'},
-      {view:'investments',label:'Investice',icon:'box'},
-      {view:'opex',label:'Provozní náklady',icon:'receipt'},
+    {id:'hosp',label:'Hospodaření',icon:'wallet',bg:'#30B158',children:[
+      {view:'econ',label:'Přehled hospodaření',icon:'chart',bg:'#30B0C7'},
+      {view:'investments',label:'Investice',icon:'box',bg:'#FF9F0A'},
+      {view:'opex',label:'Provozní náklady',icon:'receipt',bg:'#8E8E93'},
     ]},
-    {id:'katalog',label:'Produkty a sklad',icon:'shirt',view:'products'},
-    {id:'marketing',label:'Nabídka a marketing',icon:'megaphone',children:[
-      {view:'announce',label:'Oznámení',icon:'megaphone'},
-      {view:'monetize',label:'Slevy a upsell',icon:'tag'},
-      {view:'emails',label:'E-maily',icon:'mail'},
+    {id:'katalog',label:'Produkty a sklad',icon:'shirt',bg:'#FF2D55',view:'products'},
+    {id:'marketing',label:'Nabídka a marketing',icon:'megaphone',bg:'#FF3B30',children:[
+      {view:'announce',label:'Oznámení',icon:'megaphone',bg:'#FF3B30'},
+      {view:'monetize',label:'Slevy a upsell',icon:'tag',bg:'#FF9500'},
+      {view:'emails',label:'E-maily',icon:'mail',bg:'#007AFF'},
     ]},
-    {id:'kvalita',label:'Kvalita',icon:'star',iconColor:'#FF9F0A',iconFill:true,children:[
-      {view:'complaints',label:'Reklamace',icon:'alert',badge:complaintsPending},
+    {id:'kvalita',label:'Kvalita',icon:'star',bg:'#FFCC00',fill:true,children:[
+      {view:'complaints',label:'Reklamace',icon:'alert',bg:'#FF3B30',badge:complaintsPending},
     ]},
-    {id:'sprava',label:'Správa',icon:'gear',children:[
-      {view:'settings',label:'Nastavení shopu',icon:'sliders'},
-      {view:'website',label:'Nastavení webu',icon:'globe'},
-      {view:'payments',label:'Platby',icon:'card'},
-      {view:'shipping',label:'Doprava',icon:'truck'},
-      {view:'sheets',label:'Záloha (Sheets)',icon:'cloud'},
+    {id:'sprava',label:'Správa',icon:'gear',bg:'#8E8E93',children:[
+      {view:'settings',label:'Nastavení shopu',icon:'sliders',bg:'#8E8E93'},
+      {view:'website',label:'Nastavení webu',icon:'globe',bg:'#007AFF'},
+      {view:'payments',label:'Platby',icon:'card',bg:'#34C759'},
+      {view:'shipping',label:'Doprava',icon:'truck',bg:'#FF9500'},
+      {view:'sheets',label:'Záloha (Sheets)',icon:'cloud',bg:'#5AC8FA'},
     ]},
   ];
 }
@@ -5565,7 +5569,7 @@ window.hvToggleIdentity=function(){document.getElementById('hvIdentityMenu')?.cl
 function hvBadge(n){return n>0?`<span class="hv-badge">${n}</span>`:''}
 function hvNavDesktopItems(nav){
   return nav.map(g=>{
-    const ic=hvIcon(g.icon,20,g.iconFill?`style="color:${g.iconColor};fill:${g.iconColor}"`:'');
+    const ic=hvTile(g,30);
     if(!g.children){
       return `<a class="hv-item ${hvIsActive(g)?'active':''}" onclick="hvGo('${g.view}')">${ic}<span>${g.label}</span></a>`;
     }
@@ -5573,20 +5577,20 @@ function hvNavDesktopItems(nav){
     const childBadge=g.children.reduce((s,c)=>s+(c.badge||0),0);
     return `<div class="hv-group ${open?'open':''}">
       <a class="hv-item hv-head" onclick="hvToggle('${g.id}')">${ic}<span>${g.label}</span>${!open?hvBadge(childBadge):''}<i class="hv-chev">${hvIcon('chevron',18)}</i></a>
-      ${open?`<div class="hv-children">${g.children.map(c=>`<a class="hv-item hv-child ${hvIsActive(c)?'active':''}" onclick="hvGo('${c.view}')">${hvIcon(c.icon,18)}<span>${c.label}</span>${hvBadge(c.badge)}</a>`).join('')}</div>`:''}
+      ${open?`<div class="hv-children">${g.children.map(c=>`<a class="hv-item hv-child ${hvIsActive(c)?'active':''}" onclick="hvGo('${c.view}')">${hvTile(c,26)}<span>${c.label}</span>${hvBadge(c.badge)}</a>`).join('')}</div>`:''}
     </div>`;
   }).join('');
 }
 function hvNavMobileItems(nav){
   return nav.map(g=>{
-    const ic=hvIcon(g.icon,18,g.iconFill?`style="color:${g.iconColor};fill:${g.iconColor}"`:'');
+    const ic=hvTile(g,28);
     if(!g.children){
       return `<button class="hv-pill ${hvIsActive(g)?'active':''}" onclick="hvGo('${g.view}')">${ic}${g.label}</button>`;
     }
     const open=adminNavOpen===g.id;
     const childBadge=g.children.reduce((s,c)=>s+(c.badge||0),0);
     return `<button class="hv-pill group ${open?'open':''} ${g.children.some(hvIsActive)?'has-active':''}" onclick="hvToggle('${g.id}')">${ic}${g.label}${!open?hvBadge(childBadge):''}<i class="hv-chev">${hvIcon('chevron',16)}</i></button>`+
-      (open?g.children.map(c=>`<button class="hv-pill child ${hvIsActive(c)?'active':''}" onclick="hvGo('${c.view}')">${hvIcon(c.icon,18)}${c.label}${hvBadge(c.badge)}</button>`).join(''):'');
+      (open?g.children.map(c=>`<button class="hv-pill child ${hvIsActive(c)?'active':''}" onclick="hvGo('${c.view}')">${hvTile(c,28)}${c.label}${hvBadge(c.badge)}</button>`).join(''):'');
   }).join('');
 }
 function hvIdentityCard(newCount){
@@ -5702,6 +5706,56 @@ const HV_ADMIN_CSS=`
   .hv-card-num{font-size:40px;margin-top:10px}
 }
 @media (prefers-reduced-motion:reduce){.hv-shell *{transition:none!important}}
+.hv-tic{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;flex-shrink:0;color:#fff;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
+.hv-tic svg,.hv-item .hv-tic svg,.hv-pill .hv-tic svg,.hv-item.active .hv-tic svg,.hv-pill.active .hv-tic svg{color:#fff!important;stroke:#fff;stroke-width:2.2}
+.hv-child .hv-tic{border-radius:7px}
+.hv-pill{padding-left:8px!important;gap:10px!important}
+.hv-pill .hv-tic{border-radius:8px}
+.hv-item span.hv-tic{flex:0 0 auto}
+.hv-item{gap:12px}
+.hv-children{margin-left:26px!important}
+
+.gp-info{background:color-mix(in srgb,#34C759 11%,white);color:#1E5E2E;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.5;margin-bottom:10px}
+.gp-info.warn{background:color-mix(in srgb,#FF9500 13%,white);color:#7a4a00}
+.gp-st{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-weight:600;font-size:12.5px;white-space:nowrap} .gp-st i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.gp-pair{display:inline-flex;align-items:center;gap:6px} .gp-pair em,.gp-feegrid em{font-style:normal;color:rgba(60,60,67,.6);font-size:13px}
+.gp-table input.sm{width:72px}
+.gp-fees{padding:14px 22px 10px;border-top:1px solid rgba(60,60,67,.1)}
+.gp-feegrid{display:flex;flex-wrap:wrap;gap:10px 24px}
+.gp-feegrid label{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600}
+.gp-feegrid label span{display:inline-flex;align-items:center;gap:6px}
+.gp-feegrid input{height:36px;border-radius:10px;border:1px solid rgba(60,60,67,.18);width:80px;text-align:right;padding:0 10px;font-size:14px;font-family:inherit}
+
+.fin-hero{background:linear-gradient(135deg,#0a0a0a,#1c1c1e);color:#fff;border-radius:26px;padding:28px 30px;margin-bottom:16px;position:relative;overflow:hidden;border:1px solid rgba(0,200,83,.35)}
+.fin-glow{position:absolute;top:-80px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(0,200,83,.38),transparent 70%);filter:blur(40px)}
+.fin-kicker{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#4ADE80;margin-bottom:18px}
+.fin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:24px}
+.fin-l{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:6px}
+.fin-v{font-size:clamp(28px,3.4vw,40px);font-weight:800;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-s{font-size:13px;color:rgba(255,255,255,.55);margin-top:8px}
+.fin-legend{display:flex;gap:14px;font-size:13px;color:rgba(60,60,67,.7);font-weight:600}
+.fin-legend span{display:inline-flex;align-items:center;gap:6px} .fin-legend i{width:10px;height:10px;border-radius:50%}
+.fin-chartwrap{padding:16px 22px 20px}
+.fin-insight{margin:0 0 14px;font-size:14.5px;color:rgba(60,60,67,.75)} .fin-insight b{color:#000}
+.fin-chart{position:relative;display:flex;align-items:stretch;gap:clamp(6px,2vw,18px);height:240px}
+.fin-col{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}
+.fin-val{font-size:11.5px;font-weight:700;color:rgba(60,60,67,.75);height:18px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fin-bars{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:4px}
+.fin-bar{width:min(26px,42%);border-radius:8px 8px 4px 4px;transition:height .4s cubic-bezier(.32,.72,0,1)}
+.fin-mon{font-size:12.5px;font-weight:600;color:rgba(60,60,67,.55);margin-top:8px;height:16px}
+.fin-mon.cur{color:#008A3F;font-weight:800}
+.fin-avg{position:absolute;left:0;right:0;border-top:1.5px dashed rgba(60,60,67,.3);pointer-events:none}
+.fin-avg span{position:absolute;right:0;top:-18px;font-size:11px;font-weight:600;color:rgba(60,60,67,.55);background:#fff;padding:0 4px}
+.fin-pm{padding:6px 22px 14px}
+.fin-pmrow{display:grid;grid-template-columns:minmax(150px,1fr) 2fr 60px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(60,60,67,.1)}
+.fin-pmrow:last-child{border-bottom:0}
+.fin-pmname b{display:block;font-size:15px} .fin-pmname span{font-size:12.5px;color:rgba(60,60,67,.6)}
+.fin-pmbar{height:12px;border-radius:999px;background:rgba(118,118,128,.12);overflow:hidden} .fin-pmbar i{display:block;height:100%;border-radius:999px;background:#008A3F}
+.fin-pmpct{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.fin-legacy>summary{list-style:none} .fin-legacy>summary::-webkit-details-marker{display:none}
+.fin-legacy[open]>summary .pv-tag{display:none}
+@media (max-width:760px){.fin-hero{padding:22px 18px}.fin-grid{grid-template-columns:1fr 1fr;gap:18px}.fin-v{font-size:24px}.fin-chartwrap{padding:14px 16px}.fin-chart{height:200px}.fin-val{font-size:0}.fin-pm{padding:4px 16px 10px}.fin-pmrow{grid-template-columns:1fr 54px;gap:6px 10px}.fin-pmbar{grid-column:1/-1;grid-row:2}}
+
 .an-list{display:flex;flex-direction:column}
 .an-row{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(60,60,67,.1);flex-wrap:wrap}
 .an-row:last-child{border-bottom:0}
@@ -5841,7 +5895,7 @@ function viewAdminOverview(){
   const low=getProducts().filter(p=>hvStockTotal(p)<=2);
   const card=(icon,color,label,num,sub,onclick)=>`
     <button class="hv-card" onclick="${onclick}">
-      <div class="hv-card-top"><span class="hv-tile" style="background:color-mix(in srgb,${color} 14%,white);color:${color}">${hvIcon(icon,24)}</span>${label}</div>
+      <div class="hv-card-top"><span class="hv-tile" style="background:${color};color:#fff">${hvIcon(icon,24,'style="stroke-width:2.2"')}</span>${label}</div>
       <div class="hv-card-num">${num}</div>
       ${sub?`<div class="hv-card-sub">${sub}</div>`:''}
     </button>`;
@@ -6057,7 +6111,7 @@ function viewEconomy(){
     <div class="hv-panel">
       <div class="hv-panelhead"><div class="ovw-title"><h2>Po měsících</h2><span>${E.monthRows.length}</span></div></div>
       ${E.monthRows.length?`<div class="hv-tablewrap"><table class="hv-table">
-        <thead><tr><th>Měsíc</th><th class="r">Obrat</th><th class="r">Náklady zboží</th><th class="r">Hrubý zisk</th><th class="r">Doprava</th><th class="r">Provoz</th><th class="r">Čistý zisk</th><th class="r">Marže</th><th class="r">Obj.</th><th class="r">Kusy</th><th class="r">Průměr</th></tr></thead>
+        <thead><tr><th>Měsíc</th><th class="r">Obrat</th><th class="r">Náklady</th><th class="r">Hrubý zisk</th><th class="r">Doprava</th><th class="r">Provoz</th><th class="r">Čistý zisk</th><th class="r">Marže</th><th class="r">Obj.</th><th class="r">Kusy</th><th class="r">Průměr</th></tr></thead>
         <tbody>${E.monthRows.map(m=>`<tr>
           <td><b>${hvMonthLabel(m.key)}</b></td><td class="r">${hvKc(m.obrat)}</td><td class="r">${hvKc(m.costs)}</td>
           <td class="r">${hvKc(m.profit)}</td><td class="r">${m.ship?'+'+hvKc(m.ship):'—'}</td><td class="r">${m.opex?'−'+hvKc(m.opex):'—'}</td>
@@ -6564,6 +6618,104 @@ window.hvAnnSave=async function(){
   if(ok===false)return;
   hvAnnEditClose(); viewAdmin();
 };
+
+// ============== POPLATKY GOPAY (tarify s platností) ==============
+const HV_GP_DEFAULT={saved:false,tariffs:[
+  {id:'t1',from:'2026-05-07',to:'2027-07-03',cardPct:0,cardFix:0,bankPct:0.95,bankFix:0,note:'Zvýhodněný ceník'},
+  {id:'t2',from:'2027-07-04',to:'',cardPct:0.95,cardFix:0,bankPct:0.95,bankFix:0,note:'Standardní ceník'},
+],fees:{payout:10,refund:5,chargeback:990}};
+function getGopayTariffs(){
+  const v=getAppSetting('hopi_gopay_tariffs',null);
+  if(!v||!Array.isArray(v.tariffs))return JSON.parse(JSON.stringify(HV_GP_DEFAULT));
+  return {saved:true,tariffs:v.tariffs,fees:Object.assign({payout:0,refund:0,chargeback:0},v.fees||{})};
+}
+function hvTariffFor(date){
+  const d=ovwToInput(date||new Date());
+  const list=getGopayTariffs().tariffs.filter(t=>(!t.from||t.from<=d)&&(!t.to||t.to>=d));
+  return list.sort((a,b)=>String(b.from).localeCompare(String(a.from)))[0]||null;
+}
+function hvGopayFee(o){
+  if(!(OVW_GOPAY_METHODS.includes(o.pay)||(o.gopayPaymentId&&o.pay!=='transfer'&&o.pay!=='cod')))return {fee:0,via:false};
+  const t=hvTariffFor(o.date); const total=Number(o.total)||0;
+  if(!t||!total)return {fee:0,via:true};
+  return {fee:Math.round((total*(Number(t.cardPct)||0)/100+(Number(t.cardFix)||0))*100)/100,via:true};
+}
+function hvTariffStatus(t,today){
+  today=today||ovwToInput(new Date());
+  if(t.from&&t.from>today)return ['Budoucí','#007AFF'];
+  if(t.to&&t.to<today)return ['Skončil','#8E8E93'];
+  return ['Platí teď','#34C759'];
+}
+async function hvGpPersist(g,msg){g.saved=true;_appSettingsCache['hopi_gopay_tariffs']={tariffs:g.tariffs,fees:g.fees};return hvSave('hopi_gopay_tariffs',{tariffs:g.tariffs,fees:g.fees},msg)}
+window.hvGpEdit=function(id,field,val){
+  const g=getGopayTariffs(); const t=g.tariffs.find(x=>x.id===id); if(!t)return;
+  t[field]=(field==='from'||field==='to'||field==='note')?val:(parseFloat(String(val).replace(',','.'))||0);
+  _appSettingsCache['hopi_gopay_tariffs']={tariffs:g.tariffs,fees:g.fees}; hvSaveLater('hopi_gopay_tariffs',{tariffs:g.tariffs,fees:g.fees});
+  if(field==='from'||field==='to'){clearTimeout(window._hvGpRender);window._hvGpRender=setTimeout(()=>viewAdmin(),700)}
+};
+window.hvGpFee=function(field,val){
+  const g=getGopayTariffs(); g.fees[field]=parseFloat(String(val).replace(',','.'))||0;
+  _appSettingsCache['hopi_gopay_tariffs']={tariffs:g.tariffs,fees:g.fees}; hvSaveLater('hopi_gopay_tariffs',{tariffs:g.tariffs,fees:g.fees});
+};
+window.hvGpAdd=async function(){
+  const g=getGopayTariffs(); const last=g.tariffs.slice().sort((a,b)=>String(a.from).localeCompare(String(b.from))).pop();
+  let from=ovwToInput(new Date());
+  if(last&&last.to){const d=new Date(last.to+'T12:00:00');d.setDate(d.getDate()+1);from=ovwToInput(d)}
+  else if(last&&last.from&&last.from>=from){const d=new Date(last.from+'T12:00:00');d.setFullYear(d.getFullYear()+1);from=ovwToInput(d)}
+  g.tariffs.push({id:'t'+Date.now(),from,to:'',cardPct:last?last.cardPct:0,cardFix:last?last.cardFix:0,bankPct:last?last.bankPct:0,bankFix:last?last.bankFix:0,note:''});
+  await hvGpPersist(g,'✅ Tarif přidán'); viewAdmin();
+};
+window.hvGpDel=async function(id){
+  const g=getGopayTariffs(); if(g.tariffs.length<=1){showToast('Aspoň jeden tarif musí zůstat','error');return}
+  if(!confirm('Smazat tenhle tarif?'))return;
+  g.tariffs=g.tariffs.filter(t=>t.id!==id); await hvGpPersist(g,'Smazáno'); viewAdmin();
+};
+window.hvGpSave=async function(){const g=getGopayTariffs();await hvGpPersist(g,'✅ Poplatky GoPay uloženy');viewAdmin()};
+function renderGopayFeesPanel(){
+  const g=getGopayTariffs(); const today=ovwToInput(new Date());
+  const list=g.tariffs.slice().sort((a,b)=>String(a.from).localeCompare(String(b.from)));
+  const cur=hvTariffFor(new Date());
+  const next=list.find(t=>t.from&&t.from>today);
+  let info='';
+  if(cur&&cur.to){
+    const days=Math.round((new Date(cur.to+'T23:59:59')-new Date())/86400000);
+    const d=new Date(cur.to+'T12:00:00').toLocaleDateString('cs-CZ');
+    info=`<div class="gp-info ${days<=30?'warn':''}"><b>${escapeHtml(cur.note||'Současný tarif')}</b> platí do <b>${d}</b> (${days<=0?'dnes končí':'ještě '+days+' '+(days===1?'den':days<5?'dny':'dní')}).${next?` Pak karta ${String(next.cardPct).replace('.',',')} % + ${next.cardFix} Kč.`:' Další tarif zatím není zadaný.'}</div>`;
+  }
+  const num=(id,f,v,step)=>`<input type="number" step="${step||'0.01'}" min="0" inputmode="decimal" class="num sm" value="${Number(v)||0}" oninput="hvGpEdit('${id}','${f}',this.value)">`;
+  return `
+    <div class="hv-panel">
+      <div class="hv-panelhead">
+        <div class="ovw-title"><h2>Poplatky GoPay</h2><span>podle ceníku v GoPay administraci</span></div>
+        <div class="ovw-actions">${g.saved?'':`<button class="ovw-btn primary" onclick="hvGpSave()">Uložit</button>`}<button class="ovw-btn" onclick="hvGpAdd()">+ Další tarif</button></div>
+      </div>
+      <div style="padding:16px 22px 4px">
+        ${g.saved?'':'<div class="gp-info warn">Předvyplnil jsem čísla z tvého ceníku GoPay (zvýhodněný do 3. 7. 2027, pak 0,95 %). Zkontroluj je a klikni na <b>Uložit</b>.</div>'}
+        ${info}
+      </div>
+      <div class="hv-tablewrap"><table class="hv-table ec-edit gp-table">
+        <thead><tr><th>Stav</th><th>Platí od</th><th>do</th><th class="r">Karta, Apple/Google Pay</th><th class="r">Online převod</th><th>Poznámka</th><th></th></tr></thead>
+        <tbody>${list.map(t=>{const [s,c]=hvTariffStatus(t,today);return `<tr>
+          <td><span class="gp-st" style="color:${c};background:color-mix(in srgb,${c} 13%,white)"><i></i>${s}</span></td>
+          <td><input type="date" value="${escapeHtml(t.from||'')}" onchange="hvGpEdit('${t.id}','from',this.value)"></td>
+          <td><input type="date" value="${escapeHtml(t.to||'')}" onchange="hvGpEdit('${t.id}','to',this.value)" title="Prázdné = bez konce"></td>
+          <td class="r"><span class="gp-pair">${num(t.id,'cardPct',t.cardPct)}<em>%&nbsp;+</em>${num(t.id,'cardFix',t.cardFix)}<em>Kč</em></span></td>
+          <td class="r"><span class="gp-pair">${num(t.id,'bankPct',t.bankPct)}<em>%&nbsp;+</em>${num(t.id,'bankFix',t.bankFix)}<em>Kč</em></span></td>
+          <td><input type="text" value="${escapeHtml(t.note||'')}" placeholder="např. Zvýhodněný" oninput="hvGpEdit('${t.id}','note',this.value)" style="min-width:150px"></td>
+          <td class="r"><button class="ec-del" title="Smazat" onclick="hvGpDel('${t.id}')">×</button></td>
+        </tr>`}).join('')}</tbody>
+      </table></div>
+      <div class="gp-fees">
+        <div class="an-l" style="margin:0 0 8px">Ostatní poplatky</div>
+        <div class="gp-feegrid">
+          <label>Vyúčtování a převod na účet<span>${`<input type="number" step="0.01" min="0" class="num sm" value="${g.fees.payout}" oninput="hvGpFee('payout',this.value)">`}<em>Kč</em></span></label>
+          <label>Storno platby<span><input type="number" step="0.01" min="0" class="num sm" value="${g.fees.refund}" oninput="hvGpFee('refund',this.value)"><em>Kč</em></span></label>
+          <label>Chargeback<span><input type="number" step="0.01" min="0" class="num sm" value="${g.fees.chargeback}" oninput="hvGpFee('chargeback',this.value)"><em>Kč</em></span></label>
+        </div>
+      </div>
+      <p class="hv-note" style="margin:0;padding:0 22px 18px">Poplatek za platbu kartou, Apple Pay a Google Pay se u každé objednávky spočítá podle tarifu platného v den objednávky a odečte se ze zisku (Objednávky, Finance, Hospodaření, export). Ostatní poplatky (vyúčtování, storno) zapisuj do Hospodaření → Provozní náklady. Změny se ukládají samy.</p>
+    </div>`;
+}
 
 function closeMobileSidebar(){
   document.querySelector('.admin-sidebar')?.classList.remove('mobile-open');
@@ -8128,6 +8280,35 @@ function setPaymentsConfig(c){
 }
 
 function viewPaymentsSettings(){
+  const st=getSettings(); const has=!!st.bankAccount;
+  const legacy=viewPaymentsSettingsLegacy().replace(/^\s*<div class="view-head">[\s\S]*?<\/div>\s*<\/div>/,'');
+  return `
+  <div class="hv-dash">
+    ${hvPageHead('Platby','Bankovní účet pro převody a nastavení online plateb')}
+    <div class="hv-panel">
+      <div class="hv-panelhead">
+        <div class="ovw-title"><h2>Bankovní účet pro převody</h2></div>
+        <span class="pv-tag" style="${has?'background:color-mix(in srgb,#34C759 14%,white);color:#1E7B34':'background:color-mix(in srgb,#FF9500 16%,white);color:#8a5100'}">${has?'Nastaveno':'Nenastaveno'}</span>
+      </div>
+      <div style="padding:18px 22px 22px">
+        <p style="margin:0 0 16px;font-size:14.5px;color:rgba(60,60,67,.7);line-height:1.5">Když zákazník zvolí platbu převodem, dostane tyhle údaje e-mailem a uvidí je na potvrzovací stránce (jako variabilní symbol číslo objednávky). Po připsání platby objednávku označíš jako zaplacenou.</p>
+        <div class="ec-form" style="padding:0">
+          <div class="ovw-f grow"><label for="fin_bankAccount">Číslo účtu (s kódem banky)</label><input type="text" id="fin_bankAccount" value="${escapeHtml(st.bankAccount||'')}" placeholder="např. 1234567890/0100" inputmode="numeric"></div>
+          <div class="ovw-f grow"><label for="fin_iban">IBAN (pro Slovensko a EU)</label><input type="text" id="fin_iban" value="${escapeHtml(st.iban||'')}" placeholder="např. CZ65 0100 0000 0012 3456 7890"></div>
+          <div class="ovw-f grow"><label for="fin_bankName">Název banky</label><input type="text" id="fin_bankName" value="${escapeHtml(st.bankName||'')}" placeholder="např. Fio banka"></div>
+          <button class="ovw-btn primary" onclick="saveBankingFromFinance()">Uložit účet</button>
+        </div>
+        ${has?'':'<div class="ovw-warn" style="margin:14px 0 0;background:color-mix(in srgb,#FF9500 12%,white);color:#8a5100;border-radius:14px;padding:12px 14px;font-size:13.5px">Bez čísla účtu zákazníci, kteří zvolí převod, nevědí kam zaplatit.</div>'}
+      </div>
+    </div>
+    ${renderGopayFeesPanel()}
+    <details class="hv-panel fin-legacy">
+      <summary class="hv-panelhead" style="cursor:pointer"><div class="ovw-title"><h2>Online platby (Snipcart) – starší nastavení</h2></div><span class="pv-tag">rozbalit</span></summary>
+      <div style="padding:16px 22px 22px">${legacy}</div>
+    </details>
+  </div>`;
+}
+function viewPaymentsSettingsLegacy(){
   const config=getPaymentsConfig();
   const activeKey = config.mode==='live' ? config.snipcartLiveKey : config.snipcartTestKey;
   const isConfigured = !!activeKey;
@@ -9709,9 +9890,11 @@ function calcOrderBreakdown(o,cfg,products){
   const total=Number(o.total)||0;
   const country=(o.customer?.country||'cz').toLowerCase()==='sk'?'sk':'cz';
   // Náklady se berou JEN z karty produktu (Produkty → nákupní cena + balné)
-  const shipCost=0, gopayFee=0, viaGoPay=false;
+  const shipCost=0;
+  const gp=(typeof hvGopayFee==='function')?hvGopayFee(o):{fee:0,via:false};
+  const gopayFee=gp.fee, viaGoPay=gp.via;           // podle tarifu ve Správa → Platby
   const goodsNet=goods-discount;                 // za zboží po slevě
-  const costs=goodsCost+packCost;
+  const costs=goodsCost+packCost+gopayFee;
   const profit=Math.round((goodsNet-costs)*100)/100; // zisk ze zboží
   const margin=goodsNet>0?profit/goodsNet*100:0;
   return {goods,goodsNet,discount,shipping,codFee,tip,total,goodsCost,packCost,shipCost,gopayFee,costs,profit,margin,country,viaGoPay,missingCost};
@@ -9971,7 +10154,7 @@ function viewOrdersOverview(){
               <td class="r">${ovwKc(b.goods)}${b.discount?`<div class="ovw-sub ovw-neg">sleva −${ovwKc(b.discount)}</div>`:''}</td>
               <td class="r">${ovwKc(b.shipping+b.codFee)}${b.codFee?`<div class="ovw-sub">dobírka ${ovwKc(b.codFee,0)}</div>`:''}</td>
               <td class="r" style="font-weight:800">${ovwKc(b.total)}${b.tip?`<div class="ovw-sub" style="font-weight:400">spropitné ${ovwKc(b.tip,0)}</div>`:''}</td>
-              <td class="r">−${ovwKc(b.costs,0)}${b.packCost||b.missingCost?`<div class="ovw-sub" ${b.missingCost?'style="color:var(--ovw-orange)"':''}>${b.missingCost?'chybí cena':'z toho obal '+ovwKc(b.packCost,0)}</div>`:''}</td>
+              <td class="r">−${ovwKc(b.costs,0)}${b.packCost||b.missingCost||b.gopayFee?`<div class="ovw-sub" ${b.missingCost?'style="color:var(--ovw-orange)"':''}>${b.missingCost?'chybí cena':[b.packCost?'obal '+ovwKc(b.packCost,0):'',b.gopayFee?'GoPay '+ovwKc(b.gopayFee,0):''].filter(Boolean).join(' · ')}</div>`:''}</td>
               <td class="r" style="font-weight:800"><span class="${b.profit>=0?'ovw-pos':'ovw-neg'}">${ovwKc(b.profit,0)}</span><div class="ovw-sub">${b.margin.toLocaleString('cs-CZ',{maximumFractionDigits:0})} %</div></td>
               <td class="ovw-chev">${OVW_ICONS.chevron}</td>
             </tr>`}).join('')}
@@ -9997,7 +10180,8 @@ function viewOrdersOverview(){
             <span>Doprava</span><span>${ovwKc(b.shipping+b.codFee)}</span>
             ${b.tip?`<span>Spropitné</span><span>${ovwKc(b.tip,0)}</span>`:''}
             <span class="tot">Celkem</span><span class="tot">${ovwKc(b.total)}</span>
-            <span>Náklady zboží</span><span>−${ovwKc(b.costs,0)}</span>
+            <span>Náklady zboží</span><span>−${ovwKc(b.goodsCost+b.packCost,0)}</span>
+            ${b.gopayFee?`<span>Poplatek GoPay</span><span>−${ovwKc(b.gopayFee,0)}</span>`:''}
             <span class="tot">Zisk ze zboží</span><span class="tot ${b.profit>=0?'ovw-pos':'ovw-neg'}" style="color:${b.profit>=0?'var(--ovw-accent)':'var(--ovw-red)'}!important">${ovwKc(b.profit,0)}</span>
           </div>
         </div>`}).join('')}
@@ -10039,7 +10223,7 @@ window.exportOverviewXLSX=async function(){
   const PAY_X={card:['kartou','3D8FD6'],applepay:['Apple Pay','3D8FD6'],googlepay:['Google Pay','3D8FD6'],transfer:['převodem','9B6FD6'],cod:['dobírka','5CC45C']};
 
   // ---- list 1: Objednávky (podle vzoru) ----
-  const H=['Datum','Stav','Číslo obj','Vytvořeno','Zákazník','Cena obalů','Cena dopravy','Cena objednávky','Za zboží','Platební metoda','Doplatek','Slevový kupon','Sleva','Spropitné','Nákupní cena','Zisk ze zboží'];
+  const H=['Datum','Stav','Číslo obj','Vytvořeno','Zákazník','Cena obalů','Cena dopravy','Cena objednávky','Za zboží','Platební metoda','Doplatek','Slevový kupon','Sleva','Spropitné','Nákupní cena','Poplatek GoPay','Zisk'];
   const ws={};
   const put=(r,c,cell)=>{ws[XLSX.utils.encode_cell({r,c})]=cell};
   const col=c=>XLSX.utils.encode_col(c);
@@ -10069,12 +10253,13 @@ window.exportOverviewXLSX=async function(){
     money(12,b.discount);
     money(13,b.tip);
     money(14,b.goodsCost);
-    if(cancelled)put(r,15,{v:'',t:'s',s:base});
-    else put(r,15,{t:'n',v:r2(b.profit),f:`I${ex}-F${ex}-O${ex}`,z:KC2,s:{...base,numFmt:KC2,font:{name:'Roboto',sz:11,bold:true,color:{rgb:b.profit>=0?'1E7B34':'C62828'}}}});
+    money(15,b.gopayFee,KC2);
+    if(cancelled)put(r,16,{v:'',t:'s',s:base});
+    else put(r,16,{t:'n',v:r2(b.profit),f:`I${ex}-F${ex}-O${ex}-P${ex}`,z:KC2,s:{...base,numFmt:KC2,font:{name:'Roboto',sz:11,bold:true,color:{rgb:b.profit>=0?'1E7B34':'C62828'}}}});
   });
 
   // ---- souhrn vpravo (vzorce → přepočítá se, když v Excelu něco upravíš) ----
-  const L=17, V=18, last=n+1; // sloupce R a S
+  const L=18, V=19, last=n+1; // sloupce S a T
   const rng=c=>`${col(c)}2:${col(c)}${last}`;
   const lbl=(rgb)=>({font:{name:'Roboto',sz:11,bold:true},fill:{fgColor:{rgb}},border,alignment:{vertical:'center'}});
   const val=(rgb,fmt)=>({font:{name:'Roboto',sz:11,bold:true},fill:{fgColor:{rgb}},border,numFmt:fmt||KC,alignment:{horizontal:'right',vertical:'center'}});
@@ -10090,21 +10275,22 @@ window.exportOverviewXLSX=async function(){
     null,
     ['Nákupní cena celkem',`SUM(${rng(14)})`,S('goodsCost'),'E0E0E0'],
     ['Obaly celkem',`SUM(${rng(5)})`,S('packCost'),'E0E0E0'],
+    ['Poplatky GoPay',`SUM(${rng(15)})`,S('gopayFee'),'E0E0E0',KC2],
     null,
-    ['ZISK ZE ZBOŽÍ',`SUM(${rng(15)})`,S('profit'),'7CFC5C',KC2],
+    ['ZISK',`SUM(${rng(16)})`,S('profit'),'7CFC5C',KC2],
   ];
   let rr=2; let profitRow=0, revenueRow=4; // marže = zisk / za zboží
   sumRows.forEach(x=>{
     if(x){
       put(rr,L,{v:x[0],t:'s',s:lbl(x[3])});
       put(rr,V,{t:'n',v:x[2],f:x[1],z:x[4]||KC,s:val(x[3],x[4])});
-      if(x[0]==='ZISK ZE ZBOŽÍ')profitRow=rr+1;
+      if(x[0]==='ZISK')profitRow=rr+1;
     }
     rr++;
   });
   put(rr,L,{v:'Marže',t:'s',s:lbl('7CFC5C')});
   const tot=r2(S('goods')-S('discount'));
-  put(rr,V,{t:'n',v:tot?S('profit')/tot:0,f:`IF(S${revenueRow}=0,0,S${profitRow}/S${revenueRow})`,z:'0.0 %',s:val('7CFC5C','0.0 %')});
+  put(rr,V,{t:'n',v:tot?S('profit')/tot:0,f:`IF(T${revenueRow}=0,0,T${profitRow}/T${revenueRow})`,z:'0.0 %',s:val('7CFC5C','0.0 %')});
   rr+=2;
   put(rr,L,{v:'Počet objednávek',t:'s',s:lbl('F3F3F3')});
   put(rr,V,{t:'n',v:counted.length,s:val('F3F3F3','0')});
@@ -10112,13 +10298,13 @@ window.exportOverviewXLSX=async function(){
   put(rr,L,{v:'Zrušené (nezapočteno)',t:'s',s:lbl('F3F3F3')});
   put(rr,V,{t:'n',v:n-counted.length,s:val('F3F3F3','0')});
   rr+=2;
-  put(rr,L,{v:'Náklady zboží = nákupní cena + obal z karty produktu',t:'s',s:{font:{name:'Roboto',sz:9,color:{rgb:'888888'}}}});
+  put(rr,L,{v:'Zisk = za zboží − obal − nákupní cena − poplatek GoPay (podle tarifu)',t:'s',s:{font:{name:'Roboto',sz:9,color:{rgb:'888888'}}}});
   put(rr+1,L,{v:'Vyexportováno '+new Date().toLocaleString('cs-CZ'),t:'s',s:{font:{name:'Roboto',sz:9,color:{rgb:'888888'}}}});
 
   ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(rr+1,last),c:V}});
-  ws['!cols']=[12,14,12,11,22,12,13,16,12,16,11,15,10,11,13,14,3,28,14].map(w=>({wch:w}));
+  ws['!cols']=[12,14,12,11,22,12,13,16,12,16,11,15,10,11,13,14,13,3,28,14].map(w=>({wch:w}));
   ws['!rows']=[{hpt:30}];
-  ws['!autofilter']={ref:`A1:P${last}`};
+  ws['!autofilter']={ref:`A1:Q${last}`};
 
   // ---- list 2: Položky ----
   const items=[];
@@ -10748,205 +10934,90 @@ window.issueInvoice=async function(orderId, opts={}){
 }
 
 function viewFinance(){
-  const orders=getOrders();
-  const paidOrders=orders.filter(o=>o.status!=='cancelled');
-  const costs=getCosts();
-
-  // Agregace
-  let totalRev=0,totalCost=0,totalMargin=0;
-  paidOrders.forEach(o=>{
-    const m=calculateOrderMargin(o);
-    totalRev+=m.revenue;
-    totalCost+=m.totalCost;
-    totalMargin+=m.margin;
-  });
-  const marginPct=totalRev>0?(totalMargin/totalRev)*100:0;
-
-  // Tento měsíc
+  const products=getProducts();
+  const paid=getOrders().filter(o=>o.status!=='cancelled');
+  const B=paid.map(o=>({o,b:calcOrderBreakdown(o,null,products),d:new Date(o.date)}));
+  const sum=(arr,k)=>arr.reduce((a,x)=>a+(Number(x.b[k])||0),0);
   const now=new Date();
-  const monthStart=new Date(now.getFullYear(),now.getMonth(),1);
-  const monthOrders=paidOrders.filter(o=>new Date(o.date)>=monthStart);
-  let monthRev=0,monthMargin=0,monthCost=0;
-  monthOrders.forEach(o=>{const m=calculateOrderMargin(o);monthRev+=m.revenue;monthMargin+=m.margin;monthCost+=m.totalCost});
-  const monthMarginPct=monthRev>0?(monthMargin/monthRev)*100:0;
-
-  // Minulý měsíc (pro srovnání)
-  const prevMonthStart=new Date(now.getFullYear(),now.getMonth()-1,1);
-  const prevMonthOrders=paidOrders.filter(o=>{const d=new Date(o.date);return d>=prevMonthStart&&d<monthStart});
-  let prevRev=0;
-  prevMonthOrders.forEach(o=>prevRev+=o.total);
-  const revDiff=prevRev>0?((monthRev-prevRev)/prevRev*100):0;
-
-  // Platby podle metody
-  const payMethods={};
-  paidOrders.forEach(o=>{if(!o.pay||o.pay==='undefined')return;payMethods[o.pay]=(payMethods[o.pay]||{count:0,rev:0});payMethods[o.pay].count++;payMethods[o.pay].rev+=o.total;});
-  const payLabels={card:'Platební karta',applepay:'Apple Pay',googlepay:'Google Pay',transfer:'Bankovní převod',cod:'Dobírka'};
-
-  // Měsíční rozložení
-  const monthNames=['Led','Úno','Bře','Dub','Kvě','Čer','Čvc','Srp','Zář','Říj','Lis','Pro'];
-  const monthBuckets=[];
+  const mStart=new Date(now.getFullYear(),now.getMonth(),1);
+  const pStart=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const cur=B.filter(x=>x.d>=mStart), prev=B.filter(x=>x.d>=pStart&&x.d<mStart);
+  const mRev=sum(cur,'total'), mCost=sum(cur,'costs'), mProfit=sum(cur,'profit'), mNet=sum(cur,'goodsNet');
+  const mPct=mNet>0?mProfit/mNet*100:0;
+  const pRev=sum(prev,'total'); const diff=pRev>0?(mRev-pRev)/pRev*100:null;
+  const tRev=sum(B,'total'), tCost=sum(B,'costs'), tProfit=sum(B,'profit'), tNet=sum(B,'goodsNet'), tShip=B.reduce((a,x)=>a+x.b.shipping+x.b.codFee,0);
+  const tPct=tNet>0?tProfit/tNet*100:0;
+  const MN=['led','úno','bře','dub','kvě','čvn','čvc','srp','zář','říj','lis','pro'];
+  const buckets=[];
   for(let i=5;i>=0;i--){
-    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    const end=new Date(now.getFullYear(),now.getMonth()-i+1,1);
-    const mo=paidOrders.filter(o=>{const od=new Date(o.date);return od>=d&&od<end});
-    let r=0,m=0;
-    mo.forEach(o=>{const mg=calculateOrderMargin(o);r+=mg.revenue;m+=mg.margin});
-    monthBuckets.push({label:monthNames[d.getMonth()],rev:r,margin:m,count:mo.length});
+    const a=new Date(now.getFullYear(),now.getMonth()-i,1), e=new Date(now.getFullYear(),now.getMonth()-i+1,1);
+    const xs=B.filter(x=>x.d>=a&&x.d<e);
+    buckets.push({label:MN[a.getMonth()],rev:sum(xs,'total'),profit:sum(xs,'profit'),n:xs.length,current:i===0});
   }
-  const maxRev=Math.max(1,...monthBuckets.map(b=>b.rev));
-
-  const deltaColor=revDiff>=0?'#2e7d32':'#c62828';
-  const deltaSign=revDiff>=0?'↑':'↓';
-
+  const max=Math.max(1,...buckets.map(b=>b.rev));
+  const avg6=buckets.reduce((a,b)=>a+b.rev,0)/6;
+  const best=buckets.reduce((a,b)=>b.rev>a.rev?b:a,buckets[0]);
+  const PL={card:'Platební karta',applepay:'Apple Pay',googlepay:'Google Pay',transfer:'Bankovní převod',cod:'Dobírka'};
+  const pm={}; B.forEach(x=>{const k=x.o.pay;if(!k||k==='undefined')return;(pm[k]=pm[k]||{n:0,rev:0});pm[k].n++;pm[k].rev+=x.b.total});
+  const pmRows=Object.entries(pm).sort((a,b)=>b[1].rev-a[1].rev);
+  const k=v=>formatPrice(Math.round(v))+' Kč';
   return `
-    <div class="view-head">
-      <div><h1>Finance a marže</h1><div class="sub">Obrat, náklady, zisk · aktualizuje se okamžitě</div></div>
-      <div class="view-actions">
-        <button class="abtn" onclick="exportFinanceCSV()">↓ Export CSV</button>
-      </div>
-    </div>
-    <div class="admin-content">
+  <div class="hv-dash">
+    ${hvPageHead('Finance','Obrat, náklady a zisk z objednávek',`<button class="ovw-btn" onclick="exportFinanceCSV()">${hvIcon('download',16)} Export CSV</button>`)}
 
-      <!-- Platební údaje -->
-      <div class="panel" style="margin-bottom:24px">
-        <div class="panel-head" style="display:flex;align-items:center;justify-content:space-between">
-          <h3>💳 Platební údaje — příjem plateb převodem</h3>
-          <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;text-transform:uppercase">Tato čísla se posílají zákazníkům v e-mailu</span>
-        </div>
-        <div style="padding:24px">
-          <div style="background:#fff3e0;border:1px solid #ffd54f;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#e65100;line-height:1.7">
-            💡 <strong>Jak to funguje:</strong> Když si zákazník zvolí platbu převodem, dostane e-mail s TĚMITO údaji a na potvrzovací stránce uvidí: "Zaplaťte na účet XXX, VS: číslo objednávky". Po přijetí platby označíš objednávku jako zaplacenou a začneš ji zpracovávat.
-          </div>
-
-          <div class="settings-grid" style="margin-bottom:20px">
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;font-weight:700">Číslo účtu (včetně kódu banky) *</label>
-              <input type="text" id="fin_bankAccount" value="${escapeHtml(getSettings().bankAccount||'')}" placeholder="1234567890/0100" style="width:100%;padding:12px 14px;border:2px solid #ddd;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--green)">
-              <div style="font-size:11px;color:#999;margin-top:4px">Např. <strong>1234567890/0100</strong> — sem chodí peníze od zákazníků</div>
-            </div>
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;font-weight:700">IBAN (volitelné)</label>
-              <input type="text" id="fin_iban" value="${escapeHtml(getSettings().iban||'')}" placeholder="CZ65 0100 0000 0012 3456 7890" style="width:100%;padding:12px 14px;border:2px solid #ddd;font-family:'JetBrains Mono',monospace;font-size:14px">
-              <div style="font-size:11px;color:#999;margin-top:4px">Pro zahraniční zákazníky (EU)</div>
-            </div>
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;font-weight:700">Název banky (volitelné)</label>
-              <input type="text" id="fin_bankName" value="${escapeHtml(getSettings().bankName||'')}" placeholder="Komerční banka" style="width:100%;padding:12px 14px;border:2px solid #ddd;font-size:14px">
-              <div style="font-size:11px;color:#999;margin-top:4px">Název banky pro identifikaci</div>
-            </div>
-          </div>
-
-          <button class="abtn abtn-primary" onclick="saveBankingFromFinance()">💾 Uložit platební údaje</button>
-          ${getSettings().bankAccount?`<span style="margin-left:14px;color:var(--green);font-weight:600;font-size:13px">✓ Aktuálně uloženo: <code style="background:#e8f5e9;padding:3px 10px;font-family:'JetBrains Mono',monospace;color:#2e7d32">${escapeHtml(getSettings().bankAccount)}</code></span>`:'<span style="margin-left:14px;color:var(--orange);font-weight:600;font-size:13px">⚠️ Číslo účtu není nastaveno — zákazníci ho neuvidí!</span>'}
-        </div>
-      </div>
-
-      <!-- Měsíční souhrn -->
-      <div style="background:linear-gradient(135deg,#0a0a0a,#1a1a1a);color:#fff;padding:32px;margin-bottom:24px;border:1px solid var(--green);position:relative;overflow:hidden">
-        <div style="position:absolute;top:-50px;right:-50px;width:200px;height:200px;background:radial-gradient(circle,rgba(0,200,83,0.3),transparent 70%);filter:blur(40px)"></div>
-        <div style="position:relative;z-index:2">
-          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green-glow);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:14px">Tento měsíc · ${now.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'})}</div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:30px">
-            <div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Obrat</div>
-              <div style="font-family:'Archivo Black',sans-serif;font-size:36px;line-height:1">${formatPrice(monthRev)} Kč</div>
-              ${prevRev>0?`<div style="font-size:12px;color:${deltaColor};margin-top:6px;font-weight:600">${deltaSign} ${Math.abs(revDiff).toFixed(1)}% vs minulý měsíc</div>`:''}
-            </div>
-            <div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Náklady</div>
-              <div style="font-family:'Archivo Black',sans-serif;font-size:36px;line-height:1;color:#ff9800">${formatPrice(Math.round(monthCost))} Kč</div>
-              <div style="font-size:12px;color:#aaa;margin-top:6px">Produkce + platby + doprava</div>
-            </div>
-            <div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Zisk (marže)</div>
-              <div style="font-family:'Archivo Black',sans-serif;font-size:36px;line-height:1;color:var(--green-glow)">${formatPrice(Math.round(monthMargin))} Kč</div>
-              <div style="font-size:12px;color:var(--green-glow);margin-top:6px;font-weight:600">${monthMarginPct.toFixed(1)}% marže</div>
-            </div>
-            <div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Objednávek</div>
-              <div style="font-family:'Archivo Black',sans-serif;font-size:36px;line-height:1">${monthOrders.length}</div>
-              <div style="font-size:12px;color:#aaa;margin-top:6px">${monthOrders.length>0?formatPrice(Math.round(monthRev/monthOrders.length))+' Kč / obj.':'—'}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Celkové ukazatele -->
-      <div class="stats-grid">
-        <div class="stat-card"><div class="stat-label">Celkový obrat</div><div class="stat-value">${formatPrice(totalRev)}</div><div class="stat-delta">Kč · za celou dobu</div></div>
-        <div class="stat-card orange"><div class="stat-label">Celkové náklady</div><div class="stat-value">${formatPrice(Math.round(totalCost))}</div><div class="stat-delta">Kč · COGS + fees + doprava</div></div>
-        <div class="stat-card"><div class="stat-label">Celkový zisk</div><div class="stat-value" style="color:var(--green)">${formatPrice(Math.round(totalMargin))}</div><div class="stat-delta">Kč · čistá marže</div></div>
-        <div class="stat-card blue"><div class="stat-label">Průměrná marže</div><div class="stat-value">${marginPct.toFixed(1)}%</div><div class="stat-delta">Z obratu</div></div>
-      </div>
-
-      <!-- Graf -->
-      <div class="panel">
-        <div class="panel-head"><h3>📈 Obrat vs zisk (6 měsíců)</h3></div>
-        <div style="padding:24px">
-          <div style="display:flex;gap:20px;margin-bottom:14px;font-family:'JetBrains Mono',monospace;font-size:11px">
-            <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;background:var(--green-glow)"></div>Obrat</div>
-            <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;background:#ffc107"></div>Zisk</div>
-          </div>
-          <div style="display:flex;align-items:flex-end;gap:14px;height:220px">
-            ${monthBuckets.map(b=>`
-              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%">
-                <div style="flex:1;width:100%;display:flex;align-items:flex-end;gap:3px;position:relative">
-                  <div style="flex:1;background:${b.rev>0?'var(--green-glow)':'#eee'};height:${Math.max(4,b.rev/maxRev*100)}%;transition:all .3s" title="Obrat: ${formatPrice(b.rev)} Kč"></div>
-                  <div style="flex:1;background:${b.margin>0?'#ffc107':'#eee'};height:${Math.max(4,b.margin/maxRev*100)}%;transition:all .3s" title="Zisk: ${formatPrice(Math.round(b.margin))} Kč"></div>
-                </div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase">${b.label}</div>
-                <div style="font-size:10px;color:#444">${formatPrice(b.rev)}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      </div>
-
-      <!-- Platby -->
-      <div class="panel">
-        <div class="panel-head"><h3>💳 Platby podle metody</h3></div>
-        <table class="atable">
-          <thead><tr><th>Způsob platby</th><th>Počet</th><th>Výnos</th><th>Podíl</th></tr></thead>
-          <tbody>
-            ${Object.keys(payMethods).length===0?'<tr><td colspan="4" class="table-empty"><strong>Zatím žádné platby</strong></td></tr>':Object.entries(payMethods).sort((a,b)=>b[1].rev-a[1].rev).map(([m,d])=>{
-              const pct=totalRev>0?(d.rev/totalRev*100):0;
-              return `<tr>
-                <td><strong>${payLabels[m]||m}</strong></td>
-                <td>${d.count}×</td>
-                <td style="font-family:'JetBrains Mono',monospace;font-weight:700">${formatPrice(d.rev)} Kč</td>
-                <td>
-                  <div style="display:flex;align-items:center;gap:10px">
-                    <div style="flex:1;height:6px;background:#eee;border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--green)"></div></div>
-                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#444;min-width:50px;text-align:right">${pct.toFixed(1)}%</span>
-                  </div>
-                </td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Nastavení nákladů -->
-      <div class="panel">
-        <div class="panel-head"><h3>⚙️ Nastavení nákladů (pro výpočet marže)</h3><button class="abtn abtn-sm abtn-primary" onclick="saveCosts()">💾 Uložit</button></div>
-        <div style="padding:24px">
-          <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Náklady na produkt a balení nastavuješ přímo u každého produktu. Tady nastav jen náklady společné pro všechny objednávky.</p>
-          <div class="settings-grid" class="settings-group">
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Cena dopravy pro tebe (Kč)</label>
-              <input type="number" id="cost_shipping" value="${costs.shipping}" min="0" step="1" style="width:100%;padding:10px 14px;border:1px solid #ddd;font-family:'Archivo',sans-serif;font-size:14px;background:#fff;color:#111;margin-bottom:16px">
-              <div style="font-size:11px;color:var(--muted);margin-top:-10px;margin-bottom:16px">Kolik platíš dopravci za jeden balík</div>
-            </div>
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Poplatky platební brány (%)</label>
-              <input type="number" id="cost_fees" value="${(costs.fees*100).toFixed(2)}" min="0" max="10" step="0.1" style="width:100%;padding:10px 14px;border:1px solid #ddd;font-family:'Archivo',sans-serif;font-size:14px;background:#fff;color:#111;margin-bottom:16px">
-              <div style="font-size:11px;color:var(--muted);margin-top:-10px">Např. 1% u GoPay</div>
-            </div>
-          </div>
+    <div class="fin-hero">
+      <div class="fin-glow"></div>
+      <div style="position:relative;z-index:2">
+        <div class="fin-kicker">Tento měsíc · ${now.toLocaleDateString('cs-CZ',{month:'long',year:'numeric'})}</div>
+        <div class="fin-grid">
+          <div><div class="fin-l">Obrat</div><div class="fin-v">${k(mRev)}</div>${diff!==null?`<div class="fin-s" style="color:${diff>=0?'#4ADE80':'#FF6B6B'};font-weight:600">${diff>=0?'↑':'↓'} ${Math.abs(diff).toFixed(1)} % oproti minulému měsíci</div>`:'<div class="fin-s">minulý měsíc bez tržeb</div>'}</div>
+          <div><div class="fin-l">Náklady zboží</div><div class="fin-v" style="color:#FF9F0A">${k(mCost)}</div><div class="fin-s">nákupní cena + obal + GoPay</div></div>
+          <div><div class="fin-l">Zisk ze zboží</div><div class="fin-v" style="color:${mProfit>=0?'#4ADE80':'#FF6B6B'}">${k(mProfit)}</div><div class="fin-s" style="color:${mProfit>=0?'#4ADE80':'#FF6B6B'};font-weight:600">${mPct.toFixed(1)} % marže</div></div>
+          <div><div class="fin-l">Objednávek</div><div class="fin-v">${cur.length}</div><div class="fin-s">${cur.length?k(mRev/cur.length)+' / obj.':'—'}</div></div>
         </div>
       </div>
     </div>
-  `;
+
+    <div class="hv-stats">
+      <div class="hv-stat"><div class="l">Celkový obrat</div><div class="v">${k(tRev)}</div><div class="s">${B.length} objednávek za celou dobu</div></div>
+      <div class="hv-stat"><div class="l">Náklady zboží</div><div class="v" style="color:#C77700">${k(tCost)}</div><div class="s">nákupní cena + obal + GoPay</div></div>
+      <div class="hv-stat ${tProfit>=0?'pos':'neg'}"><div class="l">Zisk ze zboží</div><div class="v">${k(tProfit)}</div><div class="s">marže ${tPct.toFixed(1)} %</div></div>
+      <div class="hv-stat"><div class="l">Doprava a dobírka</div><div class="v">${k(tShip)}</div><div class="s">zaplatili zákazníci</div></div>
+    </div>
+
+    <div class="hv-panel">
+      <div class="hv-panelhead">
+        <div class="ovw-title"><h2>Obrat a zisk</h2><span>posledních 6 měsíců</span></div>
+        <div class="fin-legend"><span><i style="background:#008A3F"></i>Obrat</span><span><i style="background:#FF9F0A"></i>Zisk ze zboží</span></div>
+      </div>
+      <div class="fin-chartwrap">
+        <p class="fin-insight">${best.rev>0?`Nejsilnější měsíc byl <b>${best.label}</b> s obratem <b>${k(best.rev)}</b>. Průměr za 6 měsíců ${k(avg6)}.`:'Za posledních 6 měsíců zatím žádné tržby.'}</p>
+        <div class="fin-chart">
+          ${avg6>0?`<div class="fin-avg" style="bottom:calc(24px + (100% - 42px) * ${(avg6/max).toFixed(4)})"><span>průměr</span></div>`:''}
+          ${buckets.map(b=>`
+          <div class="fin-col" title="${b.label}: obrat ${k(b.rev)}, zisk ${k(b.profit)}, ${b.n} obj.">
+            <div class="fin-val">${b.rev?k(b.rev):''}</div>
+            <div class="fin-bars">
+              <div class="fin-bar" style="height:${Math.max(2,b.rev/max*100)}%;background:${b.rev?'#008A3F':'rgba(118,118,128,.14)'}"></div>
+              <div class="fin-bar" style="height:${Math.max(2,Math.max(0,b.profit)/max*100)}%;background:${b.profit>0?'#FF9F0A':'rgba(118,118,128,.14)'}"></div>
+            </div>
+            <div class="fin-mon ${b.current?'cur':''}">${b.label}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="hv-panel">
+      <div class="hv-panelhead"><div class="ovw-title"><h2>Platby podle způsobu</h2><span>${pmRows.length}</span></div></div>
+      ${pmRows.length?`<div class="fin-pm">${pmRows.map(([m,d])=>{const pct=tRev>0?d.rev/tRev*100:0;return `
+        <div class="fin-pmrow">
+          <div class="fin-pmname"><b>${escapeHtml(PL[m]||m)}</b><span>${d.n}× · ${k(d.rev)}</span></div>
+          <div class="fin-pmbar"><i style="width:${pct.toFixed(1)}%"></i></div>
+          <div class="fin-pmpct">${pct.toFixed(1)} %</div>
+        </div>`}).join('')}</div>`:`<div class="ovw-empty"><div class="d">Zatím žádné platby.</div></div>`}
+    </div>
+    <p class="hv-note">Počítá se stejně jako v Objednávkách a Hospodaření: zisk = cena zboží po slevě − nákupní cena a obal z Produktů − poplatek GoPay podle tarifu. Ostatní provozní náklady (Zásilkovna, služby) najdeš v Hospodaření. Číslo účtu pro převody je v Správa → Platby.</p>
+  </div>`;
 }
 
 window.saveCosts=function(){
