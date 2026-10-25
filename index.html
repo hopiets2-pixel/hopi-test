@@ -910,33 +910,29 @@ const SUPABASE_URL = HOPI_IS_STAGE
 const SUPABASE_KEY = HOPI_IS_STAGE
   ? 'sb_publishable_tqhhFJTjTotj9ORt_WA1sA_ckLXpOOy'
   : 'sb_publishable_JZ14aScZgNNtFIxqMunKAg_3waSj_dU';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 // ============== STAGING POJISTKY ==============
 // Ve testovacím prostředí se nevolají služby, které by dělaly skutečné věci
 // (faktury v iDokladu, zásilky v Zásilkovně, newsletter v Ecomailu).
+// Pojistka MUSÍ být nainstalovaná před createClient – Supabase si fetch uloží při vytvoření.
+const HOPI_STAGE_BLOCKED = ['idoklad-create-invoice','idoklad-send-invoice-email','create-packeta-shipment','ecomail-subscribe','ecomail-get-lists'];
 if(HOPI_IS_STAGE){
-  const STAGE_BLOCKED = ['idoklad-create-invoice','idoklad-send-invoice-email','create-packeta-shipment','ecomail-subscribe','ecomail-get-lists'];
-  const stageMsg = name => 'Ve testovacím prostředí vypnuto: ' + name;
-  const _invoke = supabaseClient.functions.invoke.bind(supabaseClient.functions);
-  supabaseClient.functions.invoke = async (name, opts) => {
-    if(STAGE_BLOCKED.includes(name)){
-      console.warn('[STAGE]', stageMsg(name));
-      try{ if(typeof showToast==='function') showToast('🧪 '+stageMsg(name)); }catch(e){}
-      return { data:null, error:{ message: stageMsg(name) } };
-    }
-    return _invoke(name, opts);
-  };
   const _fetch = window.fetch.bind(window);
   window.fetch = (input, init) => {
     const url = typeof input==='string' ? input : (input && input.url) || '';
-    const hit = STAGE_BLOCKED.find(n => url.includes('/functions/v1/'+n));
+    const hit = HOPI_STAGE_BLOCKED.find(n => url.includes('/functions/v1/'+n));
     if(hit){
-      console.warn('[STAGE]', stageMsg(hit));
-      return Promise.resolve(new Response(JSON.stringify({ ok:false, error: stageMsg(hit) }), { status:200, headers:{'Content-Type':'application/json'} }));
+      const msg='Ve testovacím prostředí vypnuto: '+hit;
+      console.warn('[STAGE]', msg);
+      try{ if(typeof showToast==='function') showToast('🧪 '+msg); }catch(e){}
+      return Promise.resolve(new Response(JSON.stringify({ ok:false, success:false, error: msg }), { status:200, headers:{'Content-Type':'application/json'} }));
     }
     return _fetch(input, init);
   };
+}
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ============== STAGING ŠTÍTEK ==============
+if(HOPI_IS_STAGE){
   document.title = '[TEST] ' + document.title;
   document.addEventListener('DOMContentLoaded', () => {
     const b = document.createElement('div');
@@ -5706,6 +5702,29 @@ const HV_ADMIN_CSS=`
   .hv-card-num{font-size:40px;margin-top:10px}
 }
 @media (prefers-reduced-motion:reduce){.hv-shell *{transition:none!important}}
+.iv-list{display:flex;flex-direction:column}
+.iv-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid rgba(60,60,67,.1)}
+.iv-row:last-child{border-bottom:0}
+.iv-main{flex:1 1 240px;min-width:0}
+.iv-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.iv-name{font-weight:700;font-size:15.5px;margin-top:6px}
+.iv-sub{font-size:12.5px;color:rgba(60,60,67,.6);margin-top:2px}
+.iv-sum{font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.iv-act{display:flex;gap:8px;flex-wrap:wrap}
+.iv-link{color:#008A3F;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.iv-settings>summary{list-style:none} .iv-settings[open] .iv-c,.iv-settings:not([open]) .iv-o{display:none} .iv-settings>summary::-webkit-details-marker{display:none}
+.iv-body{padding:16px 22px 22px}
+.iv-switches{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+.iv-sw{margin-top:0!important;background:#F7F7F9!important;gap:14px}
+.iv-sw>span{display:flex;flex-direction:column;gap:2px;font-weight:400} .iv-sw b{font-size:15px} .iv-sw small{font-size:13px;color:rgba(60,60,67,.6)}
+.iv-sw .hv-switch-ui{flex-shrink:0}
+.iv-foot{display:flex;gap:10px;margin-top:18px}
+.hv-dash a.ovw-btn{text-decoration:none;color:#000}
+.iv-body .an-l{margin-top:20px}
+.iv-body .ec-form{align-items:flex-start}
+.iv-foot .ovw-btn{height:44px;padding:0 22px}
+@media (max-width:760px){.iv-row{padding:14px 16px}.iv-act{width:100%}.iv-act .ovw-btn{flex:1 1 auto;justify-content:center}.iv-body{padding:14px 16px 18px}}
+
 .hv-tic{display:inline-flex;align-items:center;justify-content:center;border-radius:8px;flex-shrink:0;color:#fff;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
 .hv-tic svg,.hv-item .hv-tic svg,.hv-pill .hv-tic svg,.hv-item.active .hv-tic svg,.hv-pill.active .hv-tic svg{color:#fff!important;stroke:#fff;stroke-width:2.2}
 .hv-child .hv-tic{border-radius:7px}
@@ -5800,7 +5819,7 @@ input.an-in[type=datetime-local]{-webkit-appearance:none;appearance:none;display
 .hv-dash .ovw-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .hv-dash .ovw-f{display:flex;flex-direction:column;gap:6px;min-width:0}
 .hv-dash .ovw-f>label{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(60,60,67,.6)}
-.hv-dash input[type=date],.hv-dash input[type=text],.hv-dash input[type=number],.hv-dash input[type=month]{height:40px;border-radius:12px;border:1px solid rgba(60,60,67,.18);background:#fff;padding:0 12px;font-size:14px;font-family:inherit;color:#000;min-width:0}
+.hv-dash input[type=date],.hv-dash input[type=text],.hv-dash input[type=number],.hv-dash input[type=month],.hv-dash input[type=password]{height:40px;border-radius:12px;border:1px solid rgba(60,60,67,.18);background:#fff;padding:0 12px;font-size:14px;font-family:inherit;color:#000;min-width:0}
 .hv-dash input:focus{outline:2px solid #008A3F;outline-offset:1px}
 .hv-dash .ovw-empty{padding:40px 20px;text-align:center} .hv-dash .ovw-empty .t{font-size:18px;font-weight:700;margin-bottom:6px} .hv-dash .ovw-empty .d{color:rgba(60,60,67,.6);font-size:15px}
 .hv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
@@ -10468,178 +10487,91 @@ function setInvoiceConfig(c){
 function getInvoicesLog(){return JSON.parse(localStorage.getItem('hopi_invoices_log')||'[]')}
 function setInvoicesLog(l){localStorage.setItem('hopi_invoices_log',JSON.stringify(l))}
 
+let hvInvSettingsOpen=null;
 function viewInvoicesAdmin(){
   const config=getInvoiceConfig();
   const invoicesLog=getInvoicesLog();
   const orders=getOrders().filter(o=>o.status!=='cancelled');
   const withInvoice=orders.filter(o=>o.invoiceId);
   const ordersNeedingInvoice=orders.filter(o=>!o.invoiceId&&['accepted','processing','shipped','delivered'].includes(o.status));
-
+  // Vystavené faktury: z objednávek (spolehlivé na všech zařízeních) + doplněné o záznamy z logu (odkaz do iDokladu)
+  const logByOrder={}; invoicesLog.forEach(i=>{if(i.orderId)logByOrder[i.orderId]=i});
+  const issued=withInvoice.map(o=>{const l=logByOrder[o.id]||{};return {orderId:o.id,number:o.invoiceNumber||l.invoiceNumber||String(o.invoiceId),customer:l.customerName||[o.customer?.firstName,o.customer?.lastName].filter(Boolean).join(' '),total:o.total,date:l.createdAt||o.paidAt||o.date,url:l.idokladUrl||''}});
+  invoicesLog.forEach(i=>{if(!withInvoice.find(o=>o.id===i.orderId))issued.push({orderId:i.orderId,number:i.invoiceNumber||i.id,customer:i.customerName||'',total:i.total,date:i.createdAt,url:i.idokladUrl||''})});
+  issued.sort((a,b)=>String(b.number).localeCompare(String(a.number),'cs',{numeric:true}));
+  const open=hvInvSettingsOpen===null?!config.enabled:hvInvSettingsOpen;
+  const st=s=>{const x=STATUSES[s||'new']||{label:s};const col={new:'#007AFF',accepted:'#5856D6',processing:'#FF9500',shipped:'#5856D6',delivered:'#34C759',cancelled:'#FF3B30'}[s]||'#8E8E93';return `<span class="gp-st" style="color:${col};background:color-mix(in srgb,${col} 13%,white)"><i></i>${escapeHtml(x.label)}</span>`};
+  const sw=(id,on,title,sub)=>`<label class="an-activ iv-sw"><span><b>${title}</b><small>${sub}</small></span><input type="checkbox" id="${id}" ${on?'checked':''}><i class="hv-switch-ui"></i></label>`;
   return `
-    <div class="view-head">
-      <div>
-        <h1>📄 Fakturace</h1>
-        <div class="sub">Vystavování faktur přes iDoklad · ${withInvoice.length} vystaveno · ${ordersNeedingInvoice.length} čeká</div>
-      </div>
+  <div class="hv-dash">
+    ${hvPageHead('Fakturace','Faktury přes iDoklad',`<a class="ovw-btn" href="https://app.idoklad.cz" target="_blank" rel="noopener">${hvIcon('external',16)} Otevřít iDoklad</a>`)}
+
+    <div class="hv-stats">
+      <div class="hv-stat"><div class="l">iDoklad</div><div class="v" style="color:${config.enabled?'#008A3F':'#C77700'}">${config.enabled?'Připojeno':'Vypnuto'}</div><div class="s">${config.enabled?(config.autoIssue?'faktury se vystavují samy':'vystavuješ ručně'):'zapni v nastavení níže'}</div></div>
+      <div class="hv-stat pos"><div class="l">Vystaveno</div><div class="v">${withInvoice.length}</div><div class="s">objednávek s fakturou</div></div>
+      <div class="hv-stat ${ordersNeedingInvoice.length?'':'pos'}"><div class="l">Čeká na fakturu</div><div class="v" style="${ordersNeedingInvoice.length?'color:#C77700':''}">${ordersNeedingInvoice.length}</div><div class="s">${ordersNeedingInvoice.length?'přijaté bez faktury':'vše vyřízeno'}</div></div>
     </div>
-    <div class="admin-content">
 
-      <!-- Status banner -->
-      <div style="background:${config.enabled?'linear-gradient(135deg,rgba(0,138,63,0.08),rgba(0,200,83,0.12))':'linear-gradient(135deg,#fff8e1,#fff3c4)'};border:1px solid ${config.enabled?'var(--green)':'#ffc107'};padding:16px 20px;margin-bottom:20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-        <div style="font-size:28px">${config.enabled?'🟢':'🟡'}</div>
-        <div style="flex:1;min-width:240px">
-          <div style="font-family:'Archivo Black',sans-serif;font-size:14px;text-transform:uppercase;color:#111">${config.enabled?'iDoklad je připojen':'iDoklad zatím nenastaven'}</div>
-          <div style="font-size:13px;color:#555;margin-top:4px">${config.enabled?'Můžeš vystavovat faktury jedním klikem u každé objednávky.':'Pro vystavování faktur nastav API údaje níže. Mezitím můžeš faktury psát ručně v iDokladu.'}</div>
-        </div>
-        <div style="display:flex;gap:16px;font-family:'JetBrains Mono',monospace;font-size:12px">
-          <div style="text-align:center"><div style="font-weight:700;color:var(--green);font-size:18px">${withInvoice.length}</div><div style="color:var(--muted);font-size:10px;text-transform:uppercase">Vystaveno</div></div>
-          <div style="text-align:center"><div style="font-weight:700;color:var(--orange);font-size:18px">${ordersNeedingInvoice.length}</div><div style="color:var(--muted);font-size:10px;text-transform:uppercase">Čeká</div></div>
-        </div>
-      </div>
-
-      <!-- Configuration panel -->
-      <div class="panel">
-        <div class="panel-head"><h3>⚙️ Nastavení iDoklad</h3></div>
-        <div style="padding:24px">
-
-          <div style="background:#fff3e0;border:1px solid #ffd54f;padding:14px 16px;margin-bottom:20px;font-size:13px;color:#e65100;line-height:1.7">
-            <strong>📝 Jak to nastavit:</strong>
-            <ol style="margin:8px 0 0 20px;padding:0">
-              <li>Zaregistruj se na <a href="https://www.idoklad.cz" target="_blank" style="color:var(--green);font-weight:700">idoklad.cz</a></li>
-              <li>V iDokladu jdi do <strong>Nastavení → API</strong> a vytvoř novou aplikaci</li>
-              <li>Zkopíruj <strong>Client ID</strong> a <strong>Client Secret</strong></li>
-              <li>Vyplň je níže a zapni</li>
-            </ol>
+    <div class="hv-panel">
+      <div class="hv-panelhead"><div class="ovw-title"><h2>Čeká na fakturu</h2><span>${ordersNeedingInvoice.length}</span></div></div>
+      ${ordersNeedingInvoice.length?`<div class="iv-list">${ordersNeedingInvoice.map(o=>{
+        const hasInvoiceData=o.invoice&&o.invoice.ico;
+        return `<div class="iv-row">
+          <div class="iv-main">
+            <div class="iv-top"><span class="ovw-id" style="display:inline-block;background:rgba(118,118,128,.12);border-radius:8px;padding:4px 8px;font-weight:700;font-size:13px">${escapeHtml(o.id)}</span>${st(o.status)}</div>
+            <div class="iv-name">${escapeHtml(o.customer.firstName||'')} ${escapeHtml(o.customer.lastName||'')}</div>
+            ${hasInvoiceData?`<div class="iv-sub">Firma: ${escapeHtml(o.invoice.companyName||'')} · IČO ${escapeHtml(o.invoice.ico)}</div>`:''}
           </div>
-
-          <div style="display:grid;gap:16px;margin-bottom:20px">
-            <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid #ddd;cursor:pointer;background:${config.enabled?'rgba(0,138,63,0.05)':'#fff'}">
-              <input type="checkbox" id="inv_enabled" ${config.enabled?'checked':''} style="accent-color:var(--green);width:20px;height:20px">
-              <div>
-                <strong style="display:block">🟢 Zapnout fakturaci přes iDoklad</strong>
-                <span style="font-size:12px;color:var(--muted)">Umožní vystavování faktur přímo z administrace</span>
-              </div>
-            </label>
-
-            <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid #ddd;cursor:pointer;background:${config.autoIssue?'rgba(0,138,63,0.05)':'#fff'}">
-              <input type="checkbox" id="inv_auto" ${config.autoIssue?'checked':''} style="accent-color:var(--green);width:20px;height:20px">
-              <div>
-                <strong style="display:block">🤖 Automaticky vystavit při odeslání</strong>
-                <span style="font-size:12px;color:var(--muted)">Jakmile objednávku posuneš do "Odesláno", faktura se vytvoří sama</span>
-              </div>
-            </label>
-
-            <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid #ddd;cursor:pointer;background:${config.sendInvoiceEmail?'rgba(0,138,63,0.05)':'#fff'}">
-              <input type="checkbox" id="inv_send_email" ${config.sendInvoiceEmail?'checked':''} style="accent-color:var(--green);width:20px;height:20px">
-              <div>
-                <strong style="display:block">📧 Zaslat fakturu emailem zákazníkovi</strong>
-                <span style="font-size:12px;color:var(--muted)">Při odeslání zásilky pošle iDoklad zákazníkovi email s PDF fakturou v příloze (vyžaduje zapnuté "Automaticky vystavit")</span>
-              </div>
-            </label>
+          <div class="iv-sum">${formatPrice(o.total)} Kč</div>
+          <div class="iv-act">
+            <button class="ovw-btn" onclick="copyForIdoklad('${o.id}')" title="Zkopírovat údaje pro ruční vystavení">Kopírovat údaje</button>
+            <button class="ovw-btn primary" onclick="issueInvoice('${o.id}')">Vystavit fakturu</button>
+            <button class="ovw-btn" onclick="openOrderDetail('${o.id}')">Detail</button>
           </div>
-
-          <h4 style="font-family:'Archivo Black',sans-serif;font-size:13px;text-transform:uppercase;margin-bottom:12px;margin-top:20px;padding-top:20px;border-top:1px solid #eee">API údaje iDoklad</h4>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Client ID</label>
-              <input type="text" id="inv_clientId" value="${escapeHtml(config.clientId)}" placeholder="xxx-xxx-xxx-xxx" style="width:100%;padding:10px 12px;border:1px solid #ddd;font-family:'JetBrains Mono',monospace;font-size:13px;background:#fff;color:#111">
-            </div>
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Client Secret</label>
-              <input type="password" id="inv_clientSecret" value="${escapeHtml(config.clientSecret)}" placeholder="••••••••••••" style="width:100%;padding:10px 12px;border:1px solid #ddd;font-family:'JetBrains Mono',monospace;font-size:13px;background:#fff;color:#111">
-            </div>
-          </div>
-
-          <h4 style="font-family:'Archivo Black',sans-serif;font-size:13px;text-transform:uppercase;margin-bottom:12px;margin-top:20px;padding-top:20px;border-top:1px solid #eee">Údaje tvojí firmy (pro fakturu)</h4>
-          <div class="settings-grid">
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Název firmy</label>
-              <input type="text" id="inv_companyName" value="${escapeHtml(config.companyName)}" style="width:100%;padding:10px 12px;border:1px solid #ddd;font-family:'Archivo',sans-serif;font-size:14px;background:#fff;color:#111;margin-bottom:16px">
-            </div>
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">IČO</label>
-              <input type="text" id="inv_companyIco" value="${escapeHtml(config.companyIco)}" placeholder="12345678" style="width:100%;padding:10px 12px;border:1px solid #ddd;font-family:'JetBrains Mono',monospace;font-size:14px;background:#fff;color:#111;margin-bottom:16px">
-            </div>
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">DIČ (volitelné)</label>
-              <input type="text" id="inv_companyDic" value="${escapeHtml(config.companyDic)}" placeholder="CZ12345678" style="width:100%;padding:10px 12px;border:1px solid #ddd;font-family:'JetBrains Mono',monospace;font-size:14px;background:#fff;color:#111;margin-bottom:16px">
-            </div>
-            <div>
-              <label style="display:block;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Adresa firmy</label>
-              <input type="text" id="inv_companyAddress" value="${escapeHtml(config.companyAddress)}" placeholder="Ulice, Město, PSČ" style="width:100%;padding:10px 12px;border:1px solid #ddd;font-family:'Archivo',sans-serif;font-size:14px;background:#fff;color:#111;margin-bottom:16px">
-            </div>
-          </div>
-
-          <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:16px;border-top:1px solid #eee">
-            <button class="abtn abtn-primary" onclick="saveInvoiceConfig()">💾 Uložit nastavení</button>
-            <a class="abtn" href="https://app.idoklad.cz" target="_blank">↗ Otevřít iDoklad</a>
-          </div>
-
-          <div style="margin-top:20px;padding:14px 16px;background:#e3f2fd;border:1px solid #90caf9;font-size:12px;color:#0d47a1;line-height:1.6">
-            <strong>ℹ️ Jak to funguje:</strong> Po nastavení API se u každé objednávky v detailu objeví tlačítko "📄 Vystavit fakturu". Klikneš → faktura se automaticky vytvoří v iDokladu a číslo se uloží k objednávce. Zákazníkovi pak můžeš z iDokladu fakturu poslat e-mailem.
-          </div>
-        </div>
-      </div>
-
-      <!-- Orders waiting for invoice -->
-      ${ordersNeedingInvoice.length>0?`
-        <div class="panel">
-          <div class="panel-head"><h3>⏳ Objednávky čekající na fakturu (${ordersNeedingInvoice.length})</h3></div>
-          <table class="atable">
-            <thead><tr><th>Číslo</th><th>Zákazník</th><th>Částka</th><th>Stav</th><th style="text-align:right">Akce</th></tr></thead>
-            <tbody>
-              ${ordersNeedingInvoice.map(o=>{
-                const s=STATUSES[o.status||'new'];
-                const hasInvoiceData=o.invoice&&o.invoice.ico;
-                return `
-                  <tr>
-                    <td style="font-family:'JetBrains Mono',monospace;font-weight:700">${escapeHtml(o.id)}</td>
-                    <td>
-                      <strong>${escapeHtml(o.customer.firstName)} ${escapeHtml(o.customer.lastName)}</strong>
-                      ${hasInvoiceData?`<div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px">🏢 ${escapeHtml(o.invoice.companyName)} · IČO ${escapeHtml(o.invoice.ico)}</div>`:''}
-                    </td>
-                    <td style="font-family:'JetBrains Mono',monospace;font-weight:700">${formatPrice(o.total)} Kč</td>
-                    <td><span class="status-badge ${s.color}">${s.label}</span></td>
-                    <td style="text-align:right">
-                      <button class="abtn abtn-sm" onclick="copyForIdoklad('${o.id}')" title="Kopírovat údaje">📋</button>
-                      <button class="abtn abtn-sm abtn-primary" onclick="issueInvoice('${o.id}')">📄 Vystavit fakturu</button>
-                      <button class="abtn abtn-sm" onclick="openOrderDetail('${o.id}')">Detail</button>
-                    </td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      `:''}
-
-      <!-- Issued invoices log -->
-      ${invoicesLog.length>0?`
-        <div class="panel">
-          <div class="panel-head"><h3>📜 Vystavené faktury (${invoicesLog.length})</h3></div>
-          <table class="atable">
-            <thead><tr><th>Faktura</th><th>Objednávka</th><th>Zákazník</th><th>Částka</th><th>Vystaveno</th><th style="text-align:right">Akce</th></tr></thead>
-            <tbody>
-              ${invoicesLog.map(i=>`
-                <tr>
-                  <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--green)">${escapeHtml(i.invoiceNumber||i.id)}</td>
-                  <td style="font-family:'JetBrains Mono',monospace">${escapeHtml(i.orderId)}</td>
-                  <td>${escapeHtml(i.customerName||'—')}</td>
-                  <td style="font-family:'JetBrains Mono',monospace;font-weight:700">${formatPrice(i.total)} Kč</td>
-                  <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">${new Date(i.createdAt).toLocaleString('cs-CZ')}</td>
-                  <td style="text-align:right">
-                    ${i.idokladUrl?`<a class="abtn abtn-sm" href="${escapeHtml(i.idokladUrl)}" target="_blank">↗ Otevřít v iDokladu</a>`:''}
-                    <button class="abtn abtn-sm" onclick="openOrderDetail('${i.orderId}')">Objednávka</button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `:''}
-
+        </div>`}).join('')}</div>`:`<div class="ovw-empty"><div class="t">Nic nečeká</div><div class="d">Všechny přijaté objednávky mají fakturu.</div></div>`}
     </div>
-  `;
+
+    <div class="hv-panel">
+      <div class="hv-panelhead"><div class="ovw-title"><h2>Vystavené faktury</h2><span>${issued.length}</span></div></div>
+      ${issued.length?`<div class="hv-tablewrap"><table class="hv-table">
+        <thead><tr><th>Faktura</th><th>Objednávka</th><th>Zákazník</th><th class="r">Částka</th><th>Datum</th><th></th></tr></thead>
+        <tbody>${issued.map(i=>`<tr>
+          <td><b style="color:#008A3F">${escapeHtml(i.number)}</b></td>
+          <td><a class="iv-link" onclick="openOrderDetail('${escapeHtml(i.orderId)}')">${escapeHtml(i.orderId)}</a></td>
+          <td>${escapeHtml(i.customer||'—')}</td>
+          <td class="r"><b>${formatPrice(i.total||0)} Kč</b></td>
+          <td style="white-space:nowrap;color:rgba(60,60,67,.65)">${i.date?new Date(typeof i.date==='number'?i.date:i.date).toLocaleDateString('cs-CZ'):'—'}</td>
+          <td class="r">${i.url?`<a class="ovw-btn" style="height:32px" href="${escapeHtml(i.url)}" target="_blank" rel="noopener">${hvIcon('external',14)} iDoklad</a>`:''}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`:`<div class="ovw-empty"><div class="d">Zatím žádná faktura.</div></div>`}
+    </div>
+
+    <details class="hv-panel iv-settings" ${open?'open':''} ontoggle="hvInvSettingsOpen=this.open">
+      <summary class="hv-panelhead" style="cursor:pointer"><div class="ovw-title"><h2>Nastavení iDokladu</h2><span>${config.enabled?'připojeno':'nenastaveno'}</span></div><span class="pv-tag iv-more"><span class="iv-o">skrýt</span><span class="iv-c">zobrazit</span></span></summary>
+      <div class="iv-body">
+        ${config.enabled?'':`<div class="gp-info warn"><b>Jak připojit:</b> v iDokladu otevři <b>Nastavení → API</b>, vytvoř aplikaci, zkopíruj <b>Client ID</b> a <b>Client Secret</b>, vlož je níže, zapni fakturaci a ulož.</div>`}
+        <div class="iv-switches">
+          ${sw('inv_enabled',config.enabled,'Zapnout fakturaci přes iDoklad','U objednávek půjde vystavit fakturu jedním klikem.')}
+          ${sw('inv_auto',config.autoIssue,'Vystavit automaticky','Faktura se vytvoří sama, jakmile objednávku posuneš do „Odesláno“.')}
+          ${sw('inv_send_email',config.sendInvoiceEmail,'Poslat fakturu zákazníkovi e-mailem','iDoklad pošle PDF při odeslání zásilky (potřebuje zapnuté automatické vystavení).')}
+        </div>
+        <div class="an-l">Přístup k API iDokladu</div>
+        <div class="ec-form" style="padding:0">
+          <div class="ovw-f grow"><label for="inv_clientId">Client ID</label><input type="text" id="inv_clientId" value="${escapeHtml(config.clientId)}" placeholder="např. 1a2b3c4d-…" autocomplete="off"></div>
+          <div class="ovw-f grow"><label for="inv_clientSecret">Client Secret</label><input type="password" id="inv_clientSecret" value="${escapeHtml(config.clientSecret)}" placeholder="••••••••••••" autocomplete="new-password"></div>
+        </div>
+        <div class="an-l">Údaje tvojí firmy na faktuře</div>
+        <div class="ec-form" style="padding:0">
+          <div class="ovw-f grow"><label for="inv_companyName">Název firmy</label><input type="text" id="inv_companyName" value="${escapeHtml(config.companyName)}" placeholder="např. Josef Kugler"></div>
+          <div class="ovw-f"><label for="inv_companyIco">IČO</label><input type="text" id="inv_companyIco" value="${escapeHtml(config.companyIco)}" placeholder="12345678" inputmode="numeric"></div>
+          <div class="ovw-f"><label for="inv_companyDic">DIČ (nepovinné)</label><input type="text" id="inv_companyDic" value="${escapeHtml(config.companyDic)}" placeholder="CZ12345678"></div>
+          <div class="ovw-f grow"><label for="inv_companyAddress">Adresa firmy</label><input type="text" id="inv_companyAddress" value="${escapeHtml(config.companyAddress)}" placeholder="Ulice, Město, PSČ"></div>
+        </div>
+        <div class="iv-foot"><button class="ovw-btn primary" onclick="saveInvoiceConfig()">Uložit nastavení</button></div>
+      </div>
+    </details>
+    <p class="hv-note">Bez zapnutého iDokladu můžeš u čekající objednávky dát „Kopírovat údaje“ a fakturu vystavit ručně v iDokladu.</p>
+  </div>`;
 }
 
 window.saveInvoiceConfig=function(){
