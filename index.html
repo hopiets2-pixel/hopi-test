@@ -312,6 +312,45 @@ h2.section-title{font-family:'Archivo Black',sans-serif;font-size:clamp(40px,5vw
 .option-text strong{display:block;font-size:14px;margin-bottom:2px}
 .option-text span{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace}
 .option-price{font-family:'Archivo Black',sans-serif;font-size:14px}
+/* Dýško v pokladně */
+.tip-box{margin-bottom:6px}
+.tip-text{font-size:14px;line-height:1.55;color:var(--muted);margin:0 0 14px}
+.tip-chips{display:flex;flex-wrap:wrap;gap:10px}
+.tip-chip{min-height:44px;padding:10px 18px;background:transparent;border:1px solid var(--border);color:#fff;font-family:'Archivo Black',sans-serif;font-size:14px;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.tip-chip:hover{border-color:var(--green-glow)}
+.tip-chip:active{transform:scale(.97)}
+.tip-chip.selected{background:var(--green);border-color:var(--green);color:#fff}
+.tip-chip:focus-visible{outline:2px solid var(--green-glow);outline-offset:2px}
+.tip-custom{margin-top:14px;max-width:260px}
+.tip-custom[hidden],.tip-thanks[hidden]{display:none}
+.tip-custom-row{display:flex;align-items:center;gap:10px}
+.tip-custom-row input{flex:1;min-width:0}
+.tip-custom-row span{font-family:'Archivo Black',sans-serif;font-size:14px}
+.tip-invalid{border-color:var(--red)!important}
+.tip-err{color:var(--red)!important}
+.tip-thanks{margin-top:12px;font-size:13px;color:var(--green-glow);font-family:'JetBrains Mono',monospace}
+.tip-chip{white-space:nowrap}
+@media (max-width:420px){.tip-chip{padding:10px 14px;flex:1 1 calc(33.33% - 10px)}.tip-chip[data-tip="none"]{flex-basis:100%}}
+@media (prefers-reduced-motion:reduce){.tip-chip{transition:none}.tip-chip:active{transform:none}}
+/* Dýško v adminu */
+.tip-adm-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.tip-adm-stats>div{background:#F2F2F7;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tip-adm-stats span{font-size:13px;color:rgba(60,60,67,.6);font-weight:600}
+.tip-adm-stats b{font-size:26px;font-weight:800;letter-spacing:-.02em;color:#000}
+.tip-adm-stats em{font-style:normal;font-size:13px;color:rgba(60,60,67,.6)}
+.tip-adm-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid rgba(60,60,67,.12);margin-bottom:10px}
+.tip-adm-row b{display:block;font-size:16px;font-weight:600;color:#000}
+.tip-adm-row span{display:block;font-size:13px;color:rgba(60,60,67,.6);margin-top:2px;line-height:1.4}
+.tip-adm-form{margin:4px 0 6px;align-items:flex-start}
+.tip-adm-form textarea{width:100%;min-height:64px;resize:vertical;font:inherit;padding:10px 12px;border-radius:12px;border:1px solid rgba(60,60,67,.18);background:#fff;box-sizing:border-box}
+.tip-adm-hint{font-size:12.5px;color:rgba(60,60,67,.6);margin-top:6px}
+.tip-adm-err{font-size:13px;color:#D70015;margin-top:6px;font-weight:600}
+.tip-adm-err[hidden]{display:none}
+.tip-adm-warn{margin:6px 0 4px;background:color-mix(in srgb,#FF9500 12%,white);color:#7a4a00;border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.5}
+.tip-adm-warn code{font-size:12.5px;background:rgba(255,255,255,.6);padding:1px 5px;border-radius:6px}
+.hv-spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;margin-right:8px;vertical-align:-2px;animation:hvspin .7s linear infinite}
+@keyframes hvspin{to{transform:rotate(360deg)}}
+@media (max-width:560px){.tip-adm-stats b{font-size:22px}}
 
 .success-check{width:100px;height:100px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 30px;animation:pop .5s cubic-bezier(0.2,0.8,0.2,1.2);box-shadow:0 20px 60px rgba(0,138,63,0.4)}
 @keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
@@ -1122,6 +1161,7 @@ async function notifyAdmin(type, order=null){
         customer_email: order.customer?.email || '',
         customer_phone: order.customer?.phone || '',
         total: order.total,
+        tip: Number(order.tip)||0,
         currency: 'Kč',
         payment_method: payMap[order.pay] || order.pay,
         shipping_method: shipMap[order.ship] || order.ship,
@@ -1714,6 +1754,8 @@ ${s.iban?'➡️ IBAN: '+s.iban+'\n':''}${s.bankName?'➡️ Banka: '+s.bankName
     '{cislo_objednavky}':order.id,
     '{stav}':statusLabel,
     '{celkem}':formatPrice(order.total),
+    '{spropitne}':Number(order.tip)>0?formatPrice(order.tip)+' Kč':'',
+    '{dysko}':Number(order.tip)>0?formatPrice(order.tip)+' Kč':'',
     '{adresa}':`${order.customer.street||''}, ${order.customer.zip||''} ${order.customer.city||''}`.trim(),
     '{mesto}':order.customer.city||'',
     '{psc}':order.customer.zip||'',
@@ -3514,6 +3556,166 @@ window.removePromo=function(){
 window.changeQty=function(idx,d){const c=getCart();c[idx].qty+=d;if(c[idx].qty<=0)c.splice(idx,1);setCart(c);render()}
 window.removeItem=function(idx){const c=getCart();c.splice(idx,1);setCart(c);showToast('Odstraněno');render()}
 
+// ============== DÝŠKO NA ROZVOJ E-SHOPU ==============
+// Nastavení v Supabase app_settings → klíč 'hopi_tip_config'. Bez uloženého nastavení je VYPNUTÉ.
+const HV_TIP_DEFAULT={
+  enabled:false,
+  title:'Spropitné',
+  text:'Spropitné putuje týmu, který balí vaše objednávky, a na podporu rozvoje HOPI VIRTUAL. Je zcela dobrovolné.',
+  options:[{t:'pct',v:5},{t:'pct',v:10},{t:'pct',v:15},{t:'kc',v:20},{t:'kc',v:50}],
+  custom:true,
+  max:2000,
+};
+function getTipConfig(){
+  const v=getAppSetting('hopi_tip_config',null);
+  if(!v||typeof v!=='object')return Object.assign({},HV_TIP_DEFAULT,{saved:false});
+  const c=Object.assign({},HV_TIP_DEFAULT,v,{saved:true});
+  c.options=(Array.isArray(v.options)?v.options:HV_TIP_DEFAULT.options)
+    .filter(o=>o&&(o.t==='pct'||o.t==='kc')&&Number(o.v)>0).slice(0,8);
+  c.max=Math.max(1,Number(c.max)||2000);
+  return c;
+}
+function hvTipActive(){
+  const c=getTipConfig();
+  // Snipcart (starší platby) dýško neumí přenést → v tom případě se nenabízí
+  if(typeof isSnipcartActive==='function'&&isSnipcartActive()&&!(typeof isGoPayActive==='function'&&isGoPayActive()))return false;
+  return !!c.enabled;
+}
+function hvTipLabel(o){return o.t==='pct'?(String(o.v).replace('.',',')+' %'):(formatPrice(o.v)+' Kč')}
+// Stav výběru v pokladně (resetuje se při každém otevření pokladny)
+window._hvTip={key:'none',custom:0};
+// Částka dýška – z ceny zboží po slevě (bez dopravy a dobírky), zaokrouhleno na celé Kč
+function hvTipAmount(goodsNet){
+  if(!hvTipActive())return 0;
+  const c=getTipConfig(); const s=window._hvTip||{key:'none'};
+  if(goodsNet==null){goodsNet=Math.max(0,cartTotal()-calcDiscount(getAppliedPromo(),cartTotal()))}
+  let a=0;
+  if(s.key==='custom')a=Math.round(Number(s.custom)||0);
+  else if(s.key&&s.key.startsWith('o')){const o=c.options[Number(s.key.slice(1))];if(o)a=o.t==='pct'?Math.round(goodsNet*o.v/100):Math.round(o.v)}
+  return Math.max(0,Math.min(a,c.max));
+}
+function hvTipChosenLabel(){
+  const c=getTipConfig(); const s=window._hvTip||{key:'none'};
+  if(s.key==='custom')return 'vlastní';
+  if(s.key&&s.key.startsWith('o')){const o=c.options[Number(s.key.slice(1))];if(o)return hvTipLabel(o)}
+  return '';
+}
+function renderTipSection(stepNo){
+  if(!hvTipActive())return '';
+  const c=getTipConfig(); window._hvTip={key:'none',custom:0};
+  const chip=(key,label,sel)=>`<button type="button" class="tip-chip${sel?' selected':''}" data-tip="${key}" aria-pressed="${sel?'true':'false'}" onclick="hvTipPick('${key}')">${label}</button>`;
+  return `
+    <h2 id="tipHead"><span class="num">${stepNo}</span>${escapeHtml(c.title||HV_TIP_DEFAULT.title)}</h2>
+    <div class="tip-box">
+      ${c.text?`<p class="tip-text">${escapeHtml(c.text)}</p>`:''}
+      <div class="tip-chips" role="group" aria-labelledby="tipHead">
+        ${chip('none','Bez spropitného',true)}
+        ${c.options.map((o,i)=>chip('o'+i,hvTipLabel(o),false)).join('')}
+        ${c.custom?chip('custom','Vlastní',false):''}
+      </div>
+      ${c.custom?`<div class="tip-custom" id="tipCustomWrap" hidden>
+        <label for="tipCustom" class="form-label">Vlastní částka</label>
+        <div class="tip-custom-row"><input type="number" id="tipCustom" class="form-input" min="0" max="${c.max}" step="1" inputmode="numeric" placeholder="např. 30" oninput="hvTipCustom(this.value)"><span>Kč</span></div>
+        <div class="form-hint" id="tipCustomHint">Maximálně ${formatPrice(c.max)} Kč</div>
+      </div>`:''}
+      <div class="tip-thanks" id="tipThanks" hidden>💚 Děkujeme za podporu!</div>
+    </div>`;
+}
+window.hvTipPick=function(key){
+  window._hvTip={key,custom:(window._hvTip&&window._hvTip.custom)||0};
+  document.querySelectorAll('.tip-chip').forEach(b=>{const on=b.dataset.tip===key;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',on?'true':'false')});
+  const w=document.getElementById('tipCustomWrap');
+  if(w){w.hidden=key!=='custom'; if(key==='custom'){const i=document.getElementById('tipCustom');if(i){i.focus();window._hvTip.custom=Number(i.value)||0}}}
+  recalcCheckoutTotals();
+};
+window.hvTipCustom=function(v){
+  const c=getTipConfig(); let n=Math.round(Number(String(v).replace(',','.'))||0);
+  const hint=document.getElementById('tipCustomHint'); const inp=document.getElementById('tipCustom');
+  const over=n>c.max;
+  if(hint){hint.textContent=over?`Maximálně ${formatPrice(c.max)} Kč – použijeme ${formatPrice(c.max)} Kč`:`Maximálně ${formatPrice(c.max)} Kč`;hint.classList.toggle('tip-err',over)}
+  if(inp)inp.classList.toggle('tip-invalid',over||n<0);
+  window._hvTip={key:'custom',custom:Math.max(0,n)};
+  recalcCheckoutTotals();
+};
+// Řádek v souhrnu (volá recalcCheckoutTotals)
+function hvTipUpdateSummary(goodsNet){
+  const a=hvTipAmount(goodsNet);
+  const row=document.getElementById('tipRow'); const val=document.getElementById('sumTip');
+  if(row){row.style.display=a>0?'flex':'none'}
+  if(val){val.textContent=formatPrice(a)+' Kč'}
+  const th=document.getElementById('tipThanks'); if(th)th.hidden=!(a>0);
+  return a;
+}
+
+// ---------- ADMIN: Správa → Platby → Dýško ----------
+function hvTipStats(){
+  const orders=(typeof getOrders==='function'?getOrders():[]).filter(o=>Number(o.tip)>0&&o.status!=='cancelled');
+  const now=new Date(); const m=now.getMonth(), y=now.getFullYear();
+  const month=orders.filter(o=>{const d=new Date(o.date);return d.getMonth()===m&&d.getFullYear()===y});
+  const sum=a=>a.reduce((s,o)=>s+(Number(o.tip)||0),0);
+  return {all:sum(orders),allN:orders.length,month:sum(month),monthN:month.length};
+}
+function hvTipOptsToText(opts){return opts.map(o=>o.t==='pct'?String(o.v).replace('.',',')+' %':o.v+' Kč').join(', ')}
+function hvTipParseOpts(txt){
+  const out=[]; const bad=[];
+  String(txt||'').split(/[,;]+/).map(s=>s.trim()).filter(Boolean).forEach(p=>{
+    const m=p.replace(/\s+/g,'').match(/^(\d+(?:[.,]\d+)?)(%|kč|kc|czk)?$/i);
+    if(!m){bad.push(p);return}
+    const v=parseFloat(m[1].replace(',','.')); if(!(v>0)){bad.push(p);return}
+    out.push({t:m[2]&&m[2]==='%'?'pct':'kc',v});
+  });
+  return {out,bad};
+}
+window.hvTipSave=async function(){
+  const g=id=>document.getElementById(id);
+  const parsed=hvTipParseOpts(g('tip_opts').value);
+  const err=g('tip_opts_err');
+  if(parsed.bad.length||!parsed.out.length||parsed.out.length>8){
+    if(err){err.hidden=false;err.textContent=!parsed.out.length?'Zadej aspoň jednu možnost, např. 5 %, 10 %, 20 Kč':parsed.out.length>8?'Nejvýš 8 možností':`Nerozumím: „${parsed.bad.join('“, „')}“ – piš např. 10 % nebo 20 Kč`}
+    g('tip_opts').classList.add('tip-invalid'); g('tip_opts').focus(); return;
+  }
+  if(err)err.hidden=true; g('tip_opts').classList.remove('tip-invalid');
+  const btn=g('tip_save'); if(btn){btn.disabled=true;btn.dataset.l=btn.textContent;btn.innerHTML='<span class="hv-spin"></span>Ukládám…'}
+  const cfg={
+    enabled:g('tip_enabled').getAttribute('aria-checked')==='true',
+    title:(g('tip_title').value||'').trim()||HV_TIP_DEFAULT.title,
+    text:(g('tip_text').value||'').trim(),
+    options:parsed.out,
+    custom:g('tip_custom').getAttribute('aria-checked')==='true',
+    max:Math.max(1,Math.round(Number(g('tip_max').value)||HV_TIP_DEFAULT.max)),
+  };
+  _appSettingsCache['hopi_tip_config']=cfg;
+  try{await hvSave('hopi_tip_config',cfg,'✅ Spropitné uloženo')}finally{viewAdmin()}
+};
+window.hvTipToggle=function(el){const on=el.getAttribute('aria-checked')!=='true';el.setAttribute('aria-checked',on?'true':'false');el.classList.toggle('on',on)};
+function renderTipPanel(){
+  const c=getTipConfig(); const st=hvTipStats();
+  const sw=(id,on,label,sub)=>`<div class="tip-adm-row"><div><b>${label}</b><span>${sub}</span></div><button type="button" class="hv-switch${on?' on':''}" id="${id}" role="switch" aria-checked="${on?'true':'false'}" aria-label="${label}" onclick="hvTipToggle(this)"><i></i></button></div>`;
+  return `
+    <div class="hv-panel" id="tipPanel">
+      <div class="hv-panelhead">
+        <div class="ovw-title"><h2>Spropitné</h2><span>pro tým, který balí objednávky, a na rozvoj HOPI VIRTUAL</span></div>
+        <span class="pv-tag" style="${c.enabled?'background:color-mix(in srgb,#34C759 14%,white);color:#1E7B34':'background:rgba(118,118,128,.12);color:rgba(60,60,67,.7)'}">${c.enabled?'Zapnuto':'Vypnuto'}</span>
+      </div>
+      <div style="padding:16px 22px 6px">
+        <div class="tip-adm-stats">
+          <div><span>Tento měsíc</span><b>${formatPrice(st.month)}&nbsp;Kč</b><em>${st.monthN} ${st.monthN===1?'objednávka':st.monthN>=2&&st.monthN<=4?'objednávky':'objednávek'}</em></div>
+          <div><span>Celkem</span><b>${formatPrice(st.all)}&nbsp;Kč</b><em>${st.allN} ${st.allN===1?'objednávka':st.allN>=2&&st.allN<=4?'objednávky':'objednávek'}</em></div>
+        </div>
+        ${sw('tip_enabled',c.enabled,'Nabízet spropitné v pokladně','Zákazník uvidí volbu jako další krok pod platbou; výchozí je „Bez spropitného“.')}
+        <div class="ec-form tip-adm-form" style="padding:0">
+          <div class="ovw-f grow"><label for="tip_title">Nadpis</label><input type="text" id="tip_title" maxlength="40" value="${escapeHtml(c.title)}" placeholder="např. Spropitné"></div>
+          <div class="ovw-f grow" style="flex-basis:100%"><label for="tip_text">Popis pod nadpisem</label><textarea id="tip_text" rows="2" maxlength="220" placeholder="např. Spropitné putuje týmu, který balí vaše objednávky.">${escapeHtml(c.text)}</textarea></div>
+          <div class="ovw-f grow"><label for="tip_opts">Nabízené částky</label><input type="text" id="tip_opts" value="${escapeHtml(hvTipOptsToText(c.options))}" placeholder="např. 5 %, 10 %, 15 %, 20 Kč, 50 Kč"><div class="tip-adm-hint">Procenta se počítají z ceny zboží po slevě (bez dopravy).</div><div class="tip-adm-err" id="tip_opts_err" hidden></div></div>
+          <div class="ovw-f"><label for="tip_max">Nejvyšší částka</label><input type="number" id="tip_max" min="1" step="1" inputmode="numeric" value="${c.max}" placeholder="např. 2000"></div>
+        </div>
+        ${sw('tip_custom',c.custom,'Povolit vlastní částku','Zákazník si napíše libovolnou částku do výše limitu.')}
+        <div class="tip-adm-warn"><b>Před zapnutím na ostrém webu:</b> funkce <code>gopay-create-payment</code> a <code>idoklad-create-invoice</code> musí spropitné převzít (do platby i jako řádek faktury), jinak by faktura nesouhlasila se zaplacenou částkou. Dobírka a převod fungují hned.</div>
+      </div>
+      <div style="padding:6px 22px 20px;display:flex;justify-content:flex-end"><button class="ovw-btn primary" id="tip_save" onclick="hvTipSave()">Uložit spropitné</button></div>
+    </div>`;
+}
+
 function viewCheckout(){
   const cart=getCart();
   if(cart.length===0){
@@ -3589,6 +3791,7 @@ function viewCheckout(){
 
             <h2><span class="num">5</span>Platba</h2>
             ${renderPaymentOptions()}
+            ${renderTipSection(6)}
           </div>
 
           <div class="summary">
@@ -3598,6 +3801,7 @@ function viewCheckout(){
             ${(()=>{const ap=getAppliedPromo();if(!ap)return '';const d=calcDiscount(ap,subtotal);return d>0?`<div class="summary-row"><span class="k" style="color:var(--green-glow)">🎟️ Sleva (${escapeHtml(ap.code)})</span><span style="color:var(--green-glow)">−${formatPrice(d)} Kč</span></div>`:''})()}
             <div class="summary-row"><span class="k">Doprava</span><span id="sumShip">${shipDefault===0?'Zdarma':formatPrice(shipDefault)+' Kč'}</span></div>
             <div class="summary-row" id="codRow" style="display:none"><span class="k">Dobírka</span><span>39 Kč</span></div>
+            <div class="summary-row" id="tipRow" style="display:none"><span class="k">💚 Spropitné</span><span id="sumTip">0 Kč</span></div>
             <div class="summary-row total"><span>Celkem</span><span id="sumTotal">${formatPrice(Math.max(0,subtotal-calcDiscount(getAppliedPromo(),subtotal))+shipDefault)} Kč</span></div>
             <div style="margin:20px 0;display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted)">
               <input type="checkbox" id="terms" required style="accent-color:var(--green);margin-top:3px">
@@ -3631,7 +3835,8 @@ function recalcCheckoutTotals(){
   const disc=calcDiscount(ap,cartTotal());
   document.getElementById('sumShip').innerText=ship===0?'Zdarma':formatPrice(ship)+' Kč';
   document.getElementById('codRow').style.display=cod?'flex':'none';
-  document.getElementById('sumTotal').innerText=formatPrice(Math.max(0,cartTotal()-disc)+ship+cod)+' Kč';
+  const tip=hvTipUpdateSummary(Math.max(0,cartTotal()-disc));
+  document.getElementById('sumTotal').innerText=formatPrice(Math.max(0,cartTotal()-disc)+ship+cod+tip)+' Kč';
 }
 
 // ===== BALÍKOVNA LOGO (oficiální inline SVG "Balíkovna_E-shopy_RGB", žádné base64) =====
@@ -3798,7 +4003,7 @@ window.onDeliveryCountryChange=function(){
     const shipEl=document.getElementById('sumShip');
     const totEl=document.getElementById('sumTotal');
     if(shipEl)shipEl.textContent=price===0?'Zdarma':formatPrice(price)+' Kč';
-    if(totEl)totEl.textContent=formatPrice(Math.max(0,subtotal-disc)+price+cod)+' Kč';
+    if(totEl)totEl.textContent=formatPrice(Math.max(0,subtotal-disc)+price+cod+hvTipAmount(Math.max(0,subtotal-disc)))+' Kč';
   }
 
   // Aktualizovat hint text
@@ -3929,7 +4134,9 @@ window.submitOrder=function(){
   const subtotal=cartTotal();
   const appliedPromo=getAppliedPromo();
   const discount=calcDiscount(appliedPromo,subtotal);
-  const finalTotal=Math.max(0,subtotal-discount)+shipPrice+cod;
+  const tip=hvTipAmount(Math.max(0,subtotal-discount));
+  const tipLabel=tip>0?hvTipChosenLabel():'';
+  const finalTotal=Math.max(0,subtotal-discount)+shipPrice+cod+tip;
 
   const order={
     id:'HV-'+Math.floor(100000+Math.random()*900000),
@@ -3963,6 +4170,8 @@ window.submitOrder=function(){
     promo:appliedPromo?{code:appliedPromo.code,type:appliedPromo.type,value:appliedPromo.value,discount}:null,
     shipPrice,
     codFee:cod,
+    tip,
+    tipLabel,
     total:finalTotal,
     status:'new',
     statusHistory:[{status:'new',at:Date.now()}],
@@ -7741,6 +7950,7 @@ function viewOrderDetail(id){
               ${o.promo&&o.promo.discount>0?`<div class="detail-line"><span class="k" style="color:#2e7d32">Sleva ${o.promo.type==='percent'?'('+o.promo.code+' −'+o.promo.value+'%)':'('+o.promo.code+')'}</span><span style="color:#2e7d32">−${formatPrice(o.promo.discount)} Kč</span></div>`:''}
               ${o.shipPrice?`<div class="detail-line"><span class="k">Doprava</span><span>${formatPrice(o.shipPrice)} Kč</span></div>`:''}
               ${o.codFee?`<div class="detail-line"><span class="k">Dobírka</span><span>${formatPrice(o.codFee)} Kč</span></div>`:''}
+              ${Number(o.tip)>0?`<div class="detail-line"><span class="k" style="color:#1E7B34">Spropitné${o.tipLabel?' ('+escapeHtml(o.tipLabel)+')':''}</span><span style="color:#1E7B34">${formatPrice(o.tip)} Kč</span></div>`:''}
               <div class="detail-line" style="padding-top:14px;border-top:1px solid #eee;margin-top:8px"><span class="k" style="color:#111;font-weight:700;font-size:13px">CELKEM</span><span style="font-family:'Archivo Black',sans-serif;font-size:24px">${formatPrice(o.total)} Kč</span></div>
             </div>
           </div>
@@ -8321,6 +8531,7 @@ function viewPaymentsSettings(){
       </div>
     </div>
     ${renderGopayFeesPanel()}
+    ${renderTipPanel()}
     <details class="hv-panel fin-legacy">
       <summary class="hv-panelhead" style="cursor:pointer"><div class="ovw-title"><h2>Online platby (Snipcart) – starší nastavení</h2></div><span class="pv-tag">rozbalit</span></summary>
       <div style="padding:16px 22px 22px">${legacy}</div>
@@ -9905,7 +10116,7 @@ function calcOrderBreakdown(o,cfg,products){
   const discount=Number(o.promo?.discount)||0;
   const shipping=Number(o.shipPrice)||0;
   const codFee=Number(o.codFee)||0;
-  const tip=Number(o.tip)||0; // spropitné (připraveno pro budoucí volbu v košíku – ukládej jako order.tip)
+  const tip=Number(o.tip)||0; // dýško na rozvoj e-shopu (volba v pokladně, order.tip)
   const total=Number(o.total)||0;
   const country=(o.customer?.country||'cz').toLowerCase()==='sk'?'sk':'cz';
   // Náklady se berou JEN z karty produktu (Produkty → nákupní cena + balné)
@@ -9914,7 +10125,7 @@ function calcOrderBreakdown(o,cfg,products){
   const gopayFee=gp.fee, viaGoPay=gp.via;           // podle tarifu ve Správa → Platby
   const goodsNet=goods-discount;                 // za zboží po slevě
   const costs=goodsCost+packCost+gopayFee;
-  const profit=Math.round((goodsNet-costs)*100)/100; // zisk ze zboží
+  const profit=Math.round((goodsNet-costs)*100)/100; // zisk ze zboží (dýško a doprava se v Hospodaření přičítají zvlášť jako příjem)
   const margin=goodsNet>0?profit/goodsNet*100:0;
   return {goods,goodsNet,discount,shipping,codFee,tip,total,goodsCost,packCost,shipCost,gopayFee,costs,profit,margin,country,viaGoPay,missingCost};
 }
@@ -10698,6 +10909,7 @@ ${o.invoice?`
     ${o.promo&&o.promo.discount>0?`<tr><td colspan="4" style="color:#2e7d32">Sleva ${o.promo.type==='percent'?'('+escapeHtml(o.promo.code)+' −'+o.promo.value+'%)':'('+escapeHtml(o.promo.code)+')'}</td><td class="price" style="color:#2e7d32">−${formatPrice(o.promo.discount)} Kč</td></tr>`:''}
     ${o.shipPrice?`<tr><td colspan="4">Doprava</td><td class="price">${formatPrice(o.shipPrice)} Kč</td></tr>`:''}
     ${o.codFee?`<tr><td colspan="4">Poplatek za dobírku</td><td class="price">${formatPrice(o.codFee)} Kč</td></tr>`:''}
+    ${Number(o.tip)>0?`<tr><td colspan="4">Spropitné (tým a rozvoj HOPI VIRTUAL)</td><td class="price">${formatPrice(o.tip)} Kč</td></tr>`:''}
     <tr class="total"><td colspan="4">CELKEM K ÚHRADĚ</td><td class="price">${formatPrice(o.total)} Kč</td></tr>
   </tbody>
 </table>
@@ -10776,6 +10988,7 @@ POLOŽKY:
 ${items}
 ${o.shipPrice?'\nDoprava: '+formatPrice(o.shipPrice)+' Kč':''}
 ${o.codFee?'Dobírka: '+formatPrice(o.codFee)+' Kč':''}
+${Number(o.tip)>0?'Spropitné: '+formatPrice(o.tip)+' Kč':''}
 ───────────────────────────────
 CELKEM: ${formatPrice(o.total)} Kč
 ───────────────────────────────
