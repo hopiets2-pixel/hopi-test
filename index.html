@@ -238,7 +238,7 @@ h2.section-title{font-family:'Archivo Black',sans-serif;font-size:clamp(40px,5vw
 .nl-modal h2{font-family:'Archivo Black',sans-serif;font-size:clamp(22px,4vw,30px);text-transform:uppercase;line-height:1;margin-bottom:10px;color:#fff}
 .nl-modal p{color:var(--muted);font-size:14px;margin-bottom:24px;line-height:1.6}
 .nl-modal-field{display:flex;gap:0;border:1px solid #2a2a2a}
-.nl-modal-field input[type=email]{flex:1;padding:14px 16px;background:#000;border:none;color:#fff;font-family:'Archivo',sans-serif;font-size:14px;outline:none}
+.nl-modal-field input[type=email]{flex:1;padding:14px 16px;background:#000;border:none;color:#fff;font-family:'Archivo',sans-serif;font-size:16px;min-width:0;outline:none}
 .nl-modal-field input[type=email]::placeholder{color:var(--muted)}
 .nl-modal-field input[type=email]:focus{border-color:var(--green)}
 .nl-modal-field button{padding:0 22px;background:var(--green);color:#fff;font-family:'Archivo Black',sans-serif;font-size:13px;text-transform:uppercase;border:none;cursor:pointer;white-space:nowrap;transition:background .2s}
@@ -1131,6 +1131,9 @@ body.ac-lock{overflow:hidden}
 }
 @media (max-width:420px){.acc2-nav button svg{display:none}.ao-act .btn{flex:1;justify-content:center}}
 
+.nl-name-row{display:flex;gap:8px;margin-bottom:8px;width:100%}.nl-name-in{flex:1 1 0;min-width:0;width:0;box-sizing:border-box;padding:14px 16px;background:#000;border:1px solid #2a2a2a;color:#fff;font-family:'Archivo',sans-serif;font-size:16px;outline:none;border-radius:0}.nl-name-in::placeholder{color:var(--muted)}.nl-name-in:focus{border-color:var(--green)}
+.acc2-main{min-height:min(70vh,640px)}
+.em-upg{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:16px 18px;border-left:4px solid #34C759}.em-upg b{display:block;font-size:15px;margin-bottom:3px}.em-upg span{display:block;font-size:13px;color:var(--hv-muted,#8e8e93);line-height:1.45}@media(max-width:640px){.em-upg{flex-direction:column;align-items:stretch}}
 </style>
 </head>
 <body>
@@ -1804,104 +1807,71 @@ const STEP_LABELS=['Nová','Přijato','Zpracovává se','Odesláno','Doručeno']
 const DEFAULT_EMAIL_TEMPLATES={
   new:{
     enabled:true,
-    subject:'Děkujeme za objednávku #{cislo} — údaje k platbě',
+    subject:`Děkujeme za objednávku #{cislo}`,
     body:`Ahoj {jmeno},
 
-děkujeme za tvoji objednávku #{cislo}! 🎉
+díky za objednávku! Máme ji v systému a brzy se do ní pustíme.
 
 {platebni_instrukce}
 
-📦 SHRNUTÍ OBJEDNÁVKY
-Číslo objednávky: {cislo}
-Dodací adresa: {adresa}
-Způsob dopravy: {doprava}
-Celkem k úhradě: {celkem} Kč
-
-Máš dotaz? Napiš nám na {email_shopu}.
+Každou změnu stavu ti pošleme e-mailem.
 
 Tým {nazev_shopu}`,
   },
   accepted:{
     enabled:true,
-    subject:'Objednávka #{cislo} byla přijata',
+    subject:`Objednávka #{cislo} je přijatá`,
     body:`Ahoj {jmeno},
 
-skvělá zpráva — tvoji objednávku #{cislo} jsme právě přijali a připravujeme ji k odeslání.
-
-📦 Stav: {stav}
-💰 Celkem: {celkem} Kč
-
-✨ Co bude následovat:
-Během chvilky ji začneme balit. Dalšího e-mailu se dočkáš, až bude na cestě k dopravci.
+tvoji objednávku jsme přijali a chystáme ji k zabalení. Až bude na cestě, pošleme ti sledovací číslo.
 
 Tým {nazev_shopu}`,
   },
   processing:{
     enabled:true,
-    subject:'Balíme tvoji objednávku #{cislo}',
+    subject:`Balíme tvoji objednávku #{cislo}`,
     body:`Ahoj {jmeno},
 
-tvoje objednávka #{cislo} se právě balí! Už je to otázka hodin, než poputuje dopravci.
-
-📦 Stav: {stav}
-💰 Celkem: {celkem} Kč
-
-✨ Co bude následovat:
-Jakmile balík předáme dopravci, dostaneš od nás sledovací číslo.
+tvoje objednávka je právě v balírně. Jakmile ji předáme dopravci, dáme ti vědět.
 
 Tým {nazev_shopu}`,
   },
   shipped:{
     enabled:true,
-    subject:'🚚 Objednávka #{cislo} je na cestě!',
+    subject:`🚚 Objednávka #{cislo} je na cestě`,
     body:`Ahoj {jmeno},
 
-parádní zprávy — tvoje objednávka #{cislo} je na cestě!
+balík je na cestě! Předali jsme ho dopravci ({dopravce}). Kde zrovna je, uvidíš přes tlačítko Sledovat zásilku.
 
-📦 Stav: {stav}
-🚚 Dopravce: {dopravce}
-📍 Doručení na: {adresa}
-💰 Celkem: {celkem} Kč
-
-Sledovací číslo: {sledovaci_cislo}
-{tracking_link}
-
-✨ Co bude následovat:
-Dopravce by měl doručit do 1–2 pracovních dnů. Dáme ti vědět, jakmile balík dorazí.
+Doručení obvykle trvá 1–2 pracovní dny.
 
 Tým {nazev_shopu}`,
   },
   delivered:{
     enabled:true,
-    subject:'✅ Objednávka #{cislo} doručena — díky!',
+    subject:`Objednávka #{cislo} je doručená 💚`,
     body:`Ahoj {jmeno},
 
-skvělé — tvoje objednávka #{cislo} byla právě doručena. Doufáme, že tě potěší!
+balík dorazil. Doufáme, že ti merch udělá radost!
 
-📦 Stav: {stav}
-💰 Celkem: {celkem} Kč
-
-💚 Děkujeme za nákup!
-Pokud máš jakýkoliv dotaz nebo nespokojenost, napiš nám na {email_shopu} — vyřešíme to.
-
-Budeme rádi, když se u nás stavíš zas.
+Kdyby cokoliv nesedělo, napiš nám na {email_shopu} a vyřešíme to.
 
 Tým {nazev_shopu}`,
   },
   cancelled:{
     enabled:true,
-    subject:'Objednávka #{cislo} byla zrušena',
+    subject:`Objednávka #{cislo} byla zrušena`,
     body:`Ahoj {jmeno},
 
-tvoje objednávka #{cislo} byla zrušena.
+tvoji objednávku #{cislo} jsme zrušili.
 
-📦 Stav: {stav}
-
-Pokud to bylo omylem nebo máš otázku, ozvi se nám na {email_shopu} — rádi to vyřešíme.
+Jestli je to omyl nebo máš dotaz, napiš nám na {email_shopu}. Rádi to vyřešíme.
 
 Tým {nazev_shopu}`,
   },
 };
+// Starší výchozí texty (před novým vzhledem) – poznáme je podle souhrnu, který teď e-mail vykreslí sám
+function hvEmailOldTexts(){const t=getEmailTemplates();return Object.keys(DEFAULT_EMAIL_TEMPLATES).filter(k=>t[k]&&/📦 Stav: \{stav\}|📦 SHRNUTÍ OBJEDNÁVKY/.test(t[k].body||''))}
 
 function getEmailTemplates(){
   const saved=getAppSetting('email_templates',{});
@@ -1942,7 +1912,7 @@ function fillTemplate(text,order){
 Částku ${formatPrice(order.total)} Kč zaplatíš při vyzvednutí balíku.
 Sledovací číslo ti pošleme jakmile balík odejde.`;
   }else if(order.pay==='transfer'){
-    const bankAcc=s.bankAccount||'[ČÍSLO ÚČTU NENÍ NASTAVENO — doplň v Admin → Finance]';
+    const bankAcc=getAppSetting('bank_account',s.bankAccount)||'[ČÍSLO ÚČTU NENÍ NASTAVENO — doplň v Admin → Finance]';
     platebni=`💰 PROSÍME, ZAPLAŤTE BANKOVNÍM PŘEVODEM:
 
 ➡️ Číslo účtu: ${bankAcc}
@@ -1982,7 +1952,7 @@ ${s.iban?'➡️ IBAN: '+s.iban+'\n':''}${s.bankName?'➡️ Banka: '+s.bankName
     '{tracking_link}':order.tracking?.url||'',
     '{dopravce}':order.tracking?.carrier||shipL,
     '{platebni_instrukce}':platebni,
-    '{cislo_uctu}':s.bankAccount||'',
+    '{cislo_uctu}':getAppSetting('bank_account',s.bankAccount)||'',
     '{iban}':s.iban||'',
     '{variabilni_symbol}':vs,
   };
@@ -1991,129 +1961,162 @@ ${s.iban?'➡️ IBAN: '+s.iban+'\n':''}${s.bankName?'➡️ Banka: '+s.bankName
   return result;
 }
 
-// Vygenerování HTML e-mailu (responzivní, mobilně optimalizovaný)
-function buildEmailHTML(order,template){
-  const s=getSettings();
-  const subject=fillTemplate(template.subject,order);
-  const bodyText=fillTemplate(template.body,order);
-  const statusLabel=STATUSES[order.status||'new'].label;
-  const products=getProducts();
-  const itemsHTML=order.items.map(i=>{
-    const p=products.find(x=>x.id===i.productId);
-    if(!p)return '';
-    return `
-      <tr>
-        <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#111">
-          <strong>${escapeHtml(p.name)}</strong>${i.size?` — ${escapeHtml(i.size)}`:''}
-        </td>
-        <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#666;text-align:center;white-space:nowrap">${i.qty}×</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #eee;font-size:14px;color:#111;text-align:right;white-space:nowrap;font-weight:700">${formatPrice(p.price*i.qty)} Kč</td>
-      </tr>
-    `;
+// Vygenerování HTML e-mailu zákazníkovi – jednotný vzhled HOPI VIRTUAL (logo, zelený pruh, průběh, položky, souhrn)
+const HV_MAIL_LOGO='https://eshophopivirtual.com/logo-email.png';
+const HV_MAIL_FONT="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const HV_MAIL_HERO={
+  new:{tag:'Objednávka přijata do systému',title:'Děkujeme za objednávku!'},
+  accepted:{tag:'Objednávka přijata',title:'Objednávku máme'},
+  processing:{tag:'Balíme',title:'Balíme tvoji objednávku'},
+  shipped:{tag:'Odesláno',title:'Balík je na cestě!'},
+  delivered:{tag:'Doručeno',title:'Doručeno. Užij si to!'},
+  cancelled:{tag:'Zrušeno',title:'Objednávka zrušena'},
+};
+function hvMailEsc(s){return escapeHtml(String(s==null?'':s))}
+// Text šablony z adminu → odstavce; řádky „Klíč: hodnota“ jako přehledné řádky; odkazy klikací
+function hvMailText(text){
+  const F=HV_MAIL_FONT;
+  const link=s=>s.replace(/(https?:\/\/[^\s<]+)/g,u=>`<a href="${u}" style="color:#00853f;font-weight:700;word-break:break-all">${u}</a>`);
+  return String(text||'').trim().split(/\n\s*\n/).map(block=>{
+    const lines=block.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(!lines.length)return '';
+    if(lines.length===1&&lines[0]==='[[HV_PAY]]')return '[[HV_PAY]]';
+    const kv=lines.map(l=>l.match(/^(?:([^\w\s{]{1,3})\s*)?([A-Za-zÁ-žÀ-ÿ][^:]{1,28}):\s+(.+)$/));
+    if(lines.length>1&&kv.filter(Boolean).length>=Math.ceil(lines.length*0.6)){
+      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;background:#f6f7f6;border-radius:12px">${lines.map((l,i)=>{const m=kv[i];
+        return m?`<tr><td style="padding:9px 14px;font-family:${F};font-size:14px;color:#6b6b70;vertical-align:top">${hvMailEsc(m[2])}</td><td style="padding:9px 14px;font-family:${F};font-size:15px;color:#111;font-weight:700;text-align:right">${link(hvMailEsc(m[3]))}</td></tr>`
+                :`<tr><td colspan="2" style="padding:9px 14px;font-family:${F};font-size:13px;color:#111;font-weight:800;letter-spacing:.5px">${link(hvMailEsc(l))}</td></tr>`}).join('')}</table>`;
+    }
+    return `<p style="margin:0 0 16px;font-family:${F};font-size:16px;line-height:1.6;color:#2b2b2b">${lines.map(l=>/^[A-ZÁ-Ž0-9 \W]{6,}$/.test(l)&&/[A-ZÁ-Ž]{4}/.test(l)?`<b style="color:#111;letter-spacing:.5px">${link(hvMailEsc(l))}</b>`:link(hvMailEsc(l))).join('<br>')}</p>`;
   }).join('');
-
-  // Body s \n převedeným na <br>
-  const bodyHTML=escapeHtml(bodyText).replace(/\n/g,'<br>');
-
+}
+function hvMailButton(href,label,color){
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 8px"><tr><td align="center" bgcolor="${color||'#00853f'}" style="background:${color||'#00853f'};border-radius:12px"><a href="${hvMailEsc(href)}" target="_blank" style="display:block;padding:16px 20px;font-family:${HV_MAIL_FONT};font-size:15px;font-weight:800;letter-spacing:.5px;color:#ffffff;text-decoration:none;border-radius:12px">${label}</a></td></tr></table>`;
+}
+// Společná kostra (logo, barevný pruh s nadpisem, obsah, patička)
+function hvMailShell(o){
+  const s=getSettings(); const F=HV_MAIL_FONT;
+  const shop=s.shopName||'HOPI VIRTUAL', mail=s.email||'eshophopivirtual@gmail.com';
+  const band=o.band||'#00853f';
   return `<!DOCTYPE html>
-<html lang="cs">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light">
-<title>${escapeHtml(subject)}</title>
-</head>
-<body style="margin:0;padding:0;background:#f4f4f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#111;line-height:1.6">
-<div style="display:none;max-height:0;overflow:hidden">${escapeHtml(subject)} — ${escapeHtml(s.shopName||'HOPI VIRTUAL')}</div>
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f4f4f4;padding:20px 0">
-  <tr>
-    <td align="center">
-      <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width:600px;width:100%;background:#ffffff">
-
-        <!-- HEADER -->
-        <tr>
-          <td style="padding:28px 24px;background:#000;text-align:center">
-            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto">
-              <tr>
-                <td style="background:#008a3f;padding:10px 16px;color:#fff;font-weight:900;font-size:16px;letter-spacing:-1px;font-family:Arial Black,sans-serif">HOPI</td>
-                <td style="padding-left:10px;color:#fff;font-weight:900;font-size:14px;letter-spacing:2px;font-family:Arial Black,sans-serif">VIRTUAL<sup style="font-size:8px">®</sup></td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- STATUS BANNER -->
-        <tr>
-          <td style="background:#008a3f;color:#fff;padding:16px 24px;text-align:center">
-            <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:0.85;margin-bottom:4px">Stav objednávky</div>
-            <div style="font-size:20px;font-weight:900;font-family:Arial Black,sans-serif;letter-spacing:-0.5px">${escapeHtml(statusLabel)}</div>
-          </td>
-        </tr>
-
-        <!-- ORDER NUMBER -->
-        <tr>
-          <td style="padding:24px 24px 0 24px">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-              <tr>
-                <td style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;padding-bottom:4px">Číslo objednávky</td>
-              </tr>
-              <tr>
-                <td style="font-size:22px;font-weight:900;color:#111;font-family:Courier,monospace;letter-spacing:1px;padding-bottom:6px">${escapeHtml(order.id)}</td>
-              </tr>
-              <tr>
-                <td style="font-size:12px;color:#888">${new Date(order.date).toLocaleDateString('cs-CZ',{day:'numeric',month:'long',year:'numeric'})}</td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- DIVIDER -->
-        <tr><td style="padding:20px 24px 0 24px"><hr style="border:none;border-top:1px solid #eee;margin:0"></td></tr>
-
-        <!-- MESSAGE BODY -->
-        <tr>
-          <td style="padding:20px 24px;font-size:15px;color:#333;line-height:1.7">
-            ${bodyHTML}
-          </td>
-        </tr>
-
-        <!-- ITEMS -->
-        <tr>
-          <td style="padding:0 24px 20px 24px">
-            <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Položky objednávky</div>
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #eee">
-              ${itemsHTML}
-              <tr>
-                <td style="padding:14px 12px;background:#fafafa;font-size:14px;color:#111;font-weight:700">Celkem k úhradě</td>
-                <td style="padding:14px 12px;background:#fafafa"></td>
-                <td style="padding:14px 12px;background:#fafafa;font-size:18px;color:#008a3f;font-weight:900;text-align:right;white-space:nowrap;font-family:Arial Black,sans-serif">${formatPrice(order.total)} Kč</td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- CTA -->
-        <tr>
-          <td style="padding:0 24px 28px 24px;text-align:center">
-            <a href="${window.location.origin}/#track?order=${encodeURIComponent(order.id)}" style="display:inline-block;background:#008a3f;color:#fff;padding:14px 28px;text-decoration:none;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px">Zobrazit objednávku</a>
-          </td>
-        </tr>
-
-        <!-- FOOTER -->
-        <tr>
-          <td style="padding:24px;background:#0a0a0a;color:#aaa;font-size:12px;text-align:center;line-height:1.6">
-            <div style="margin-bottom:8px;color:#fff;font-weight:700">${escapeHtml(s.shopName||'HOPI VIRTUAL')}</div>
-            <div><a href="mailto:${escapeHtml(s.email||'')}" style="color:#00c853;text-decoration:none">${escapeHtml(s.email||'')}</a>${s.phone?' · '+escapeHtml(s.phone):''}</div>
-            <div style="margin-top:14px;font-size:11px;color:#666">© 2026 ${escapeHtml(s.shopName||'HOPI VIRTUAL')} · Tento e-mail je automatický, neodpovídejte na něj.</div>
-          </td>
-        </tr>
-
-      </table>
-    </td>
-  </tr>
+<html lang="cs"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${hvMailEsc(o.subject)}</title></head>
+<body style="margin:0;padding:0;background:#eeeeee;-webkit-text-size-adjust:100%">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${hvMailEsc(o.preheader||o.subject)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eeeeee"><tr><td align="center" style="padding:24px 10px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden">
+ <tr><td style="padding:22px 26px 18px;background:#ffffff">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+   <td style="vertical-align:middle"><a href="${hvMailEsc(o.site)}" target="_blank" style="text-decoration:none"><img src="${HV_MAIL_LOGO}" width="78" height="64" alt="HOPI VIRTUAL" style="display:block;border:0;width:78px;height:auto;font-family:${F};font-size:16px;font-weight:900;color:#00853f"></a></td>
+   ${o.ref?`<td style="vertical-align:middle;text-align:right;font-family:${F};font-size:12px;color:#8e8e93;line-height:1.5">${o.refLabel||'Objednávka'}<br><b style="font-family:'Courier New',monospace;font-size:16px;color:#111;letter-spacing:.5px">${hvMailEsc(o.ref)}</b></td>`:''}
+  </tr></table>
+ </td></tr>
+ <tr><td style="background:${band};padding:26px 26px 24px">
+  <p style="margin:0 0 8px;font-family:'Courier New',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#ffffff;opacity:.85">&#9679; ${hvMailEsc(o.tag||'')}</p>
+  <h1 style="margin:0;font-family:${F};font-size:28px;line-height:1.12;font-weight:900;letter-spacing:-.5px;color:#ffffff">${hvMailEsc(o.title)}</h1>
+ </td></tr>
+ ${o.progress||''}
+ <tr><td style="padding:26px 26px 8px">${o.inner}</td></tr>
+ <tr><td style="padding:8px 26px 26px">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #ececec"><tr><td style="padding-top:18px;font-family:${F};font-size:14px;line-height:1.55;color:#55555a">
+   <b style="color:#111">Potřebuješ pomoct?</b><br>Napiš nám na <a href="mailto:${hvMailEsc(mail)}" style="color:#00853f;font-weight:700">${hvMailEsc(mail)}</a>${s.phone?` nebo zavolej na <a href="tel:${hvMailEsc(String(s.phone).replace(/\s/g,''))}" style="color:#00853f;font-weight:700">${hvMailEsc(s.phone)}</a>`:''}.
+  </td></tr></table>
+ </td></tr>
+ <tr><td style="background:#0a0a0a;padding:22px 26px;text-align:center">
+  <p style="margin:0 0 6px;font-family:${F};font-size:13px;font-weight:800;letter-spacing:2px;color:#ffffff">${hvMailEsc(shop.toUpperCase())}</p>
+  <p style="margin:0;font-family:${F};font-size:12px;line-height:1.6;color:#9a9a9a"><a href="${hvMailEsc(o.site)}" style="color:#00c853;text-decoration:none">${hvMailEsc(String(o.site).replace(/^https?:\/\//,'').replace(/\/$/,''))}</a> &middot; <a href="mailto:${hvMailEsc(mail)}" style="color:#9a9a9a;text-decoration:none">${hvMailEsc(mail)}</a><br>${o.footNote||'Tenhle e-mail ti přišel, protože jsi u nás nakoupil(a).'}</p>
+ </td></tr>
 </table>
-</body>
-</html>`;
+</td></tr></table>
+</body></html>`;
+}
+function hvMailProgress(status){
+  if(status==='cancelled')return '';
+  const steps=['Objednáno','Přijato','Balíme','Odesláno','Doručeno'];
+  const idx={new:0,accepted:1,processing:2,shipped:3,delivered:4}[status]??0;
+  return `<tr><td style="padding:18px 16px 4px;background:#ffffff"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${steps.map((l,i)=>{
+    const done=i<=idx, cur=i===idx;
+    return `<td width="20%" align="center" style="vertical-align:top;padding:0 2px">
+      <div style="height:6px;border-radius:3px;background:${done?'#00853f':'#e5e5ea'};margin:0 0 8px"></div>
+      <span style="font-family:${HV_MAIL_FONT};font-size:11px;line-height:1.3;${cur?'color:#00853f;font-weight:800':done?'color:#111;font-weight:600':'color:#a1a1a6'}">${l}</span></td>`}).join('')}</tr></table></td></tr>`;
+}
+function hvMailPayBox(order){
+  const s=getSettings(); const F=HV_MAIL_FONT; const vs=(order.id||'').replace(/\D/g,'');
+  const row=(k,v,big)=>`<tr><td style="padding:7px 0;font-family:${F};font-size:14px;color:#55555a">${k}</td><td style="padding:7px 0;font-family:${F};font-size:${big?18:15}px;font-weight:800;color:#111;text-align:right">${v}</td></tr>`;
+  if(order.pay==='transfer'){
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;background:#fff8e6;border:1px solid #ffd77a;border-radius:14px"><tr><td style="padding:16px 18px">
+      <p style="margin:0 0 8px;font-family:${F};font-size:15px;font-weight:800;color:#111">Zaplať prosím převodem</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      ${row('Číslo účtu',hvMailEsc(getAppSetting('bank_account',s.bankAccount)||'pošleme ti ho zvlášť'))}
+      ${s.iban?row('IBAN',hvMailEsc(s.iban)):''}
+      ${row('Variabilní symbol',hvMailEsc(vs))}
+      ${row('Částka',formatPrice(order.total)+' Kč',true)}
+      </table>
+      <p style="margin:8px 0 0;font-family:${F};font-size:13px;line-height:1.5;color:#6b5a2b">Bez variabilního symbolu platbu nespárujeme. Jakmile peníze dorazí, objednávku hned posíláme dál.</p>
+    </td></tr></table>`;
+  }
+  if(order.pay==='cod'){
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;background:#f6f7f6;border-radius:14px"><tr><td style="padding:16px 18px;font-family:${F};font-size:15px;line-height:1.5;color:#111"><b>Platíš na dobírku:</b> ${formatPrice(order.total)} Kč při převzetí balíku.</td></tr></table>`;
+  }
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;background:#e9f6ee;border-radius:14px"><tr><td style="padding:16px 18px;font-family:${F};font-size:15px;line-height:1.5;color:#0d5a2c"><b>&#10003; Zaplaceno kartou.</b> Nic dalšího neřešíš.</td></tr></table>`;
+}
+function buildEmailHTML(order,template){
+  const s=getSettings(); const F=HV_MAIL_FONT;
+  const status=order.status||'new';
+  const site=(typeof hvSiteUrl==='function'?hvSiteUrl():location.origin+'/');
+  const subject=fillTemplate(template.subject,order);
+  // platební instrukce se vykreslí jako box (na jejich místě v textu, jinak pod textem u nové objednávky)
+  const rawBody=String(template.body||'');
+  const hasPay=rawBody.includes('{platebni_instrukce}');
+  const bodyText=fillTemplate(rawBody.split('{platebni_instrukce}').join('\n\n[[HV_PAY]]\n\n'),order);
+  let inner=hvMailText(bodyText);
+  const pay=hvMailPayBox(order);
+  if(hasPay)inner=inner.split('[[HV_PAY]]').join(pay);
+  else if(status==='new')inner+=pay;
+  // sledování zásilky
+  const tr=order.tracking||{};
+  if((status==='shipped'||status==='delivered')&&(tr.url||tr.number)){
+    inner+=`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;background:#f6f7f6;border-radius:14px"><tr><td style="padding:14px 18px;font-family:${F};font-size:14px;color:#55555a">Sledovací číslo${tr.carrier?' · '+hvMailEsc(tr.carrier):''}<br><b style="font-family:'Courier New',monospace;font-size:17px;color:#111;letter-spacing:.5px">${hvMailEsc(tr.number||'—')}</b></td></tr></table>`;
+    if(tr.url&&status==='shipped')inner+=hvMailButton(tr.url,'Sledovat zásilku &rarr;');
+  }
+  // položky
+  const products=getProducts();
+  const items=(order.items||[]).map(i=>{
+    const p=products.find(x=>String(x.id)===String(i.productId)); if(!p)return '';
+    let img=[p.photo,p.image,(p.images||[])[0]].find(u=>typeof u==='string'&&u&&!/^data:/.test(u));
+    if(img&&!/^https?:\/\//.test(img))img=site.replace(/[^/]*$/,'')+img.replace(/^\.?\//,'');
+    const price=Number(i.price)>0?Number(i.price)*i.qty:Number(p.price)*i.qty;
+    return `<tr>
+      <td width="60" style="padding:12px 0;border-bottom:1px solid #ececec;vertical-align:top">${img?`<img src="${hvMailEsc(img)}" width="52" height="52" alt="" style="display:block;width:52px;height:52px;object-fit:cover;border-radius:10px;background:#f2f2f2;border:0">`:`<div style="width:52px;height:52px;border-radius:10px;background:#e9f6ee"></div>`}</td>
+      <td style="padding:12px 10px;border-bottom:1px solid #ececec;vertical-align:top;font-family:${F};font-size:15px;line-height:1.35;color:#111"><b>${hvMailEsc(p.name)}</b><br><span style="font-size:13px;color:#8e8e93">${i.size?hvMailEsc(i.size)+' · ':''}${i.qty} ks</span></td>
+      <td style="padding:12px 0;border-bottom:1px solid #ececec;vertical-align:top;font-family:${F};font-size:15px;font-weight:800;color:#111;text-align:right;white-space:nowrap">${formatPrice(price)} Kč</td></tr>`;
+  }).join('');
+  const sumRow=(k,v,col)=>`<tr><td style="padding:5px 0;font-family:${F};font-size:14px;color:#55555a">${k}</td><td style="padding:5px 0;font-family:${F};font-size:14px;font-weight:700;color:${col||'#111'};text-align:right;white-space:nowrap">${v}</td></tr>`;
+  const disc=Number(order.discount)||Number(order.promo&&order.promo.discount)||0;
+  const discLabel=order.promo&&order.promo.code?(order.promo.loyalty?'Věrnostní sleva':'Sleva ('+hvMailEsc(order.promo.code)+')'):'Sleva';
+  const sub=Number(order.subtotal)||0;
+  const shipL={zasilkovna:'Zásilkovna – výdejní místo',zasilkovna_address:'Zásilkovna na adresu',balikovna:'Balíkovna',ppl:'PPL k ruce',kuryr:'Expresní kurýr'}[order.ship]||order.ship||'';
+  const payL={card:'Platební karta',applepay:'Apple Pay',googlepay:'Google Pay',transfer:'Bankovní převod',cod:'Dobírka'}[order.pay]||order.pay||'';
+  const c=order.customer||{}; const da=order.deliveryAddress;
+  const where=order.shipBranch?hvMailEsc(order.shipBranch):da?`${hvMailEsc(da.street)}<br>${hvMailEsc(da.zip)} ${hvMailEsc(da.city)}`:`${hvMailEsc(c.street||'')}<br>${hvMailEsc(c.zip||'')} ${hvMailEsc(c.city||'')}`;
+  inner+=`
+   <p style="margin:12px 0 4px;font-family:${F};font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#8e8e93">Co jsi objednal(a)</p>
+   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${items}</table>
+   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:10px 0 0">
+    ${sub?sumRow('Zboží',formatPrice(sub)+' Kč'):''}
+    ${disc>0?sumRow(discLabel,'−'+formatPrice(disc)+' Kč','#00853f'):''}
+    ${sumRow('Doprava',Number(order.shipPrice)>0?formatPrice(order.shipPrice)+' Kč':'Zdarma')}
+    ${Number(order.codFee)>0?sumRow('Dobírka',formatPrice(order.codFee)+' Kč'):''}
+    ${Number(order.tip)>0?sumRow('Spropitné 💚',formatPrice(order.tip)+' Kč'):''}
+    <tr><td style="padding:12px 0 0;border-top:2px solid #111;font-family:${F};font-size:16px;font-weight:900;color:#111">Celkem</td><td style="padding:12px 0 0;border-top:2px solid #111;font-family:${F};font-size:22px;font-weight:900;color:#111;text-align:right;white-space:nowrap">${formatPrice(order.total)} Kč</td></tr>
+   </table>
+   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 18px"><tr>
+    <td width="50%" style="vertical-align:top;padding:0 8px 0 0;font-family:${F};font-size:14px;line-height:1.5;color:#111"><span style="font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#8e8e93">Doručení</span><br><b>${hvMailEsc(shipL)}</b><br>${where}</td>
+    <td width="50%" style="vertical-align:top;padding:0 0 0 8px;font-family:${F};font-size:14px;line-height:1.5;color:#111"><span style="font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#8e8e93">Platba</span><br><b>${hvMailEsc(payL)}</b><br>${hvMailEsc(((c.firstName||'')+' '+(c.lastName||'')).trim())}</td>
+   </tr></table>
+   ${status!=='cancelled'?hvMailButton(site+'#track?order='+encodeURIComponent(order.id),'Zobrazit objednávku','#111111'):''}`;
+  const hero=HV_MAIL_HERO[status]||{tag:STATUSES[status]?STATUSES[status].label:'',title:subject};
+  return hvMailShell({subject,preheader:subject,tag:hero.tag,title:hero.title,band:status==='cancelled'?'#3a3a3c':'#00853f',
+    ref:order.id,site,progress:hvMailProgress(status),inner});
 }
 
 // Hlavní funkce pro odeslání e-mailu — volaná při změně stavu
@@ -3209,9 +3212,9 @@ window.openNewsletterModal=function(){
       <div class="nl-modal-tag">● Drop 01 / Notifikace</div>
       <h2 id="nlModalTitle">Buď první<br>u nového dropu</h2>
       <p>Zadej e-mail a dostaneš upozornění jako první. Zero spam.</p>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input type="text" id="nlFirstName" placeholder="Jméno" autocomplete="given-name" style="flex:1;padding:14px 16px;background:#000;border:1px solid #2a2a2a;color:#fff;font-family:'Archivo',sans-serif;font-size:14px;outline:none">
-        <input type="text" id="nlLastName" placeholder="Příjmení" autocomplete="family-name" style="flex:1;padding:14px 16px;background:#000;border:1px solid #2a2a2a;color:#fff;font-family:'Archivo',sans-serif;font-size:14px;outline:none">
+      <div class="nl-name-row">
+        <input type="text" id="nlFirstName" placeholder="Jméno" autocomplete="given-name" class="nl-name-in">
+        <input type="text" id="nlLastName" placeholder="Příjmení" autocomplete="family-name" class="nl-name-in">
       </div>
       <div class="nl-modal-field">
         <input type="email" id="nlEmailInput" placeholder="tvuj@email.cz" autocomplete="email">
@@ -3364,9 +3367,9 @@ function viewHome(){
             <div class="nl-modal-tag">● Drop 01 / Notifikace</div>
             <h2 id="nlModalTitle">Buď první<br>u nového dropu</h2>
             <p>Zadej e-mail a dostaneš upozornění jako první. Zero spam.</p>
-            <div style="display:flex;gap:8px;margin-bottom:8px">
-              <input type="text" id="nlFirstName" placeholder="Jméno" autocomplete="given-name" style="flex:1;padding:14px 16px;background:#000;border:1px solid #2a2a2a;color:#fff;font-family:'Archivo',sans-serif;font-size:14px;outline:none">
-              <input type="text" id="nlLastName" placeholder="Příjmení" autocomplete="family-name" style="flex:1;padding:14px 16px;background:#000;border:1px solid #2a2a2a;color:#fff;font-family:'Archivo',sans-serif;font-size:14px;outline:none">
+            <div class="nl-name-row">
+              <input type="text" id="nlFirstName" placeholder="Jméno" autocomplete="given-name" class="nl-name-in">
+              <input type="text" id="nlLastName" placeholder="Příjmení" autocomplete="family-name" class="nl-name-in">
             </div>
             <div class="nl-modal-field">
               <input type="email" id="nlEmailInput" placeholder="tvuj@email.cz" autocomplete="email" onkeydown="if(event.key==='Enter')submitNewsletterModal()">
@@ -3633,8 +3636,8 @@ const HV_TIP_DEFAULT={
 };
 function getTipConfig(){
   const v=getAppSetting('hopi_tip_config',null);
-  // Bez uloženého nastavení: na testovacím webu zapnuto (ať je vidět), na ostrém vypnuto
-  if(!v||typeof v!=='object')return Object.assign({},HV_TIP_DEFAULT,{saved:false,enabled:(typeof HOPI_IS_STAGE!=='undefined'&&!!HOPI_IS_STAGE)});
+  // Bez uloženého nastavení vypnuto – stejně jako na serveru (create-order), jinak by se dýško ztratilo
+  if(!v||typeof v!=='object')return Object.assign({},HV_TIP_DEFAULT,{saved:false});
   const c=Object.assign({},HV_TIP_DEFAULT,v,{saved:true});
   c.options=(Array.isArray(v.options)?v.options:HV_TIP_DEFAULT.options)
     .filter(o=>o&&(o.t==='pct'||o.t==='kc')&&Number(o.v)>0).slice(0,8);
@@ -5105,9 +5108,8 @@ async function hvApplySession(session,{silent}={}){
   const au=session.user;
   if(await hvIsAdminAccount(au)){
     setUser(null);
-    const mc=!!(au.user_metadata&&au.user_metadata.must_change_password);
     const prev=getAdminUser();
-    setAdminUser(Object.assign({email:au.email,name:au.email.split('@')[0],loginAt:(prev&&prev.loginAt)||Date.now()},mc?{mustChange:true}:{}));
+    setAdminUser({email:au.email,name:au.email.split('@')[0],loginAt:(prev&&prev.loginAt)||Date.now()});
     return 'admin';
   }
   setAdminUser(null);
@@ -5572,7 +5574,7 @@ function viewPeoplePage(only){
           ${r.locked?'<span class="rl-lock">Pevná role</span>':`<div class="rl-act"><button class="ovw-btn sm" onclick="hvRoleOpen('${r.id}')">Upravit</button></div>`}
         </div>`).join('')}</div>
     </div>
-    <p class="hv-note ur-note">Pozvánka vytvoří účet s dočasným heslem a připraví zprávu, kterou mu pošleš. Po prvním přihlášení si nastaví vlastní heslo. Zákazníci se registrují sami na webu.</p>`:''}
+    <p class="hv-note ur-note">Pozvánka vytvoří účet s heslem a připraví zprávu, kterou mu pošleš. Heslo kdykoliv změníš v Upravit → Nastavit heslo. Zákazníci se registrují sami na webu.</p>`:''}
   </div>`;
 }
 function viewUsersRoles(){return viewPeoplePage('users')}
@@ -5716,7 +5718,11 @@ const HOPI_PRICING=(function(){
   // ---------- spropitné ----------
   function tipAmount(cfg,tip,goodsNet){
     if(!cfg||!cfg.enabled||!tip||!tip.key||tip.key==='none')return {amount:0,label:''};
-    const max=Math.max(1,num(cfg.max,2000)); const opts=Array.isArray(cfg.options)?cfg.options:[];
+    // stejné výchozí hodnoty jako v pokladně (uložené nastavení nemusí mít všechna pole)
+    const TIP_OPTS=[{t:'pct',v:5},{t:'pct',v:10},{t:'pct',v:15},{t:'kc',v:20},{t:'kc',v:50}];
+    const max=Math.max(1,num(cfg.max,2000));
+    const opts=(Array.isArray(cfg.options)?cfg.options:TIP_OPTS).filter(o=>o&&(o.t==='pct'||o.t==='kc')&&num(o.v,0)>0).slice(0,8);
+    if(cfg.custom===undefined)cfg=Object.assign({},cfg,{custom:true});
     let a=0,label='';
     if(tip.key==='custom'){if(!cfg.custom)return {amount:0,label:''};a=r(tip.custom);label='vlastní'}
     else if(/^o\d+$/.test(tip.key)){const o=opts[Number(tip.key.slice(1))];if(o){a=o.t==='pct'?r(goodsNet*num(o.v,0)/100):r(o.v);label=o.t==='pct'?(String(o.v).replace('.',',')+' %'):(r(o.v)+' Kč')}}
@@ -5923,6 +5929,7 @@ function recalcCheckoutTotals(fromServer){
   const codRow=document.getElementById('codRow'); if(codRow)codRow.style.display=q.codFee?'flex':'none';
   hvTipUpdateSummary(q.goodsNet);
   const tipRow=document.getElementById('tipRow'); if(tipRow){tipRow.style.display=q.tip>0?'flex':'none';set('sumTip',formatPrice(q.tip)+' Kč')}
+  {const th=document.getElementById('tipThanks'); if(th)th.hidden=!(q.tip>0)}
   set('sumDiscount',q.discount>0?`<div class="summary-row"><span class="k" style="color:var(--green-glow)">${hvDiscountLabel(q)}</span><span style="color:var(--green-glow)">−${formatPrice(q.discount)} Kč</span></div>`:'');
   set('sumDiscNote',hvDiscountNote(q)?`<p class="sum-note">${hvDiscountNote(q)}</p>`:'');
   set('sumFree',hvFreeShipHtml(q,'sm'));
@@ -5966,7 +5973,7 @@ async function hvSubmitStandard(order,input){
       pushOrderToSheets(o).catch(()=>{});
       syncStockToSheets().catch(()=>{});
       sendStatusEmail(o,'new').catch(()=>{});
-      notifyAdmin('new_order',o).catch(()=>{});   // Telegram jako dřív
+      // Telegram posílá server (create-order) – výsledek je v adminu → Notifikace
       if(r.warnings&&r.warnings.length)console.warn('create-order:',r.warnings);
       go('success');
       return;
@@ -6106,7 +6113,7 @@ function viewAccount(params){
   if(!user){viewHome();openAuth('login');return}
   if(params&&params.tab)_acctTab2={orders:'orders',profile:'security',address:'addresses',addresses:'addresses',security:'security',overview:'overview'}[params.tab]||'overview';
   // načítání jen jednou naráz (překreslení během načítání nespustí další dotaz)
-  const _again=()=>{if(getRoute().path==='account')viewAccount()};
+  const _again=()=>{if(getRoute().path==='account')hvKeepScroll(viewAccount)};
   if(_acctOrdersAll===null&&!_acctOrdersErr2&&!window._hvLdO){window._hvLdO=1;
     hvLoadMyOrders().then(o=>{_acctOrdersAll=o}).catch(e=>{_acctOrdersErr2=e.message||String(e)}).finally(()=>{window._hvLdO=0;_again()})}
   if(_hvMyLoyalty===null&&!window._hvLdL){window._hvLdL=1;hvLoadMyLoyalty().finally(()=>{window._hvLdL=0;_again()})}
@@ -6218,7 +6225,23 @@ function viewAccount(params){
     ${renderFooter()}
   `;
 }
-window.hvAcctTab=function(t){_acctTab2={orders:'orders',profile:'security',address:'addresses'}[t]||t;viewAccount();try{document.querySelector('.acc2-main').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){}};
+// Přepnutí záložky bez poskakování: stránka zůstane, kde je. Jen když jsou záložky mimo obrazovku, srovná je pod horní lištu.
+function hvKeepScroll(fn){
+  const y=window.scrollY; fn();
+  const top='instant';
+  try{window.scrollTo({top:y,left:0,behavior:top})}catch(e){window.scrollTo(0,y)}
+}
+window.hvAcctTab=function(t){
+  const nt={orders:'orders',profile:'security',address:'addresses'}[t]||t;
+  if(nt===_acctTab2&&document.querySelector('.acc2-main'))return;
+  _acctTab2=nt;
+  hvKeepScroll(viewAccount);
+  try{
+    const nav=document.querySelector('.acc2-nav'); const hdr=document.querySelector('header.nav');
+    const hh=hdr?hdr.getBoundingClientRect().height:0;
+    if(nav){const r=nav.getBoundingClientRect(); if(r.top<hh){window.scrollTo({top:window.scrollY+r.top-hh-12,left:0,behavior:'instant'})}}
+  }catch(e){}
+};
 
 // ---------- adresy ----------
 function hvAddrSheet(title,body,actions){
@@ -6475,6 +6498,9 @@ window.hvSaveFreeShip=async function(){
 
 // ============== ADMIN: NOTIFIKACE A PŘÍJEMCI ==============
 const HV_NOTIF_EVENTS={new_registration:'Nová registrace zákazníka',new_order:'Nová objednávka',order_paid:'Zaplacená objednávka',ready_to_pack:'Objednávka k zabalení',payment_failed:'Neúspěšná platba'};
+const HV_NOTIF_LOG_LABEL=Object.assign({},HV_NOTIF_EVENTS,{telegram:'Telegram · nová objednávka',test:'Test'});
+// Srozumitelný důvod chyby (Resend vrací anglicky)
+function hvNotifErrCz(e){e=String(e||'');if(/verify a domain|only send testing emails/i.test(e))return 'Resend zatím posílá jen na e-mail, se kterým jsi zakládal účet Resend. Ostatním příjemcům to půjde po ověření domény (Resend → Domains).';if(/send-admin-notification.*není nasazená/.test(e))return e+'. Telegram proto neodešel.';return e}
 let _hvRcp=null,_hvRcpErr='',_hvNLog=null,_hvNLogErr='';
 async function hvLoadNotif(){
   const [a,b]=await Promise.all([
@@ -6493,7 +6519,7 @@ function viewNotificationsAdmin(){
   return `
   <div class="hv-dash cmp">
     ${hvPageHead('Notifikace','E-maily pro tebe a personál při registraci, objednávce a platbě',owner?`<button class="ovw-btn primary" onclick="hvRcpOpen()">+ Přidat příjemce</button>`:'')}
-    <div class="ur-setup nt-info">${hvIcon('mail',18)}<div><b>E-maily posílá Resend ze serveru, Telegram zůstává beze změny.</b><span>Každá zpráva odejde každému příjemci jen jednou. Když se odeslání nepovede, uvidíš důvod níže a můžeš ho zkusit znovu.${lastFail?` Poslední chyba: <b>${escapeHtml(lastFail.error||'')}</b>`:''}</span></div></div>
+    <div class="ur-setup nt-info">${hvIcon('mail',18)}<div><b>E-maily posílá Resend a Telegram server, hned po vytvoření objednávky.</b><span>Každá zpráva odejde každému příjemci jen jednou. Když se odeslání nepovede, uvidíš důvod níže a můžeš ho zkusit znovu.${lastFail?` Poslední chyba: <b>${escapeHtml(hvNotifErrCz(lastFail.error))}</b>`:''}</span></div></div>
     <div class="hv-panel">
       ${hvCpHead('Příjemci',(_hvRcp||[]).length?(_hvRcp.filter(r=>r.active).length+' aktivních'):'')}
       ${_hvRcpErr?`<div class="cp-empty"><b>Příjemce se nepodařilo načíst</b><span>${escapeHtml(_hvRcpErr)}</span><span>Spustil jsi SQL hopi-vernost-notifikace.sql?</span></div>`:_hvRcp===null?'<div class="cp-empty"><span><span class="hv-spin"></span> Načítám…</span></div>':_hvRcp.length?`<div class="ur-list">${_hvRcp.map(r=>`
@@ -6509,9 +6535,9 @@ function viewNotificationsAdmin(){
     <div class="hv-panel">
       ${hvCpHead('Odeslané e-maily','posledních 60',`<button class="ovw-btn sm" onclick="_hvRcp=null;_hvNLog=null;hvLoadNotif()">Obnovit</button>`)}
       ${_hvNLogErr?`<div class="cp-empty"><b>Log se nepodařilo načíst</b><span>${escapeHtml(_hvNLogErr)}</span></div>`:_hvNLog===null?'<div class="cp-empty"><span><span class="hv-spin"></span> Načítám…</span></div>':_hvNLog.length?`<div class="nt-log">${_hvNLog.map(l=>`
-        <div class="nt-lr"><span class="nt-t">${fmt(l.created_at)}</span><span class="nt-w"><b>${escapeHtml(HV_NOTIF_EVENTS[l.event]||(l.event==='test'?'Test':l.event))}${l.event!=='test'&&l.event!=='new_registration'?' · '+escapeHtml(l.ref):''}</b><small>${escapeHtml(l.recipient_email)}${l.attempts>1?' · '+l.attempts+'. pokus':''}${l.error?' · '+escapeHtml(l.error):''}</small></span>
+        <div class="nt-lr"><span class="nt-t">${fmt(l.created_at)}</span><span class="nt-w"><b>${escapeHtml(HV_NOTIF_LOG_LABEL[l.event]||l.event)}${l.event!=='test'&&l.event!=='new_registration'?' · '+escapeHtml(l.ref):''}</b><small>${escapeHtml(l.recipient_email)}${l.attempts>1?' · '+l.attempts+'. pokus':''}${l.error?' · '+escapeHtml(hvNotifErrCz(l.error)):''}</small></span>
           <span>${odPill((st[l.status]||[l.status])[0],(st[l.status]||[0,'#8E8E93'])[1])}</span>
-          <span>${l.status==='failed'&&l.event!=='test'?`<button class="ovw-btn sm" onclick="hvNotifRetry(${l.id},this)">Zkusit znovu</button>`:''}</span></div>`).join('')}</div>`:'<div class="cp-empty"><b>Zatím nic neodešlo</b><span>Pošli si testovací e-mail z úpravy příjemce.</span></div>'}
+          <span>${l.status==='failed'&&l.event!=='test'&&l.event!=='telegram'?`<button class="ovw-btn sm" onclick="hvNotifRetry(${l.id},this)">Zkusit znovu</button>`:''}</span></div>`).join('')}</div>`:'<div class="cp-empty"><b>Zatím nic neodešlo</b><span>Pošli si testovací e-mail z úpravy příjemce.</span></div>'}
     </div>
   </div>`;
 }
@@ -7124,8 +7150,7 @@ window.tryAdminLogin=async function(){
     await loadAppSettings();          // teď už i neveřejná nastavení (role, log, náklady…)
     window._supabaseAdminSynced=false; // načíst objednávky s admin oprávněním
     const userName = email.split('@')[0];
-    const mustChange = !!(data && data.user && data.user.user_metadata && data.user.user_metadata.must_change_password);
-    setAdminUser(mustChange?{email, name: userName, loginAt: Date.now(), mustChange:true}:{email, name: userName, loginAt: Date.now()});
+    setAdminUser({email, name: userName, loginAt: Date.now()});
     showToast('Vítej, '+userName+'!');
     let _next='admin'; try{_next=sessionStorage.getItem('hv_after_login')||'admin';sessionStorage.removeItem('hv_after_login')}catch(e){}
     setTimeout(()=>go(_next),400);
@@ -8186,6 +8211,64 @@ input.an-in[type=datetime-local]{-webkit-appearance:none;appearance:none;display
   .ly-ovr b{grid-column:1/-1;text-align:left;font-size:13px;color:rgba(60,60,67,.6)}
 }
 
+.ud-head{display:flex;gap:12px;align-items:center}
+.ud-head>div{display:flex;flex-direction:column;min-width:0}
+.ud-head b{font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ud-head b em{font-style:normal;font-weight:500;color:rgba(60,60,67,.55)}
+.ud-head small{font-size:13px;color:rgba(60,60,67,.6)}
+.ud-tabs{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}
+.ud-tabs span{min-width:0;height:36px;padding:0 8px;font-size:14px;white-space:nowrap}
+.ud-pane{display:flex;flex-direction:column;gap:12px}
+.ud-pane[hidden]{display:none}
+.ud-card{border-radius:16px;background:rgba(118,118,128,.07);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.ud-ct{font-size:15px;font-weight:700}
+.ud-pwd{display:flex;gap:6px;align-items:center}
+.ud-pwd input{flex:1;min-width:0;height:40px;box-sizing:border-box;border:1px solid rgba(60,60,67,.18);border-radius:11px;padding:0 11px;font:inherit;font-size:14.5px;color:#000;background:#fff}
+.ud-pwd input:focus{outline:none;border-color:#008A3F;box-shadow:0 0 0 3px rgba(0,138,63,.15)}
+.ud-tabs label{display:flex}.ud-tabs span{width:100%}
+@media (max-width:520px){.ud-pwd{flex-wrap:wrap}.ud-pwd input{flex-basis:100%}}
+
+.hv-sheet.ud-sheet{width:min(760px,100%)}
+.hv-sheet-h2{display:flex;align-items:flex-start;gap:12px;padding:20px 20px 12px 24px;border-bottom:0}
+.hv-sheet-ht{flex:1;min-width:0;display:flex;flex-direction:column}
+.hv-sheet-ht b{font-size:22px;font-weight:800;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hv-sheet-ht b em{font-style:normal;font-weight:500;font-size:15px;color:rgba(60,60,67,.55)}
+.hv-sheet-ht small{font-size:14px;color:rgba(60,60,67,.6);margin-top:2px}
+.hv-sheet-x{width:40px;height:40px;flex:none;border:0;border-radius:12px;background:rgba(118,118,128,.12);color:#000;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.hv-sheet-x:hover{background:rgba(118,118,128,.2)}
+.hv-sheet-x:focus-visible{outline:2px solid #008A3F;outline-offset:2px}
+.ud-sheet .hv-sheet-b{padding:4px 24px 18px;gap:14px;background:#fff}
+.ud-sheet .hv-sheet-f{padding:14px 24px calc(14px + env(safe-area-inset-bottom))}
+.ud-tabs2{display:inline-flex;gap:2px;padding:4px;border-radius:14px;background:rgba(118,118,128,.12);align-self:flex-start;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.ud-tab{height:38px;padding:0 16px;border:0;border-radius:11px;background:none;font:inherit;font-size:14.5px;font-weight:700;color:rgba(60,60,67,.75);cursor:pointer;white-space:nowrap}
+.ud-tab.on{background:#fff;color:#000;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ud-tab:focus-visible{outline:2px solid #008A3F;outline-offset:1px}
+.ud-card2{border:1px solid rgba(60,60,67,.12);border-radius:18px;overflow:hidden}
+.ud-ch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px 12px 18px;background:rgba(118,118,128,.06);border-bottom:1px solid rgba(60,60,67,.1);min-height:56px}
+.ud-ch b{font-size:15.5px;font-weight:800}
+.ud-ch .ovw-btn svg{margin-right:6px}
+.ud-cb{padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.ud-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ud-hint{margin:0;font-size:13px;line-height:1.5;color:rgba(60,60,67,.6)}
+.ud-empty{margin:0;font-size:14.5px;color:rgba(60,60,67,.65)}
+.ud-sum{margin:0;font-size:14.5px}
+.ac-link-a{align-self:flex-start;background:none;border:0;padding:4px 0;font:inherit;font-size:14px;font-weight:700;color:#008A3F;cursor:pointer}
+.ud-pwdbox{border-top:1px solid rgba(60,60,67,.1);padding-top:12px;display:flex;flex-direction:column;gap:10px}
+.ud-pwdbox[hidden]{display:none}
+.ud-pwdact{display:flex;gap:8px;justify-content:flex-end}
+@media (max-width:600px){
+  .ud-grid{grid-template-columns:1fr}
+  .hv-sheet-h2{padding:16px 14px 8px 18px}
+  .hv-sheet-ht b{font-size:18px}
+  .ud-sheet .hv-sheet-b{padding:4px 14px 14px}
+  .ud-sheet .hv-sheet-f{padding:12px 14px calc(12px + env(safe-area-inset-bottom))}
+  .ud-tab{padding:0 12px;font-size:14px}
+  .ud-ch{padding:10px 12px}
+  .ud-ch b{flex-basis:100%}
+  .ud-ch .hv-sheet-sp{display:none}
+  .ud-cb{padding:12px}
+}
+
 `;
 function hvEnsureCss(){
   if(document.getElementById('hvAdminCss'))return;
@@ -9072,7 +9155,7 @@ function viewAdmin(){
     <div class="hv-shell">
       ${renderAdminChrome(admin)}
       <main class="admin-main">
-        ${(admin&&admin.mustChange)?viewSetOwnPassword():_acc.none?viewNoAccess(_acc):adminOrderId?viewOrderDetail(adminOrderId):(
+        ${_acc.none?viewNoAccess(_acc):adminOrderId?viewOrderDetail(adminOrderId):(
           adminView==='users'?viewUsersRoles():
           adminView==='customers'?viewCustomersAdmin():
           adminView==='loyalty'?viewLoyaltyAdmin():
@@ -11786,10 +11869,13 @@ function viewEmailsAdmin(){
   </div>`;
 }
 function renderTemplatesTab(templates,order){
-  const vars=['{jmeno}','{cislo}','{stav}','{celkem}','{spropitne}','{adresa}','{doprava}','{platba}','{nazev_shopu}','{email_shopu}'];
+  const vars=['{jmeno}','{cislo}','{stav}','{celkem}','{spropitne}','{adresa}','{doprava}','{dopravce}','{sledovaci_cislo}','{platba}','{platebni_instrukce}','{nazev_shopu}','{email_shopu}'];
+  const old=hvEmailOldTexts();
   return `
+  ${old.length?`<div class="hv-panel em-upg"><div><b>E-maily mají nový vzhled</b><span>Logo, průběh objednávky, položky, souhrn ceny a platba se do e-mailu doplní samy. Tvoje uložené texty je ale ještě vypisují, takže by se v e-mailu opakovaly. Nové texty jsou kratší a jen doplňují to, co e-mail ukáže.</span></div><button class="ovw-btn primary" onclick="hvEmailUseNew()">Použít nové texty (${old.length})</button></div>`:''}
   <div class="hv-panel">
     <div class="em-vars"><span>Proměnné do textu:</span>${vars.map(v=>`<code>${v}</code>`).join('')}</div>
+    <p class="hv-note" style="margin:0 18px 12px">Položky, souhrn ceny, doručení a tlačítko na objednávku jsou v e-mailu vždycky. <code>{platebni_instrukce}</code> vloží rámeček s platbou (u převodu číslo účtu a VS).</p>
     <div class="em-list">
       ${order.map(key=>{
         const t=templates[key]; const st=STATUSES[key]; if(!t||!st)return '';
@@ -11924,10 +12010,12 @@ function viewNoAccess(acc){
 // ---------- Stránka Uživatelé a role ----------
 let hvUserEdit=null, hvRoleEdit=null;
 // --- okno (sheet) ---
-function hvSheet(title,body,actions){
+function hvSheet(title,body,actions,opts){
   hvSheetClose();
   const d=document.createElement('div'); d.className='hv-sheet-bg'; d.id='hvSheet';
-  d.innerHTML=`<div class="hv-sheet" role="dialog" aria-modal="true" aria-labelledby="hvSheetT"><div class="hv-sheet-h"><button class="ovw-btn sm ghost" onclick="hvSheetClose()">Zrušit</button><h3 id="hvSheetT">${title}</h3><span class="hv-sheet-sp"></span></div><div class="hv-sheet-b">${body}</div><div class="hv-sheet-f">${actions}</div></div>`;
+  const head=opts&&opts.head?`<div class="hv-sheet-h hv-sheet-h2"><div class="hv-sheet-ht" id="hvSheetT">${opts.head}</div><button type="button" class="hv-sheet-x" aria-label="Zavřít" onclick="hvSheetClose()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>`
+    :`<div class="hv-sheet-h"><button class="ovw-btn sm ghost" onclick="hvSheetClose()">Zrušit</button><h3 id="hvSheetT">${title}</h3><span class="hv-sheet-sp"></span></div>`;
+  d.innerHTML=`<div class="hv-sheet${opts&&opts.cls?' '+opts.cls:''}" role="dialog" aria-modal="true" aria-labelledby="hvSheetT">${head}<div class="hv-sheet-b">${body}</div><div class="hv-sheet-f">${actions}</div></div>`;
   d.addEventListener('click',e=>{if(e.target===d)hvSheetClose()});
   document.body.appendChild(d);
   document.addEventListener('keydown',hvSheetEsc);
@@ -11937,18 +12025,95 @@ function hvSheetEsc(e){if(e.key==='Escape')hvSheetClose()}
 window.hvSheetClose=function(){const d=document.getElementById('hvSheet');if(d)d.remove();document.removeEventListener('keydown',hvSheetEsc)};
 function hvFieldErr(id,msg){const el=document.getElementById(id);const er=document.getElementById(id+'Err');if(el){el.classList.add('gpc-bad');el.focus()}if(er){er.textContent=msg;er.hidden=false}}
 // --- člověk ---
-window.hvUserOpen=function(i){
+window.hvUserOpen=function(i,tab){
   if(i==null)return hvInviteOpen();
-  const cfg=getAdminAccess(); const u=i!=null?cfg.users[i]:{email:'',name:'',roleId:(cfg.roles.find(r=>r.id!=='owner')||HV_OWNER_ROLE).id,active:true,note:''};
-  hvUserEdit=i!=null?i:null;
-  const me=hvMyEmail(); const isMe=i!=null&&u.email.toLowerCase()===me;
-  hvSheet(i!=null?'Upravit člověka':'Přidat člověka',`
-    <div class="cf"><label for="urEmail">E-mail (přihlašovací)</label><input type="email" id="urEmail" value="${escapeHtml(u.email)}" placeholder="např. balic@hopivirtual.cz" inputmode="email" autocomplete="off" ${isMe?'readonly':''} oninput="this.classList.remove('gpc-bad');document.getElementById('urEmailErr').hidden=true"><div class="gpc-err" id="urEmailErr" hidden></div></div>
-    <div class="cf"><label for="urName">Jméno</label><input type="text" id="urName" value="${escapeHtml(u.name||'')}" placeholder="např. Tonda"></div>
-    <div class="cf"><label for="urRole">Role</label><select id="urRole" ${isMe?'disabled title="Svoji roli si změnit nemůžeš"':''}>${cfg.roles.map(r=>`<option value="${r.id}" ${u.roleId===r.id?'selected':''}>${escapeHtml(r.name)}</option>`).join('')}</select><div class="gpc-err" id="urRoleErr" hidden></div></div>
-    <div class="cf"><label for="urNote">Poznámka (volitelné)</label><input type="text" id="urNote" value="${escapeHtml(u.note||'')}" placeholder="např. brigáda, pátky"></div>
-    ${i==null?'<p class="hv-note" style="margin:4px 0 0">Nezapomeň mu vytvořit účet v Supabase → Authentication → Add user (Auto Confirm).</p>':''}`,
-    `${i!=null&&!isMe?`<button class="ovw-btn ghost danger" onclick="hvUserDelete(${i})">Odebrat</button><button class="ovw-btn" id="urResetBtn" onclick="hvUserResetPwd(${i})">Nové heslo</button>`:''}<span class="hv-sheet-sp"></span><button class="ovw-btn primary" onclick="hvUserSave()">Uložit</button>`);
+  const cfg=getAdminAccess(); const u=cfg.users[i]; if(!u)return;
+  hvUserEdit=i;
+  const me=hvMyEmail(); const isMe=u.email.toLowerCase()===me;
+  const r=cfg.roles.find(x=>x.id===u.roleId);
+  const em=u.email.toLowerCase();
+  const ords=getOrders().filter(o=>String((o.customer&&o.customer.email)||'').toLowerCase()===em).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const spent=ords.filter(o=>o.status!=='cancelled').reduce((a,o)=>a+(Number(o.total)||0),0);
+  const prof=(typeof _hvCust!=='undefined'&&_hvCust.list||[]).find(p=>String(p.email||'').toLowerCase()===em);
+  const t0=tab||'acc';
+  const tabBtn=(k,l)=>`<button type="button" role="tab" class="ud-tab${k===t0?' on':''}" data-t="${k}" aria-selected="${k===t0}" onclick="hvUserTab('${k}')">${l}</button>`;
+  const ordList=ords.length?`<div class="cu-orders">${ords.slice(0,30).map(o=>{const st=STATUSES[o.status||'new']||STATUSES.new;return `<button type="button" class="pm-row lnk" onclick="hvSheetClose();adminOrderId='${escapeHtml(o.id)}';viewAdmin()"><span><b>${escapeHtml(o.id)}</b><small>${new Date(o.date).toLocaleDateString('cs-CZ')} · ${escapeHtml(st.label)}</small></span><span>${formatPrice(o.total||0)} Kč</span></button>`}).join('')}</div>`:'';
+  hvSheet('',`
+    <div class="ud-tabs2" role="tablist">${tabBtn('role','Role ('+(r?1:0)+')')}${tabBtn('ord','Objednávky ('+ords.length+')')}${tabBtn('acc','Účty')}</div>
+    <div class="ud-pane" data-p="role" ${t0==='role'?'':'hidden'}>
+      <div class="ud-card2">
+        <div class="ud-ch"><b>Role v administraci</b><span class="hv-sheet-sp"></span><button type="button" class="ovw-btn sm primary" onclick="hvUserSave()">Uložit</button></div>
+        <div class="ud-cb">
+          <div class="ud-grid">
+            <div class="cf"><label for="urRole">Role</label><select id="urRole" ${isMe?'disabled title="Svoji roli si změnit nemůžeš"':''}>${r?'':`<option value="${escapeHtml(u.roleId||'')}" selected>Bez role / smazaná role</option>`}${cfg.roles.map(x=>`<option value="${x.id}" ${u.roleId===x.id?'selected':''}>${escapeHtml(x.name)}${x.all?' (vidí vše)':''}</option>`).join('')}</select><div class="gpc-err" id="urRoleErr" hidden></div></div>
+            <div class="cf"><label for="urNote">Poznámka</label><input type="text" id="urNote" value="${escapeHtml(u.note||'')}" placeholder="např. brigáda, pátky"></div>
+          </div>
+          <p class="ud-hint">${r?(r.all?'Vidí a mění všechno včetně rolí.':'Vidí jen sekce, které má role povolené (nastavíš dole na stránce v sekci Role).'):'Bez role nevidí v adminu nic.'}${u.active===false?' Přístup je teď vypnutý.':''}</p>
+        </div>
+      </div>
+    </div>
+    <div class="ud-pane" data-p="ord" ${t0==='ord'?'':'hidden'}>
+      <div class="ud-card2">
+        <div class="ud-ch"><b>Objednávky na ${escapeHtml(u.email)}</b></div>
+        <div class="ud-cb">${ordList||'<p class="ud-empty">Nikdy si u nás neobjednal.</p>'}</div>
+      </div>
+    </div>
+    <div class="ud-pane" data-p="acc" ${t0==='acc'?'':'hidden'}>
+      <div class="ud-card2">
+        <div class="ud-ch"><b>Účet ve správě</b><span class="hv-sheet-sp"></span>
+          <button type="button" class="ovw-btn sm" onclick="hvUserPwdToggle()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Nastavit heslo</button>
+          <button type="button" class="ovw-btn sm primary" id="urSaveBtn" onclick="hvUserSave()">Uložit</button></div>
+        <div class="ud-cb">
+          <div class="ud-grid">
+            <div class="cf"><label for="urEmail">E-mail</label><input type="email" id="urEmail" value="${escapeHtml(u.email)}" inputmode="email" autocomplete="off" ${isMe?'readonly title="Svůj přihlašovací e-mail si tady změnit nemůžeš"':''} oninput="this.classList.remove('gpc-bad');document.getElementById('urEmailErr').hidden=true"><div class="gpc-err" id="urEmailErr" hidden></div></div>
+            <div class="cf"><label for="urName">Jméno</label><input type="text" id="urName" value="${escapeHtml(u.name||'')}" placeholder="např. Tonda" maxlength="80"></div>
+          </div>
+          <p class="ud-hint">Zároveň přihlašovací jméno do správy.<br>Heslo nelze zobrazit, je uložené jen jako otisk. Když ho někdo zapomene, nastavte nové a předejte mu ho.</p>
+          <div class="ud-pwdbox" id="udPwdBox" hidden>
+            <div class="cf"><label for="urPwd">Nové heslo</label>
+              <div class="ud-pwd"><input type="password" id="urPwd" autocomplete="new-password" placeholder="aspoň 8 znaků" oninput="document.getElementById('urPwdMsg').innerHTML=''">
+              <button type="button" class="ovw-btn sm" onclick="const f=document.getElementById('urPwd');const s=f.type==='password';f.type=s?'text':'password';this.textContent=s?'Skrýt':'Zobrazit'">Zobrazit</button>
+              <button type="button" class="ovw-btn sm" onclick="hvUserGenPwd()">Vygenerovat</button></div></div>
+            <div id="urPwdMsg"></div>
+            <div class="ud-pwdact"><button type="button" class="ovw-btn sm" onclick="hvUserPwdToggle(false)">Zrušit</button><button type="button" class="ovw-btn sm primary" id="urPwdBtn" onclick="hvUserSetPwd(${i})">Nastavit heslo</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="ud-card2">
+        <div class="ud-ch"><b>Zákaznický účet</b></div>
+        <div class="ud-cb">${ords.length||prof?`<p class="ud-sum">${prof?'Má zákaznický účet od '+new Date(prof.created_at).toLocaleDateString('cs-CZ')+'. ':''}${ords.length?`${ords.length} ${ords.length===1?'objednávka':ords.length<=4?'objednávky':'objednávek'} za ${formatPrice(spent)} Kč.`:'Zatím nic neobjednal.'}</p>${ords.length?`<button type="button" class="ac-link-a" onclick="hvUserTab('ord')">Zobrazit objednávky</button>`:''}`:'<p class="ud-empty">Nikdy si u nás neobjednal.</p>'}</div>
+      </div>
+    </div>`,
+    `${!isMe?`<button class="ovw-btn ghost danger" onclick="hvUserDelete(${i})">Odebrat přístup</button>`:''}<span class="hv-sheet-sp"></span><button class="ovw-btn" onclick="hvSheetClose()">Zavřít</button>`,
+    {cls:'ud-sheet',head:`<b>${escapeHtml(u.email)}${isMe?' <em>(ty)</em>':''}</b><small>${escapeHtml(u.name||'Bez jména')}</small>`});
+};
+window.hvUserPwdToggle=function(on){const b=document.getElementById('udPwdBox');if(!b)return;const show=on===undefined?b.hidden:!!on;b.hidden=!show;if(show){const f=document.getElementById('urPwd');if(f)f.focus()}else{document.getElementById('urPwd').value='';document.getElementById('urPwdMsg').innerHTML=''}};
+window.hvUserTab=function(k){document.querySelectorAll('#hvSheet .ud-tab').forEach(t=>{const on=t.dataset.t===k;t.classList.toggle('on',on);t.setAttribute('aria-selected',on)});document.querySelectorAll('#hvSheet .ud-pane').forEach(p=>p.hidden=p.dataset.p!==k);const f=document.querySelector(`#hvSheet .ud-pane[data-p="${k}"] input:not([type=checkbox]):not([readonly]),#hvSheet .ud-pane[data-p="${k}"] select`);if(f)f.focus()};
+window.hvUserGenPwd=function(){
+  const a='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'; const b=new Uint8Array(12); crypto.getRandomValues(b);
+  const s=Array.from(b,x=>a[x%a.length]).join(''); const f=document.getElementById('urPwd');
+  f.value=s.slice(0,4)+'-'+s.slice(4,8)+'-'+s.slice(8,12); f.type='text'; document.getElementById('urPwdMsg').innerHTML='';
+};
+window.hvUserSetPwd=async function(i){
+  const cfg=getAdminAccess(); const u=cfg.users[i]; if(!u)return;
+  const pwd=document.getElementById('urPwd').value;
+  const msg=document.getElementById('urPwdMsg');
+  if(!pwd)return msg.innerHTML='<div class="inv-box bad"><b>Zadej heslo, nebo ho vygeneruj</b></div>';
+  if(pwd.length<8)return msg.innerHTML='<div class="inv-box bad"><b>Heslo musí mít aspoň 8 znaků</b></div>';
+  const b=document.getElementById('urPwdBtn'); b.disabled=true; b.innerHTML='<span class="hv-spin"></span>Nastavuji…';
+  const r=await hvInviteCall({action:'update',email:u.email,password:pwd});
+  b.disabled=false; b.textContent='Nastavit heslo';
+  if(!r||!r.ok){
+    msg.innerHTML=`<div class="inv-box bad"><b>Heslo se nepodařilo nastavit</b><span>${escapeHtml((r&&r.error)||'Neznámá chyba')}${r&&r.code==='missing'?' Nasaď novou verzi funkce admin-invite-user.':''}${r&&r.code==='not_found'?' Tenhle člověk ještě nemá přihlašovací účet – vytvoř ho přes Pozvat uživatele.':''}</span></div>`;
+    return;
+  }
+  hvAudit('access','Nastaveno heslo',u.email);
+  const txt=`Ahoj${u.name?' '+u.name:''}, tady je heslo do adminu HOPI VIRTUAL.\n\nOdkaz: ${location.origin+location.pathname}#/admin-login\nE-mail: ${u.email}\nHeslo: ${pwd}`;
+  window._hvInvTxt=txt;
+  document.getElementById('urPwd').value='';
+  msg.innerHTML=`<div class="inv-box"><b>Heslo je nastavené</b><span>Platí hned. Zprávu níže mu pošli, heslo už znovu neuvidíš.</span></div>
+    <textarea class="inv-txt" id="invTxt" rows="6" readonly>${escapeHtml(txt)}</textarea>
+    <div class="pm-actions" style="padding:0"><button type="button" class="ovw-btn sm" id="invCopy" onclick="hvInviteCopy()">Zkopírovat zprávu</button></div>`;
 };
 window.hvUserSave=async function(fromInvite){
   const cfg=getAdminAccess(); const me=hvMyEmail();
@@ -11960,6 +12125,18 @@ window.hvUserSave=async function(fromInvite){
   const dup=cfg.users.findIndex(u=>u.email.toLowerCase()===email);
   if(dup>=0&&dup!==hvUserEdit)return hvFieldErr('urEmail','Tenhle e-mail už v seznamu je');
   const before=hvUserEdit!=null?Object.assign({},cfg.users[hvUserEdit]):null;
+  // Úprava existujícího: e-mail / jméno se mění i v přihlašování (Supabase Auth)
+  if(before&&fromInvite!==true&&(email!==before.email.toLowerCase()||name!==(before.name||''))){
+    const sb=document.getElementById('urSaveBtn'); if(sb){sb.disabled=true;sb.innerHTML='<span class="hv-spin"></span>Ukládám…'}
+    const r=await hvInviteCall(Object.assign({action:'update',email:before.email},email!==before.email.toLowerCase()?{newEmail:email}:{},{name}));
+    if(sb){sb.disabled=false;sb.textContent='Uložit'}
+    if(!(r&&r.ok)){
+      const code=r&&r.code;
+      if(code==='not_found'){/* účet v přihlašování není – upraví se jen seznam */}
+      else if(code==='missing'&&email===before.email.toLowerCase()){showToast('Jméno uloženo jen v seznamu – funkce admin-invite-user není nasazená','error')}
+      else{hvUserTab('acc');return hvFieldErr('urEmail',(r&&r.error)||'Změnu se nepodařilo uložit')}
+    }
+  }
   if(hvUserEdit!=null){
     const u=cfg.users[hvUserEdit];
     if(u.email.toLowerCase()===me&&roleId!==u.roleId)return hvFieldErr('urRole','Svoji roli si změnit nemůžeš');
@@ -12152,7 +12329,7 @@ function hvInviteForm(cfg,u){
     <div class="cf"><label for="urRole">Role</label><select id="urRole">${cfg.roles.map(r=>`<option value="${r.id}" ${u.roleId===r.id?'selected':''}>${escapeHtml(r.name)}${r.all?' (vidí vše)':''}</option>`).join('')}</select></div>
     <div class="cf"><label for="urNote">Poznámka (volitelné)</label><input type="text" id="urNote" value="${escapeHtml(u.note||'')}" placeholder="např. brigáda, pátky"></div>
     <div id="invMsg"></div>
-    <p class="hv-note inv-how">Vytvoří se účet s dočasným heslem. Pozvánku s odkazem a heslem mu pošleš třeba přes WhatsApp. Po prvním přihlášení si nastaví vlastní heslo.</p>`;
+    <p class="hv-note inv-how">Vytvoří se účet s heslem. Pozvánku s odkazem a heslem mu pošleš třeba přes WhatsApp. Heslo pak kdykoliv změníš v Upravit → Nastavit heslo.</p>`;
 }
 window.hvInviteOpen=function(){
   const cfg=getAdminAccess();
@@ -12182,7 +12359,7 @@ window.hvInviteSend=async function(mode){
   }
   const code=r&&r.code;
   if(code==='exists'){
-    msg.innerHTML=`<div class="inv-box warn"><b>Účet s tímhle e-mailem už existuje.</b><span>Může se přihlásit svým heslem. Stačí ho přidat do seznamu, nebo mu vygeneruj nové dočasné heslo.</span><div class="inv-acts"><button class="ovw-btn sm" onclick="hvInviteSend('listonly')">Jen přidat do seznamu</button><button class="ovw-btn sm primary" onclick="hvInviteSend('reset')">Nové heslo a přidat</button></div></div>`;
+    msg.innerHTML=`<div class="inv-box warn"><b>Účet s tímhle e-mailem už existuje.</b><span>Může se přihlásit svým heslem. Stačí ho přidat do seznamu, nebo mu vygeneruj nové heslo.</span><div class="inv-acts"><button class="ovw-btn sm" onclick="hvInviteSend('listonly')">Jen přidat do seznamu</button><button class="ovw-btn sm primary" onclick="hvInviteSend('reset')">Nové heslo a přidat</button></div></div>`;
   }else if(code==='missing'||code==='network'){
     msg.innerHTML=`<div class="inv-box bad"><b>${escapeHtml(r.error)}</b><span>${code==='missing'?'Nasaď ji podle návodu (Supabase → Edge Functions → admin-invite-user). Mezitím můžeš účet vytvořit ručně v Supabase → Authentication → Add user a tady ho jen přidat do seznamu.':'Zkus to prosím znovu.'}</span>${code==='missing'?`<div class="inv-acts"><button class="ovw-btn sm" onclick="hvInviteSend('listonly')">Přidat bez pozvánky</button></div>`:''}</div>`;
   }else{
@@ -12191,16 +12368,16 @@ window.hvInviteSend=async function(mode){
 };
 function hvInviteText(email,name,pwd){
   const link=location.origin+location.pathname+'#/admin-login';
-  return `Ahoj${name?' '+name:''}, máš přístup do adminu HOPI VIRTUAL.\n\nOdkaz: ${link}\nE-mail: ${email}\nDočasné heslo: ${pwd}\n\nPo prvním přihlášení si nastavíš vlastní heslo.`;
+  return `Ahoj${name?' '+name:''}, máš přístup do adminu HOPI VIRTUAL.\n\nOdkaz: ${link}\nE-mail: ${email}\nHeslo: ${pwd}`;
 }
 function hvInviteResult(email,name,pwd,roleName){
   const txt=hvInviteText(email,name,pwd);
   window._hvInvTxt=txt;
   hvSheet('Pozvánka je připravená',`
     <div class="inv-ok">${hvTile({icon:'users',bg:'#34C759'},44)}<div><b>${escapeHtml(name||email)}</b><span>${escapeHtml(email)} · ${escapeHtml(roleName)}</span></div></div>
-    <div class="cf"><label>Dočasné heslo</label><div class="inv-pwd" id="invPwd">${escapeHtml(pwd)}</div></div>
+    <div class="cf"><label>Heslo</label><div class="inv-pwd" id="invPwd">${escapeHtml(pwd)}</div></div>
     <div class="cf"><label for="invTxt">Zpráva k odeslání</label><textarea id="invTxt" class="inv-txt" rows="7" readonly>${escapeHtml(txt)}</textarea></div>
-    <p class="hv-note inv-warn">Heslo teď uvidíš naposledy – zkopíruj a pošli zprávu hned. Kdyby se ztratilo, v Upravit dáš „Nové heslo“.</p>`,
+    <p class="hv-note inv-warn">Heslo teď uvidíš naposledy – zkopíruj a pošli zprávu hned. Kdyby se ztratilo, v Upravit dáš „Nastavit heslo“.</p>`,
     `${navigator.share?`<button class="ovw-btn" onclick="navigator.share({text:window._hvInvTxt}).catch(()=>{})">Sdílet…</button>`:''}<span class="hv-sheet-sp"></span><button class="ovw-btn" id="invCopy" onclick="hvInviteCopy()">Zkopírovat zprávu</button><button class="ovw-btn primary" onclick="hvSheetClose();viewAdmin()">Hotovo</button>`);
 }
 window.hvInviteCopy=async function(){
@@ -12211,7 +12388,7 @@ window.hvInviteCopy=async function(){
 };
 window.hvUserResetPwd=async function(i){
   const cfg=getAdminAccess(); const u=cfg.users[i]; if(!u)return;
-  if(!confirm(`Vygenerovat nové dočasné heslo pro ${u.email}? Staré heslo přestane fungovat.`))return;
+  if(!confirm(`Vygenerovat nové heslo pro ${u.email}? Staré heslo přestane fungovat.`))return;
   const b=document.getElementById('urResetBtn'); if(b){b.disabled=true;b.innerHTML='<span class="hv-spin"></span>Generuji…'}
   const r=await hvInviteCall({action:'reset',email:u.email,name:u.name||''});
   if(b){b.disabled=false;b.textContent='Nové heslo'}
@@ -12284,6 +12461,14 @@ window.saveTemplate=async function(key){
   viewAdmin();
 }
 
+window.hvEmailUseNew=async function(){
+  const keys=hvEmailOldTexts(); if(!keys.length)return;
+  const t=getEmailTemplates();
+  keys.forEach(k=>{t[k]=Object.assign({},DEFAULT_EMAIL_TEMPLATES[k],{enabled:t[k].enabled!==false})});
+  let ok=false; try{ok=(await saveAppSetting('email_templates',t))!==false}catch(e){ok=false}
+  showToast(ok?'✅ Nové texty e-mailů uložené':'❌ Texty se nepodařilo uložit do Supabase. Zkus to znovu.',ok?'success':'error');
+  viewAdmin();
+};
 window.resetTemplate=async function(key){
   if(!confirm('Obnovit výchozí text této šablony?'))return;
   const t=getEmailTemplates();
