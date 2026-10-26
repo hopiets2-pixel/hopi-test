@@ -1962,7 +1962,8 @@ ${s.iban?'➡️ IBAN: '+s.iban+'\n':''}${s.bankName?'➡️ Banka: '+s.bankName
 }
 
 // Vygenerování HTML e-mailu zákazníkovi – jednotný vzhled HOPI VIRTUAL (logo, zelený pruh, průběh, položky, souhrn)
-const HV_MAIL_LOGO='https://eshophopivirtual.com/logo-email.png';
+// Logo z webu, ze kterého e-mail odchází (stage → GitHub Pages, ostrý → eshophopivirtual.com); lokálně ostrá adresa
+function hvMailLogo(){try{const b=(typeof hvSiteUrl==='function'?hvSiteUrl():location.origin+location.pathname).replace(/[^/]*$/,'');if(/^https:\/\//.test(b)&&!/localhost|127\.0\.0\.1/.test(b))return b+'logo-email.png'}catch(e){}return 'https://eshophopivirtual.com/logo-email.png'}
 const HV_MAIL_FONT="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const HV_MAIL_HERO={
   new:{tag:'Objednávka přijata do systému',title:'Děkujeme za objednávku!'},
@@ -2006,7 +2007,7 @@ function hvMailShell(o){
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden">
  <tr><td style="padding:22px 26px 18px;background:#ffffff">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-   <td style="vertical-align:middle"><a href="${hvMailEsc(o.site)}" target="_blank" style="text-decoration:none"><img src="${HV_MAIL_LOGO}" width="78" height="64" alt="HOPI VIRTUAL" style="display:block;border:0;width:78px;height:auto;font-family:${F};font-size:16px;font-weight:900;color:#00853f"></a></td>
+   <td style="vertical-align:middle"><a href="${hvMailEsc(o.site)}" target="_blank" style="text-decoration:none"><img src="${hvMailLogo()}" width="78" height="64" alt="HOPI VIRTUAL" style="display:block;border:0;width:78px;height:auto;font-family:${F};font-size:16px;font-weight:900;color:#00853f"></a></td>
    ${o.ref?`<td style="vertical-align:middle;text-align:right;font-family:${F};font-size:12px;color:#8e8e93;line-height:1.5">${o.refLabel||'Objednávka'}<br><b style="font-family:'Courier New',monospace;font-size:16px;color:#111;letter-spacing:.5px">${hvMailEsc(o.ref)}</b></td>`:''}
   </tr></table>
  </td></tr>
