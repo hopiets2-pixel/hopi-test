@@ -1342,7 +1342,7 @@ async function notifyAdmin(type, order=null){
     // Respektovat checkboxy z admin panelu (Notifikace)
     if(notif){
       if(type==='new_order' && notif.notifyOnNew===false) return {ok:false,skipped:true};
-      if(type==='new_order_paid' && notif.notifyOnNew===false && notif.notifyOnPaid===false) return {ok:false,skipped:true};
+      if(type==='new_order_paid' && notif.notifyOnPaid===false) return {ok:false,skipped:true};
       if(type==='payment_received' && notif.notifyOnPaid===false) return {ok:false,skipped:true};
       if(type==='order_shipped' && notif.notifyOnShipped===false) return {ok:false,skipped:true};
     }
@@ -2871,7 +2871,8 @@ function getRoute(){
   if(query)query.split('&').forEach(kv=>{const[k,v]=kv.split('=');params[k]=decodeURIComponent(v||'')});
   return {path:path||'home',params};
 }
-function go(hash){location.hash=hash;window.scrollTo({top:0,behavior:'smooth'})}
+// Přechod na jinou stránku: hned nahoru (bez animace – plynulý posun se při překreslení stránky zastavil v půlce)
+function go(hash){const same=location.hash.replace(/^#/,'')===String(hash).replace(/^#/,'');location.hash=hash;if(same)window.scrollTo({top:0,behavior:'smooth'})}
 window.go=go;
 window.addEventListener('hashchange',render);
 
@@ -3049,6 +3050,8 @@ async function saveSnipcartOrder(snipOrder){
   }
 }
 
+// Okamžitě nahoru – i v Safari, kde by CSS „scroll-behavior:smooth“ posun rozanimoval a překreslení ho zastavilo
+function hvScrollTopNow(){const r=document.documentElement;const prev=r.style.scrollBehavior;r.style.scrollBehavior='auto';window.scrollTo(0,0);document.body.scrollTop=0;r.style.scrollBehavior=prev;requestAnimationFrame(()=>{if(window.scrollY>0){r.style.scrollBehavior='auto';window.scrollTo(0,0);r.style.scrollBehavior=prev}})}
 function render(){
   document.body.classList.remove('admin-body');
   const {path,params}=getRoute();
@@ -3060,6 +3063,10 @@ function render(){
     'admin-login':viewAdminLogin,admin:viewAdmin,
   };
   (views[path]||viewHome)(params);
+  // nová stránka (nebo jiný produkt) → začít nahoře
+  const key=path+(path==='product'?'?'+JSON.stringify(params||{}):'');
+  if(window._hvLastPage!==undefined&&window._hvLastPage!==key)hvScrollTopNow();
+  window._hvLastPage=key;
   bindGlobal();
   try{ if(typeof hvMaybeShowAnnouncement==='function')hvMaybeShowAnnouncement(views[path]?path:'home'); }catch(e){console.warn('Oznámení:',e)}
 }
@@ -6533,6 +6540,7 @@ function viewNotificationsAdmin(){
         </div>`).join('')}</div>`:`<div class="cp-empty"><b>Zatím žádní příjemci</b><span>Přidej sebe (registrace, objednávky, platby) a baliče (objednávky k zabalení).</span>${owner?'<button class="ovw-btn primary" onclick="hvRcpOpen()">+ Přidat příjemce</button>':''}</div>`}
       ${owner?'':'<p class="hv-note">Příjemce může měnit jen majitel.</p>'}
     </div>
+    ${hvTelegramPanel(owner)}
     <div class="hv-panel">
       ${hvCpHead('Odeslané e-maily','posledních 60',`<button class="ovw-btn sm" onclick="_hvRcp=null;_hvNLog=null;hvLoadNotif()">Obnovit</button>`)}
       ${_hvNLogErr?`<div class="cp-empty"><b>Log se nepodařilo načíst</b><span>${escapeHtml(_hvNLogErr)}</span></div>`:_hvNLog===null?'<div class="cp-empty"><span><span class="hv-spin"></span> Načítám…</span></div>':_hvNLog.length?`<div class="nt-log">${_hvNLog.map(l=>`
@@ -6542,6 +6550,43 @@ function viewNotificationsAdmin(){
     </div>
   </div>`;
 }
+// ---------- Telegram (přesunuto z Nabídka a marketing) ----------
+// Bot a chat jsou v Supabase → Edge Functions → Secrets (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID); tady jen co posílat.
+function hvTelegramPanel(owner){
+  const n=getNotifSettings()||{};
+  const sw=(id,on,l,sub)=>`<label class="pm-row sm"><span class="pm-txt"><b>${l}</b><small>${sub}</small></span><input type="checkbox" class="hv-cbsw" role="switch" id="${id}" ${on!==false?'checked':''} ${owner?'':'disabled'} aria-label="${l}"></label>`;
+  return `<div class="hv-panel" id="tgPanel">
+      ${hvCpHead('Telegram','zpráva hned po objednávce')}
+      <div class="pm-list">
+        ${sw('tg_new',n.notifyOnNew,'Nová objednávka','dobírka nebo převod')}
+        ${sw('tg_paid',n.notifyOnPaid,'Objednávka zaplacená kartou','po potvrzení platby z GoPay')}
+      </div>
+      <p class="hv-note" style="margin:4px 18px 0">Bota a chat nastavíš v Supabase → Edge Functions → Secrets (<code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code>). Když tam nejsou, Telegram se přeskočí a notifikace jdou jen e-mailem.</p>
+      <div id="tgMsg" style="padding:0 18px"></div>
+      ${owner?`<div class="pm-actions"><button class="ovw-btn" id="tgTest" onclick="hvTgTest()">Poslat test</button><button class="ovw-btn primary" onclick="hvTgSave()">Uložit</button></div>`:''}
+    </div>`;
+}
+window.hvTgSave=async function(){
+  const n=Object.assign({},getNotifSettings()||{},{notifyOnNew:document.getElementById('tg_new').checked,notifyOnPaid:document.getElementById('tg_paid').checked});
+  try{localStorage.setItem('hopi_notif',JSON.stringify(n))}catch(e){}
+  const ok=await hvSave('hopi_notif',n,'✅ Telegram uložený');
+  if(ok!==false)_appSettingsCache['hopi_notif']=n;
+};
+window.hvTgTest=async function(){
+  const b=document.getElementById('tgTest'), m=document.getElementById('tgMsg');
+  b.disabled=true; b.innerHTML='<span class="hv-spin"></span>Posílám…';
+  let txt='', good=false;
+  try{
+    const r=await fetch(SUPABASE_URL+'/functions/v1/send-admin-notification',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},body:JSON.stringify({type:'test',channels:{telegram:true,email:false}})});
+    const d=await r.json().catch(()=>null); const t=d&&d.results&&d.results.telegram;
+    if(r.status===404)txt='Funkce send-admin-notification v tomhle Supabase projektu není nasazená.';
+    else if(t&&t.ok){good=true;txt='Zpráva odešla – mrkni do Telegramu.'}
+    else if(t&&/není v Secrets/.test(t.error||''))txt='Telegram není nastavený: v Supabase → Edge Functions → Secrets chybí TELEGRAM_BOT_TOKEN nebo TELEGRAM_CHAT_ID.';
+    else txt='Telegram zprávu nepřijal: '+((t&&t.error)||(d&&(d.error||d.message))||('HTTP '+r.status));
+  }catch(e){txt='Nepodařilo se spojit se serverem: '+(e.message||e)}
+  b.disabled=false; b.textContent='Poslat test';
+  m.innerHTML=`<div class="inv-box ${good?'ok':'bad'}" role="status" style="margin:10px 0 0"><b>${good?'✓ Funguje':'Neodešlo'}</b><span>${escapeHtml(txt)}</span></div>`;
+};
 window.hvRcpOpen=function(id){
   const r=id?(_hvRcp||[]).find(x=>x.id===id):{name:'',email:'',active:true,events:['new_order','order_paid']};
   if(!r)return;
@@ -8107,7 +8152,7 @@ input.an-in[type=datetime-local]{-webkit-appearance:none;appearance:none;display
 .inv-box{border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:13.5px;line-height:1.45}
 .inv-box b{font-size:14.5px}
 .inv-box.warn{background:color-mix(in srgb,#FF9500 12%,white);color:#6b4100}
-.inv-box.bad{background:color-mix(in srgb,#FF3B30 10%,white);color:#8a0011}
+.inv-box.bad{background:color-mix(in srgb,#FF3B30 10%,white);color:#8a0011}.inv-box.ok{background:color-mix(in srgb,#34C759 12%,white);color:#0d5a2c}
 .inv-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .inv-ok{display:flex;align-items:center;gap:12px}
 .inv-ok b{display:block;font-size:17px}
@@ -11501,7 +11546,7 @@ function viewMonetize(){
   const used=promos.reduce((s,p)=>s+(p.uses||0),0);
   return `
   <div class="hv-dash cmp">
-    ${hvPageHead('Slevy a upsell','Slevové kódy, doporučené produkty a upozornění',`<button class="ovw-btn primary" onclick="addPromo()">+ Nový kód</button>`)}
+    ${hvPageHead('Slevy a upsell','Slevové kódy a doporučené produkty',`<button class="ovw-btn primary" onclick="addPromo()">+ Nový kód</button>`)}
     <div class="ck-row k4">
       ${hvKpi('Aktivní kódy',promos.filter(p=>p.active).length,'z '+promos.length+' celkem')}
       ${hvKpi('Použití kódů',used+'×','celkem')}
@@ -11536,27 +11581,7 @@ function viewMonetize(){
         </div>
         <div class="pm-actions"><button class="ovw-btn primary" onclick="saveUpsellSettings()">Uložit upsell</button></div>
       </div>
-      <div class="hv-panel">
-        ${hvCpHead('Upozornění pro tebe','Telegram, Discord, e-mail')}
-        <div class="cf-grid" style="padding:12px 18px 0">
-          <div class="cf"><label for="notif_telegram">Telegram chat ID</label><input type="text" id="notif_telegram" value="${escapeHtml(notif.telegramChat||'')}" placeholder="např. 123456789"></div>
-          <div class="cf"><label for="notif_discord">Discord webhook</label><input type="text" id="notif_discord" value="${escapeHtml(notif.discordWebhook||'')}" placeholder="např. https://discord.com/api/webhooks/…" inputmode="url"></div>
-        </div>
-        <div class="pm-list">
-          ${[['notif_new','Nová objednávka',notif.notifyOnNew],['notif_paid','Platba přijata',notif.notifyOnPaid],['notif_shipped','Objednávka odeslána',notif.notifyOnShipped],['notif_email','Posílat i e-mailem',notif.emailAlerts]].map(([id,l,on])=>`<label class="pm-row sm"><span class="pm-txt"><b>${l}</b></span><input type="checkbox" id="${id}" class="hv-cbsw" role="switch" ${on?'checked':''} aria-label="${l}"></label>`).join('')}
-        </div>
-        <div class="pm-actions"><button class="ovw-btn" onclick="testAdminNotif()">Odeslat test</button><button class="ovw-btn primary" onclick="saveNotifSettings()">Uložit upozornění</button></div>
-      </div>
     </div>
-    <details class="hv-panel cp-det">
-      <summary class="hv-panelhead"><div class="ovw-title"><h2>Věrnostní program</h2><span>připravujeme</span></div><span class="pv-tag">rozbalit</span></summary>
-      <div class="lv-grid">
-        <div><b style="color:#C8834A">Bronz</b><span>od 2 500 Kč utraceno</span><em>−5 %</em></div>
-        <div><b style="color:#8E8E93">Stříbro</b><span>od 5 000 Kč utraceno</span><em>−10 % + doprava zdarma</em></div>
-        <div><b style="color:#C9A100">Zlato</b><span>od 10 000 Kč utraceno</span><em>−15 % + dřívější přístup</em></div>
-      </div>
-      <div class="pm-actions"><button class="ovw-btn" onclick="showToast('Věrnostní program se aktivuje po napojení na backend')">Aktivovat program</button></div>
-    </details>
   </div>`;
 }
 
@@ -13715,19 +13740,6 @@ function setNotifSettings(n){
 }
 
 
-window.saveNotifSettings=function(){
-  const n={
-    telegramChat:document.getElementById('notif_telegram').value.trim(),
-    discordWebhook:document.getElementById('notif_discord').value.trim(),
-    notifyOnNew:document.getElementById('notif_new').checked,
-    notifyOnPaid:document.getElementById('notif_paid').checked,
-    notifyOnShipped:document.getElementById('notif_shipped').checked,
-    emailAlerts:document.getElementById('notif_email').checked,
-    botEnabled:true,
-  };
-  setNotifSettings(n);
-  showToast('Notifikace uloženy');
-}
 
 window.addPromo=function(existingCode){
   // Modal overlay
