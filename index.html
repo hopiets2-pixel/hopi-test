@@ -3137,7 +3137,7 @@ function render(){
   document.body.classList.remove('admin-body');
   const {path,params}=getRoute();
   const views={
-    home:viewHome,product:viewProduct,cart:viewCart,checkout:viewCheckout,success:viewSuccess,'payment-cancelled':viewPaymentCancelled,
+    home:viewHome,product:viewProduct,cart:viewCart,checkout:viewCheckout,success:viewSuccess,'payment-cancelled':viewPaymentCancelled,'gopay-return':viewGoPayWait,'gopay-done':viewGoPayDone,
     track:viewTrack,trackOrder:viewTrackOrder,
     login:viewLogin,register:viewRegister,account:viewAccount,info:viewInfo,
     complaint:viewComplaint,
@@ -4696,10 +4696,10 @@ async function handleGoPayReturn(){
     const _api4 = safeLSget('hopi_pending_gopay_api') === '4';
     let data;
     if(_api4){
-      // platba přímo v e-shopu (v4): nejdřív ať server zpracuje, pak stav
-      await hvGoPayFinalize(paymentId,4);
+      // platba přímo v e-shopu (v4): stav hned, dokončení (sklad, e-maily, faktura) běží na serveru na pozadí
       const s = await hvGoPayV4({action:'status',paymentId});
       data = {state: s.state || ''};
+      hvGoPayFinalize(paymentId,4);
     } else {
       const res = await fetch(sbUrl + '/functions/v1/gopay-status?id=' + encodeURIComponent(paymentId), {
         headers: { 'apikey': sbKey, 'Authorization': 'Bearer ' + sbKey },
@@ -4742,18 +4742,14 @@ async function handleGoPayReturn(){
     const _srvOrder = !!(lastOrder && lastOrder.pricing && lastOrder.pricing.verified) || (!lastOrder && !!window._hvGpReturnOrderId);
     if(!lastOrder && _srvOrder){
       // návrat v jiném prohlížeči (např. banka otevřela odkaz jinde) – dokončí server, ukážeme jednoduché potvrzení
-      if(!_api4) await hvGoPayFinalize(paymentId);
-      const paidNoLs = data.state === 'PAID' || data.state === 'AUTHORIZED';
-      document.getElementById('app').innerHTML = `${renderNavbar()}<main class="page page-narrow"><div style="text-align:center;padding:60px 0 20px">
-        ${paidNoLs?'<div class="success-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>':''}
-        <h1 class="page-title">${paidNoLs?'Díky, zaplaceno!':'Platba neproběhla'}</h1>
-        <p class="page-sub" style="margin-left:auto;margin-right:auto">${paidNoLs?'Objednávka '+escapeHtml(window._hvGpReturnOrderId)+' je zaplacená. Potvrzení ti přijde e-mailem.':'Nic se nestrhlo. Zkus to prosím znovu.'}</p>
-        <a class="btn btn-primary" onclick="go('home')">Zpět do obchodu</a></div></main>${renderFooter()}`;
+      if(!_api4) hvGoPayFinalize(paymentId);
+      window._hvGpNoLs = {paid: data.state === 'PAID' || data.state === 'AUTHORIZED', id: window._hvGpReturnOrderId};
+      go('gopay-done');
       return;
     }
     if(_srvOrder){
       // Objednávku založil server → zaplacení, sklad, kód, e-maily, Telegram i fakturu dokončí gopay-notification
-      if(!_api4) await hvGoPayFinalize(paymentId);
+      if(!_api4) hvGoPayFinalize(paymentId);   // zaplacení dokončí server na pozadí (GoPay mu to oznámí i sám) – zákazník nečeká na e-maily a fakturu
       if(data.state === 'PAID' || data.state === 'AUTHORIZED'){
         if(lastOrder) pushOrderToSheets(lastOrder).catch(()=>{});
         if(_api4){ setCart([]); setAppliedPromo(null); }   // v4: košík se maže až po zaplacení
@@ -4835,6 +4831,20 @@ function _triggerGoPayReturn(){
 window.addEventListener('hashchange', _triggerGoPayReturn);
 window.addEventListener('DOMContentLoaded', _triggerGoPayReturn);
 
+// Návrat z GoPay: než přijde stav platby, ukázat „ověřuju“ (ne úvodní stránku)
+function viewGoPayWait(){
+  document.getElementById('app').innerHTML=`${renderNavbar()}<main class="page page-narrow"><div style="text-align:center;padding:80px 0 40px"><div style="width:38px;height:38px;margin:0 auto 18px;border:4px solid rgba(127,127,127,.25);border-top-color:var(--accent,#7c3aed);border-radius:50%;animation:hvSpin .8s linear infinite"></div><style>@keyframes hvSpin{to{transform:rotate(360deg)}}</style><h1 class="page-title">Ověřuju platbu…</h1><p class="page-sub" style="margin-left:auto;margin-right:auto">Chvilku strpení.</p></div></main>${renderFooter()}`;
+}
+// Návrat v jiném prohlížeči (bez objednávky v localStorage) – objednávku dokončí server
+function viewGoPayDone(){
+  const r=window._hvGpNoLs;
+  if(!r){go('home');return}
+  document.getElementById('app').innerHTML=`${renderNavbar()}<main class="page page-narrow"><div style="text-align:center;padding:60px 0 20px">
+    ${r.paid?'<div class="success-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>':''}
+    <h1 class="page-title">${r.paid?'Díky, zaplaceno!':'Platba neproběhla'}</h1>
+    <p class="page-sub" style="margin-left:auto;margin-right:auto">${r.paid?'Objednávka '+escapeHtml(r.id)+' je zaplacená. Potvrzení ti přijde e-mailem.':'Nic se nestrhlo. Zkus to prosím znovu.'}</p>
+    <a class="btn btn-primary" onclick="go('home')">Zpět do obchodu</a></div></main>${renderFooter()}`;
+}
 function viewSuccess(){
   const order=JSON.parse(localStorage.getItem('hopi_last_order')||'null');
   if(!order){document.getElementById('app').innerHTML=`${renderNavbar()}<main class="page"><div class="empty"><h3>Žádná objednávka</h3><a class="btn btn-primary" onclick="go('home')">Zpět</a></div></main>${renderFooter()}`;return}
@@ -6168,7 +6178,7 @@ async function hvPayGoPayServer(order,input){
 }
 // Po návratu z GoPay: dokončení zaplacené / zrušené platby udělá server (gopay-notification)
 async function hvGoPayFinalize(paymentId,api){
-  try{await fetch(SUPABASE_URL+'/functions/v1/gopay-notification'+(api==4?'/v4':'')+'?id='+encodeURIComponent(paymentId),{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},signal:AbortSignal.timeout(20000)})}
+  try{await fetch(SUPABASE_URL+'/functions/v1/gopay-notification'+(api==4?'/v4':'')+'?id='+encodeURIComponent(paymentId),{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},signal:AbortSignal.timeout(20000),keepalive:true})}
   catch(e){console.warn('gopay-notification:',e)}
 }
 
@@ -6328,12 +6338,12 @@ async function hvGpCharged(res){
   try{_hvGp.qr&&_hvGp.qr.abort&&_hvGp.qr.abort.abort()}catch(e){}
   hvGpMsg('<span class="ac-spin"></span>Platba prošla, ověřuji ji…','wait');
   const g=_hvGp; let st='';
-  for(let i=0;i<6;i++){
-    await hvGoPayFinalize(g.paymentId,4);
+  for(let i=0;i<8;i++){
     const s=await hvGoPayV4({action:'status',paymentId:g.paymentId}); st=s.state||'';
     if(st==='PAID'||st==='AUTHORIZED')break;
-    await new Promise(r=>setTimeout(r,1500));
+    await new Promise(r=>setTimeout(r,1200));
   }
+  hvGoPayFinalize(g.paymentId,4);   // sklad, e-maily, faktura – na pozadí (GoPay to serveru oznámí i sám)
   if(st==='PAID'||st==='AUTHORIZED'){hvGpSuccess(g.order);return}
   _hvGp.done=false;
   hvGpMsg('Platba se ještě zpracovává. Potvrzení ti přijde e-mailem – stránku klidně zavři.<br><button type="button" class="btn btn-primary btn-sm" onclick="hvGpRecheck()">Zkontrolovat znovu</button>','wait');
@@ -9276,7 +9286,7 @@ function hvAnnMatches(a,path){
 }
 function hvAnnSeenKey(a){return 'hopi_ann_'+a.id+'_'+(a.updatedAt||0)}
 function hvMaybeShowAnnouncement(path){
-  if(['admin','admin-login','success','payment-cancelled'].includes(path))return;
+  if(['admin','admin-login','success','payment-cancelled','gopay-return','gopay-done'].includes(path))return;
   if(document.getElementById('hvAnnRoot'))return;
   const now=Date.now();
   const list=getAnnouncements().filter(a=>hvAnnState(a,now)[0]==='Aktivní'&&a.title&&hvAnnMatches(a,path))
