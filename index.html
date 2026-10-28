@@ -1134,6 +1134,20 @@ body.ac-lock{overflow:hidden}
 .nl-name-row{display:flex;gap:8px;margin-bottom:8px;width:100%}.nl-name-in{flex:1 1 0;min-width:0;width:0;box-sizing:border-box;padding:14px 16px;background:#000;border:1px solid #2a2a2a;color:#fff;font-family:'Archivo',sans-serif;font-size:16px;outline:none;border-radius:0}.nl-name-in::placeholder{color:var(--muted)}.nl-name-in:focus{border-color:var(--green)}
 .acc2-main{min-height:min(70vh,640px)}
 .em-upg{display:flex;gap:14px;align-items:center;justify-content:space-between;padding:16px 18px;border-left:4px solid #34C759}.em-upg b{display:block;font-size:15px;margin-bottom:3px}.em-upg span{display:block;font-size:13px;color:var(--hv-muted,#8e8e93);line-height:1.45}@media(max-width:640px){.em-upg{flex-direction:column;align-items:stretch}}
+.gp-modal{max-width:460px}.gp-modal h2{margin:2px 0 16px}.gp-k{margin:0;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--green-glow)}
+.gp-wallets{display:grid;gap:10px;margin-bottom:12px}.gp-wallets[hidden],.gp-or[hidden],.gp-w[hidden]{display:none}.gp-w:empty{display:none}.gp-w>*{width:100%!important}
+.gp-or{display:flex;align-items:center;gap:12px;margin:6px 0 14px;color:var(--muted);font-size:13px}.gp-or:before,.gp-or:after{content:"";flex:1;height:1px;background:var(--border)}
+.gp-card{min-height:120px}.gp-card[hidden]{display:none}.gp-card iframe{width:100%;border:0}.gp-wait{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;padding:30px 0;justify-content:center}
+.gp-msg{font-size:14px;line-height:1.5;margin-top:10px}.gp-msg:empty{display:none}.gp-msg.bad{color:#ff8a80}.gp-msg.wait{color:var(--muted);display:flex;flex-direction:column;gap:10px;align-items:flex-start}.gp-msg .ac-spin{margin-right:8px}
+.gp-acts{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.gp-note{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--muted);margin:16px 0 0;line-height:1.45}.gp-note svg{flex-shrink:0;margin-top:2px}
+.gp-seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:rgba(255,255,255,.06);padding:4px;margin:0 0 14px}.gp-seg[hidden]{display:none}
+.gp-seg button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;background:transparent;border:0;color:var(--muted);font:600 14px 'Inter',system-ui,sans-serif;cursor:pointer}
+.gp-seg button.on{background:#fff;color:#000}.gp-seg button:focus-visible{outline:2px solid var(--green-glow);outline-offset:2px}
+.gp-qr[hidden]{display:none}.gp-qr-img{display:flex;justify-content:center;margin:2px 0 12px}.gp-qr-img img{width:200px;height:200px;background:#fff;padding:10px;image-rendering:pixelated}
+.gp-qr-t{font-size:14px;line-height:1.5;color:#ddd;margin:0 0 12px;text-align:center}.gp-qr-dl{display:block;text-align:center;margin:0 auto 12px;max-width:220px}
+.gp-qr-rows{display:grid;gap:6px;background:rgba(255,255,255,.05);padding:12px 14px;margin-bottom:12px}.gp-qr-rows div{display:flex;justify-content:space-between;gap:12px;font-size:14px}.gp-qr-rows span{color:var(--muted)}.gp-qr-rows b{color:#fff;text-align:right;word-break:break-all}
+.gp-qr-wait{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted);margin:0}
 </style>
 </head>
 <body>
@@ -4679,10 +4693,19 @@ async function handleGoPayReturn(){
     const sbUrl = SUPABASE_URL;
     const sbKey = SUPABASE_KEY;
     
-    const res = await fetch(sbUrl + '/functions/v1/gopay-status?id=' + encodeURIComponent(paymentId), {
-      headers: { 'apikey': sbKey, 'Authorization': 'Bearer ' + sbKey },
-    });
-    const data = await res.json();
+    const _api4 = safeLSget('hopi_pending_gopay_api') === '4';
+    let data;
+    if(_api4){
+      // platba přímo v e-shopu (v4): nejdřív ať server zpracuje, pak stav
+      await hvGoPayFinalize(paymentId,4);
+      const s = await hvGoPayV4({action:'status',paymentId});
+      data = {state: s.state || ''};
+    } else {
+      const res = await fetch(sbUrl + '/functions/v1/gopay-status?id=' + encodeURIComponent(paymentId), {
+        headers: { 'apikey': sbKey, 'Authorization': 'Bearer ' + sbKey },
+      });
+      data = await res.json();
+    }
     
     // Aktualizovat order paymentStatus podle GoPay stavu
     const lastOrder = JSON.parse(safeLSget('hopi_last_order')||'null');
@@ -4713,14 +4736,16 @@ async function handleGoPayReturn(){
     // Vyčistit pending markers
     safeLSremove('hopi_pending_gopay_order');
     safeLSremove('hopi_pending_gopay_payment_id');
+    safeLSremove('hopi_pending_gopay_api');
     
     // Zobrazit success / failure
     const _srvOrder = !!(lastOrder && lastOrder.pricing && lastOrder.pricing.verified);
     if(_srvOrder){
       // Objednávku založil server → zaplacení, sklad, kód, e-maily, Telegram i fakturu dokončí gopay-notification
-      await hvGoPayFinalize(paymentId);
+      if(!_api4) await hvGoPayFinalize(paymentId);
       if(data.state === 'PAID' || data.state === 'AUTHORIZED'){
         if(lastOrder) pushOrderToSheets(lastOrder).catch(()=>{});
+        if(_api4){ setCart([]); setAppliedPromo(null); }   // v4: košík se maže až po zaplacení
         go('success');
       } else {
         const allOrders = getOrders().filter(o => o.id !== lastOrder.id);
@@ -4837,6 +4862,13 @@ function viewSuccess(){
         <div style="display:flex;align-items:center;gap:10px;padding:14px;background:rgba(0,138,63,0.2);color:#fff;font-size:14px;line-height:1.5">
           ⚡ <span><strong>Po přijetí platby</strong> (1-2 pracovní dny) tvou objednávku <strong>ihned začneme zpracovávat</strong> a pošleme.</span>
         </div>
+      </div>
+    `;
+  }else if(order.gopayQrPending){
+    paymentBox=`
+      <div style="background:rgba(0,138,63,0.12);border:1px solid rgba(0,200,83,0.4);padding:20px 24px;margin:30px 0;text-align:left">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green-glow);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px">QR platba</div>
+        <p style="color:#fff;font-size:15px;line-height:1.6;margin:0">Čekáme na připsání platby <strong>${formatPrice(order.total)} Kč</strong>. Jakmile dorazí, pošleme ti potvrzení e-mailem a objednávku hned začneme chystat.</p>
       </div>
     `;
   }else if(order.pay==='cod'){
@@ -6087,6 +6119,11 @@ async function hvPayGoPayServer(order,input){
     return;
   }
   const o=r.order;
+  // GoPay v4: platba přímo v e-shopu (karta, Apple Pay, Google Pay). Když není nastavená nebo se nenačte, jede dál přesměrování.
+  if(getGopayConfig().embedded){
+    const handled=await hvGoPayEmbedded(o,busy);
+    if(handled)return;
+  }
   busy(true,'Připravuji platbu…');
   let d=null,status=0;
   try{
@@ -6109,10 +6146,234 @@ async function hvPayGoPayServer(order,input){
   window.location.href=d.gw_url;   // okamžitě (Safari blokuje zpožděné přesměrování)
 }
 // Po návratu z GoPay: dokončení zaplacené / zrušené platby udělá server (gopay-notification)
-async function hvGoPayFinalize(paymentId){
-  try{await fetch(SUPABASE_URL+'/functions/v1/gopay-notification?id='+encodeURIComponent(paymentId),{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},signal:AbortSignal.timeout(20000)})}
+async function hvGoPayFinalize(paymentId,api){
+  try{await fetch(SUPABASE_URL+'/functions/v1/gopay-notification'+(api==4?'/v4':'')+'?id='+encodeURIComponent(paymentId),{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},signal:AbortSignal.timeout(20000)})}
   catch(e){console.warn('gopay-notification:',e)}
 }
+
+// ================= GoPay v4 – platba PŘÍMO V E-SHOPU (bez přesměrování) =================
+// Kartový formulář je iframe GoPay (číslo karty web nikdy nevidí), Apple Pay a Google Pay kreslí SDK GoPay.
+// Platbu zakládá server (gopay-v4) s částkou z objednávky; zaplacení ověří a dokončí gopay-notification/v4.
+const HV_GOPAY_SDK_URL='https://unpkg.com/@gopaycz/gopay-js-sdk-browser@1.10.5/dist/gopay-browser-sdk.min.js';
+const HV_GOPAY_SDK_SRI='sha384-RdvIgcyaLuxZbxCqGnog7va3l0Y1vs12IR2BbGKuNvrIcpHs/o19jmZbu2L6Uqkz';
+let _hvGpSdkP=null, _hvGp=null;
+function hvLoadGoPaySdk(){
+  if(window.GoPayBrowserSDK&&window.GoPayBrowserSDK.createGoPayBrowserSDK)return Promise.resolve(window.GoPayBrowserSDK);
+  if(_hvGpSdkP)return _hvGpSdkP;
+  _hvGpSdkP=new Promise((res,rej)=>{
+    const sc=document.createElement('script'); sc.src=HV_GOPAY_SDK_URL; sc.integrity=HV_GOPAY_SDK_SRI; sc.crossOrigin='anonymous'; sc.async=true;
+    const t=setTimeout(()=>rej(new Error('GoPay SDK se nenačetlo')),12000);
+    sc.onload=()=>{clearTimeout(t);window.GoPayBrowserSDK&&window.GoPayBrowserSDK.createGoPayBrowserSDK?res(window.GoPayBrowserSDK):rej(new Error('GoPay SDK chybí'))};
+    sc.onerror=()=>{clearTimeout(t);rej(new Error('GoPay SDK se nenačetlo'))};
+    document.head.appendChild(sc);
+  }).catch(e=>{_hvGpSdkP=null;throw e});
+  return _hvGpSdkP;
+}
+async function hvGoPayV4(body){
+  try{
+    const res=await fetch(SUPABASE_URL+'/functions/v1/gopay-v4',{method:'POST',signal:AbortSignal.timeout(20000),headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},body:JSON.stringify(body)});
+    const d=await res.json().catch(()=>null); return Object.assign({httpStatus:res.status},d||{ok:false,error:'HTTP '+res.status});
+  }catch(e){return {ok:false,error:e.message||String(e)}}
+}
+// Vrátí true, když se platba v e-shopu otevřela (nebo skončila). false = pokračuj přesměrováním (nic se nezaložilo).
+async function hvGoPayEmbedded(o,busy){
+  busy(true,'Připravuji platbu…');
+  let SDK; try{SDK=await hvLoadGoPaySdk()}catch(e){console.warn('GoPay v4:',e.message);return false}
+  const d=await hvGoPayV4({action:'create',orderId:o.id,returnUrl:location.origin+location.pathname+'#/gopay-return'});
+  if(!d.ok||!d.paymentId||!d.paymentSecret){console.warn('GoPay v4 → přesměrování:',d.error||d.code);return false}
+  busy(false);
+  // pro návrat z 3-D Secure (celá stránka odejde do banky a vrátí se na #/gopay-return)
+  const list=JSON.parse(localStorage.getItem('hopi_orders')||'[]').filter(x=>x.id!==o.id); list.unshift(o);
+  safeLSset('hopi_orders',JSON.stringify(list));
+  safeLSset('hopi_last_order',JSON.stringify(o));
+  safeLSset('hopi_pending_gopay_order',JSON.stringify(o));
+  safeLSset('hopi_pending_gopay_payment_id',String(d.paymentId));
+  safeLSset('hopi_pending_gopay_api','4');
+  hvGpOpen(o,d);
+  try{
+    const sdk=SDK.createGoPayBrowserSDK({environment:d.environment==='production'?'production':'sandbox',shareableKey:d.shareableKey,clientId:d.clientId,onError:e=>console.warn('GoPay:',e&&(e.errorCode||e.message))});
+    _hvGp={sdk,order:o,paymentId:d.paymentId,ctrls:[],done:false};
+    await sdk.attachPayment({paymentId:d.paymentId,paymentSecret:d.paymentSecret});
+    const theme=Object.assign({},SDK.DARK_CARD_FORM_THEME||SDK.DEFAULT_CARD_FORM_THEME||{},{submitBackgroundColor:'#008a3f',submitHoverBackgroundColor:'#00a14b',submitBorderRadius:0,inputBorderRadius:0,focusRingColor:'#00c853',focusRingWidth:2});
+    const wallets={n:0};
+    const wallet=async(fn,id)=>{
+      const box=document.getElementById(id); if(!box||typeof sdk[fn]!=='function')return;
+      try{
+        const c=await sdk[fn](box,{threeDS:{mode:'redirect'},onUnavailable:()=>{box.hidden=true;hvGpWalletsCheck()},onCancel:()=>hvGpMsg('')});
+        _hvGp.ctrls.push(c); wallets.n++; c.result.then(hvGpCharged).catch(hvGpChargeErr);
+      }catch(e){box.hidden=true;hvGpWalletsCheck()}
+    };
+    const card=await sdk.mountCardForm(document.getElementById('gpCard'),{flow:'direct-charge',threeDS:{mode:'redirect'},locale:'cs-CZ',theme});
+    _hvGp.ctrls.push(card); card.result.then(hvGpCharged).catch(hvGpChargeErr);
+    document.getElementById('gpCardWait')?.remove();
+    await Promise.all([wallet('mountApplePayButton','gpApple'),wallet('mountGooglePayButton','gpGoogle')]);
+    hvGpWalletsCheck();
+  }catch(e){
+    console.warn('GoPay v4 mount:',e);
+    hvGpFail('Platbu se nepodařilo připravit. Nic jsi nezaplatil – zkus to prosím znovu, případně zvol jinou platbu.',true);
+  }
+  return true;
+}
+function hvGpOpen(o,d){
+  hvGpClose(true);
+  const m=document.createElement('div'); m.id='gpPay'; m.className='ac-bg show'; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); m.setAttribute('aria-labelledby','gpTitle');
+  m.innerHTML=`<div class="ac-modal gp-modal">
+    <button type="button" class="ac-x" aria-label="Zrušit platbu" onclick="hvGpCancel()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <p class="gp-k">Objednávka ${escapeHtml(o.id)}</p>
+    <h2 id="gpTitle">Zaplatit ${formatPrice(d.amount||o.total)} Kč</h2>
+    <div class="gp-wallets" id="gpWallets"><div id="gpApple" class="gp-w"></div><div id="gpGoogle" class="gp-w"></div></div>
+    <div class="gp-or" id="gpOr"><span>nebo</span></div>
+    <div class="gp-seg" role="tablist" aria-label="Způsob platby">
+      <button type="button" role="tab" id="gpTabCard" class="on" aria-selected="true" onclick="hvGpTab('card')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Kartou</button>
+      <button type="button" role="tab" id="gpTabQr" aria-selected="false" onclick="hvGpTab('qr')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>QR platba</button>
+    </div>
+    <div id="gpCard" class="gp-card"><div id="gpCardWait" class="gp-wait"><span class="ac-spin"></span>Načítám bezpečný formulář GoPay…</div></div>
+    <div id="gpQr" class="gp-qr" hidden></div>
+    <div id="gpMsg" class="gp-msg" role="status" aria-live="polite"></div>
+    <p class="gp-note"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Platbu bezpečně zpracuje GoPay. Údaje o kartě neuvidíme ani neukládáme.</p>
+  </div>`;
+  document.body.appendChild(m); document.body.classList.add('ac-lock');
+}
+// ---------- QR platba (GoPay vytvoří QR kód i spáruje platbu) ----------
+window.hvGpTab=function(t){
+  const qr=t==='qr';
+  document.getElementById('gpTabCard')?.classList.toggle('on',!qr); document.getElementById('gpTabQr')?.classList.toggle('on',qr);
+  document.getElementById('gpTabCard')?.setAttribute('aria-selected',String(!qr)); document.getElementById('gpTabQr')?.setAttribute('aria-selected',String(qr));
+  const c=document.getElementById('gpCard'), q=document.getElementById('gpQr');
+  if(c&&!c.dataset.dead)c.hidden=qr; if(q)q.hidden=!qr;
+  if(qr)hvGpQrShow();
+};
+async function hvGpQrShow(){
+  const g=_hvGp, box=document.getElementById('gpQr'); if(!g||!box||g.qr)return;
+  g.qr={loading:true};
+  box.innerHTML='<div class="gp-wait"><span class="ac-spin"></span>Připravuji QR kód…</div>';
+  let info;
+  try{info=await g.sdk.getQRPaymentInfo('png')}catch(e){g.qr=null;box.innerHTML=`<p class="gp-msg bad">QR kód teď nejde vytvořit${e&&e.message?' ('+escapeHtml(String(e.message).slice(0,80))+')':''}. Zaplať prosím kartou.</p>`;return}
+  if(_hvGp!==g||g.done)return;
+  const qc=info&&info.qr_code||{}; const png=qc.spayd||qc.paybysquare||qc.sepa||'';
+  if(!png){g.qr=null;box.innerHTML='<p class="gp-msg bad">QR kód teď nejde vytvořit. Zaplať prosím kartou.</p>';return}
+  const ba=(info.recipient&&info.recipient.bank_account&&info.recipient.bank_account.local)||{};
+  const acc=ba.account_number?((ba.prefix&&ba.prefix!=='0'&&ba.prefix!=='000000'?ba.prefix+'-':'')+ba.account_number+'/'+ba.bank_code):'';
+  const amt=info.amount?info.amount/100:g.order.total;
+  const src='data:image/png;base64,'+png.replace(/\s/g,'');
+  const mobile=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
+  box.innerHTML=`
+    <div class="gp-qr-img"><img src="${src}" alt="QR kód pro platbu ${formatPrice(amt)} Kč" width="200" height="200"></div>
+    <p class="gp-qr-t">${mobile?'Ulož si QR kód a nahraj ho v aplikaci své banky (Platba → QR kód → z galerie), nebo ho naskenuj druhým telefonem.':'Naskenuj QR kód v aplikaci své banky a platbu potvrď.'} Číslo účtu, částku ani variabilní symbol nepřepisuješ.</p>
+    ${mobile?`<a class="btn btn-primary btn-sm gp-qr-dl" href="${src}" download="HOPI-${escapeHtml(g.order.id)}-QR.png">Uložit QR kód</a>`:''}
+    <div class="gp-qr-rows">
+      <div><span>Částka</span><b>${formatPrice(amt)} Kč</b></div>
+      ${acc?`<div><span>Účet</span><b>${escapeHtml(acc)}</b></div>`:''}
+      ${ba.variable_symbol?`<div><span>Variabilní symbol</span><b>${escapeHtml(ba.variable_symbol)}</b></div>`:''}
+      ${info.recipient&&info.recipient.name?`<div><span>Příjemce</span><b>${escapeHtml(info.recipient.name)}</b></div>`:''}
+    </div>
+    <p class="gp-qr-wait" id="gpQrWait"><span class="ac-spin"></span>Čekám na platbu… Okamžitá platba se tu ukáže během pár vteřin.</p>
+    <div class="gp-acts"><button type="button" class="ac-link" onclick="hvGpQrPaidLater()">Zaplatil(a) jsem, potvrzení počkám v e-mailu</button></div>`;
+  g.qr={shown:true,abort:new AbortController()};
+  // čekat na připsání (GoPay potvrdí na úrovni platby: PAID)
+  g.sdk.awaitPaymentStatus({intervalMs:3000,signal:g.qr.abort.signal}).then(st=>{
+    if(_hvGp!==g||g.done)return;
+    const s=st&&st.state;
+    if(s==='PAID'||s==='AUTHORIZED')hvGpCharged({state:'SUCCEEDED'});
+    else if(s==='CANCELED'||s==='TIMEOUTED')hvGpFail('Čas na QR platbu vypršel. Nic se nestrhlo – zkus to prosím znovu.',true);
+  }).catch(()=>{});
+}
+// zákazník poslal platbu, ale ještě nedorazila → objednávka čeká, potvrzení přijde e-mailem (gopay-notification)
+window.hvGpQrPaidLater=function(){
+  const g=_hvGp; if(!g)return;
+  g.done=true; try{g.qr&&g.qr.abort&&g.qr.abort.abort()}catch(e){}
+  g.ctrls.forEach(c=>{try{c.unmount()}catch(e){}});
+  safeLSremove('hopi_pending_gopay_order');safeLSremove('hopi_pending_gopay_payment_id');safeLSremove('hopi_pending_gopay_api');
+  safeLSset('hopi_last_order',JSON.stringify(Object.assign({},g.order,{gopayQrPending:true})));
+  setCart([]); setAppliedPromo(null); _hvCheckoutSrvQuote=null;
+  _hvGp=null; hvGpClose(true); go('success');
+};
+function hvGpWalletsCheck(){
+  const a=document.getElementById('gpApple'),g=document.getElementById('gpGoogle');
+  const any=[a,g].some(x=>x&&!x.hidden&&x.childElementCount>0);
+  const w=document.getElementById('gpWallets'),or=document.getElementById('gpOr');
+  if(w)w.hidden=!any; if(or)or.hidden=!any;
+}
+function hvGpMsg(t,kind){const m=document.getElementById('gpMsg');if(m){m.className='gp-msg'+(kind?' '+kind:'');m.innerHTML=t}}
+function hvGpClose(silent){
+  if(_hvGp&&!silent)_hvGp.ctrls.forEach(c=>{try{c.unmount()}catch(e){}});
+  const m=document.getElementById('gpPay'); if(m)m.remove(); document.body.classList.remove('ac-lock');
+}
+// zaplaceno v iframe / peněžence (bez 3-D Secure, nebo po něm bez přesměrování)
+async function hvGpCharged(res){
+  if(!_hvGp||_hvGp.done)return;
+  if(!res||res.state!=='SUCCEEDED'){hvGpChargeErr({errorCode:res&&res.state==='FAILED'?'CHARGE_FAILED':'X',message:res&&res.fail_reason});return}
+  _hvGp.done=true;
+  try{_hvGp.qr&&_hvGp.qr.abort&&_hvGp.qr.abort.abort()}catch(e){}
+  hvGpMsg('<span class="ac-spin"></span>Platba prošla, ověřuji ji…','wait');
+  const g=_hvGp; let st='';
+  for(let i=0;i<6;i++){
+    await hvGoPayFinalize(g.paymentId,4);
+    const s=await hvGoPayV4({action:'status',paymentId:g.paymentId}); st=s.state||'';
+    if(st==='PAID'||st==='AUTHORIZED')break;
+    await new Promise(r=>setTimeout(r,1500));
+  }
+  if(st==='PAID'||st==='AUTHORIZED'){hvGpSuccess(g.order);return}
+  _hvGp.done=false;
+  hvGpMsg('Platba se ještě zpracovává. Potvrzení ti přijde e-mailem – stránku klidně zavři.<br><button type="button" class="btn btn-primary btn-sm" onclick="hvGpRecheck()">Zkontrolovat znovu</button>','wait');
+}
+window.hvGpRecheck=async function(){if(!_hvGp)return;const g=_hvGp;await hvGoPayFinalize(g.paymentId,4);const s=await hvGoPayV4({action:'status',paymentId:g.paymentId});if(s.state==='PAID'||s.state==='AUTHORIZED')hvGpSuccess(g.order);else hvGpMsg('Zatím nepotvrzeno. Zkus to za chvíli znovu.','wait')};
+function hvGpSuccess(o){
+  safeLSremove('hopi_pending_gopay_order');safeLSremove('hopi_pending_gopay_payment_id');safeLSremove('hopi_pending_gopay_api');
+  const paid=Object.assign({},o,{paymentStatus:'paid',awaitingPayment:undefined});
+  safeLSset('hopi_last_order',JSON.stringify(paid));
+  setCart([]); setAppliedPromo(null); _hvCheckoutSrvQuote=null;
+  try{pushOrderToSheets(paid).catch(()=>{})}catch(e){}
+  _hvGp=null; hvGpClose(true); go('success');
+}
+// zamítnutá karta / chyba platby → objednávka se zruší (GoPay platbu zrušil), košík zůstává → „Zkusit znovu“ založí novou
+async function hvGpChargeErr(e){
+  if(!_hvGp||_hvGp.done)return;
+  const code=e&&(e.errorCode||e.code)||'';
+  if(/unmount/i.test(String(e&&e.message)))return;                       // zavřeno
+  if(code==='CHARGE_FAILED')return hvGpFail('Platba neprošla – banka ji zamítla. Nic se nestrhlo. Zkus jinou kartu nebo jinou platbu.',true);
+  // ostatní chyby: skutečný stav rozhodne GoPay
+  const g=_hvGp; const st=(await hvGoPayV4({action:'status',paymentId:g.paymentId})).state||'';
+  if(_hvGp!==g||g.done)return;
+  if(st==='PAID'||st==='AUTHORIZED')return hvGpCharged({state:'SUCCEEDED'});
+  if(st==='CANCELED'||st==='TIMEOUTED')return hvGpFail('Platba se nepovedla. Nic se nestrhlo.',true);
+  if(code==='WALLET_BUTTON_ERROR')return;                                   // peněženka tady nejde, karta funguje dál
+  if(code==='CHARGE_TIMEOUT'||code==='NETWORK_ERROR'||code==='NETWORK_TIMEOUT')
+    return hvGpMsg('Platba se ještě zpracovává. Potvrzení ti přijde e-mailem.<br><button type="button" class="btn btn-primary btn-sm" onclick="hvGpRecheck()">Zkontrolovat znovu</button>','wait');
+  hvGpMsg('Něco se nepovedlo'+(e&&e.message?': '+escapeHtml(String(e.message).slice(0,120)):'')+'. Nic se nestrhlo, zkus to prosím znovu.','bad');
+}
+function hvGpFail(text,retry){
+  const g=_hvGp; if(g)g.done=true;
+  if(g){hvGoPayV4({action:'cancel',paymentId:g.paymentId,orderId:g.order.id}).then(()=>hvGoPayFinalize(g.paymentId,4))}
+  const box=document.getElementById('gpCard'); if(box){box.innerHTML='';box.hidden=true;box.dataset.dead='1'}
+  try{g&&g.qr&&g.qr.abort&&g.qr.abort.abort()}catch(e){}
+  ['gpWallets','gpOr','gpQr'].forEach(id=>{const x=document.getElementById(id);if(x)x.hidden=true});
+  document.querySelector('#gpPay .gp-seg')?.setAttribute('hidden','');
+  hvGpMsg(escapeHtml(text)+(retry?'<div class="gp-acts"><button type="button" class="btn btn-primary btn-sm" onclick="hvGpRetry()">Zkusit znovu</button><button type="button" class="ac-link" onclick="hvGpCancel()">Zvolit jinou platbu</button></div>':''),'bad');
+  safeLSremove('hopi_pending_gopay_order');safeLSremove('hopi_pending_gopay_payment_id');safeLSremove('hopi_pending_gopay_api');
+  if(g){const L=getOrders().filter(x=>x.id!==g.order.id);safeLSset('hopi_orders',JSON.stringify(L))}
+}
+// zákazník platbu zavřel → nezaplacenou platbu i objednávku zrušit, košík zůstává
+window.hvGpCancel=function(){
+  const g0=_hvGp;
+  if(g0&&!g0.done&&g0.qr&&g0.qr.shown&&!g0.qr.ask){
+    // QR už je venku – možná právě platí v bance. Zeptat se, nerušit naslepo.
+    g0.qr.ask=true;
+    hvGpMsg('Už jsi QR kód zaplatil(a)?<div class="gp-acts"><button type="button" class="btn btn-primary btn-sm" onclick="hvGpQrPaidLater()">Ano, zaplatil(a)</button><button type="button" class="ac-link" onclick="hvGpCancel()">Ne, zrušit platbu</button></div>','wait');
+    return;
+  }
+  const g=_hvGp; _hvGp=null;
+  try{g&&g.qr&&g.qr.abort&&g.qr.abort.abort()}catch(e){}
+  if(g&&!g.done){g.done=true;g.ctrls.forEach(c=>{try{c.unmount()}catch(e){}});hvGoPayV4({action:'cancel',paymentId:g.paymentId,orderId:g.order.id}).then(()=>hvGoPayFinalize(g.paymentId,4));
+    safeLSremove('hopi_pending_gopay_order');safeLSremove('hopi_pending_gopay_payment_id');safeLSremove('hopi_pending_gopay_api');
+    const L=getOrders().filter(x=>x.id!==g.order.id);safeLSset('hopi_orders',JSON.stringify(L));
+    showToast('Platba zrušená, nic se nestrhlo. Košík máš pořád připravený.')}
+  hvGpClose(true);
+};
+window.hvGpRetry=function(){
+  hvGpClose(true); _hvGp=null;
+  const f=document.getElementById('checkoutForm'); if(f){if(f.requestSubmit)f.requestSubmit();else f.querySelector('button[type=submit]')?.click()}
+};
 function hvOrderPromo(q){
   if(q.applied==='promo')return {code:q.promo.code,type:q.promo.type,value:q.promo.value,discount:q.promo.amount,freeShipping:!!q.promo.freeShipping};
   if(q.applied==='loyalty')return {code:'VĚRNOST '+q.loyalty.tier,type:'percent',value:q.loyalty.percent,discount:q.loyalty.amount,loyalty:true};
@@ -10590,6 +10851,13 @@ function renderGoPayPanel(){
           <input type="checkbox" id="gopayEnabled" class="hv-cbsw" role="switch" ${cfg.enabled?'checked':''} aria-label="Platit online přes GoPay">
         </label>
       </div>
+      <div class="pm-list">
+        <label class="pm-row">
+          ${hvTile({icon:'card',bg:'#007AFF'},30)}
+          <span class="pm-txt"><b>Platba přímo v e-shopu (GoPay v4)</b><small>Kartový formulář, Apple Pay a Google Pay se ukážou v pokladně – bez přesměrování na bránu. Když v4 není v Supabase nastavené, platí se přesměrováním jako dřív.</small></span>
+          <input type="checkbox" id="gopayEmbedded" class="hv-cbsw" role="switch" ${cfg.embedded?'checked':''} aria-label="Platba přímo v e-shopu">
+        </label>
+      </div>
       <div class="gpc-form">
         <div class="ovw-f grow"><label for="gopayGoid">GoID (číslo e-shopu v GoPay)</label>
           <input type="text" id="gopayGoid" value="${escapeHtml(cfg.goid||'')}" placeholder="např. 8123456789" inputmode="numeric" autocomplete="off" oninput="this.classList.remove('gpc-bad');document.getElementById('gopayGoidErr').hidden=true">
@@ -10611,7 +10879,7 @@ function renderGoPayPanel(){
         <details><summary>Adresy funkcí v Supabase</summary><div class="gpc-mono">
           create-payment: ${SUPABASE_URL}/functions/v1/gopay-create-payment<br>status: ${SUPABASE_URL}/functions/v1/gopay-status?id=…<br>notifikace: ${SUPABASE_URL}/functions/v1/gopay-notification</div></details>
         <details><summary>Jak GoPay nastavit od začátku</summary><div class="gpc-steps">
-          1. Registrace na gopay.com → získáš GoID, Client ID a Client Secret.<br>2. Supabase → Edge Functions → Secrets: <code>GOPAY_GOID</code>, <code>GOPAY_CLIENT_ID</code>, <code>GOPAY_CLIENT_SECRET</code>, <code>GOPAY_MODE</code>.<br>3. Nasadit funkce gopay-* a vyplnit GoID výše.</div></details>
+          1. Registrace na gopay.com → získáš GoID, Client ID a Client Secret.<br>2. Supabase → Edge Functions → Secrets: <code>GOPAY_GOID</code>, <code>GOPAY_CLIENT_ID</code>, <code>GOPAY_CLIENT_SECRET</code>, <code>GOPAY_MODE</code>.<br>3. Nasadit funkce gopay-* a vyplnit GoID výše.<br>4. Platba přímo v e-shopu (v4): funkce <code>gopay-v4</code> a Secret <code>GOPAY_V4_SHAREABLE_KEY</code> (od GoPay). Když má v4 jiné údaje: <code>GOPAY_V4_CLIENT_ID</code>, <code>GOPAY_V4_CLIENT_SECRET</code>, <code>GOPAY_V4_GOID</code>, <code>GOPAY_V4_MODE</code>.</div></details>
       </div>
     </div>`;
 }
@@ -10621,6 +10889,7 @@ window.saveGopayConfig=async function(){
   cfg.goid=g.value.trim();
   cfg.mode=(document.querySelector('input[name="gopayMode"]:checked')||{}).value||'test';
   cfg.enabled=document.getElementById('gopayEnabled').checked;
+  cfg.embedded=!!(document.getElementById('gopayEmbedded')||{}).checked;
   if(cfg.enabled&&!cfg.goid){g.classList.add('gpc-bad');document.getElementById('gopayGoidErr').hidden=false;g.focus();return}
   const ok=await setGopayConfig(cfg);
   if(ok===false){showToast('❌ Uložení se nepovedlo – jsi přihlášený?','error');return}
