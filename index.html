@@ -11227,38 +11227,34 @@ function renderGoPaySection(){
   `;
 }
 
+// Test připojení: jsou nasazené funkce a sedí přihlašovací údaje GoPay (Secrets) k režimu?
 window.testGopayConnection = async function(){
   const cfg = getGopayConfig();
-  if(!cfg.goid){
-    alert('⚠️ Nejdřív vyplň GoID a ulož.');
-    return;
-  }
-  showToast('🔌 Testuji Edge Function...');
-  try {
-    // Zkusíme zavolat create-payment s minimálním (neplatným) payloadem — chceme jen zjistit, jestli endpoint existuje a credentials sedí.
-    const res = await fetch(SUPABASE_URL + '/functions/v1/gopay-create-payment', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-      },
-      body: JSON.stringify({}),  // záměrně prázdné
-    });
-    const text = await res.text();
-    if(res.status === 400 && text.includes('Chybí order')){
-      alert('✅ Edge Function běží správně!\n\nEndpoint odpovídá očekávaně. Můžeš zkusit objednávku.\n\nDetail: ' + text);
-    } else if(res.status === 500 && text.includes('GoPay není nakonfigurován')){
-      alert('⚠️ Edge Function běží, ale Supabase secrets chybí.\n\nMusíš nastavit GOPAY_GOID, GOPAY_CLIENT_ID, GOPAY_CLIENT_SECRET v Supabase Dashboard → Project Settings → Edge Functions → Secrets.\n\nDetail: ' + text);
-    } else if(res.status === 404){
-      alert('❌ Edge Function není nasazená.\n\nMusíš ji nasadit přes Supabase CLI:\nsupabase functions deploy gopay-create-payment\n\nViz instalační návod.');
-    } else {
-      alert('ℹ️ Status: ' + res.status + '\n\nOdpověď: ' + text);
-    }
-  } catch(e){
-    alert('❌ Chyba: ' + e.message + '\n\nPravděpodobně Edge Function není nasazená nebo Supabase URL je špatně.');
-  }
-}
+  if(!cfg.goid){ showToast('Nejdřív vyplň GoID a ulož.','error'); return; }
+  const btn=document.querySelector('#gopayPanel button[onclick="testGopayConnection()"]');
+  if(btn){btn.disabled=true;btn.dataset.l=btn.innerHTML;btn.innerHTML='<span class="hv-spin"></span>Testuji…'}
+  const H={apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY};
+  const call=async(path,opts)=>{try{const r=await fetch(SUPABASE_URL+'/functions/v1/'+path,Object.assign({headers:H,signal:AbortSignal.timeout(20000)},opts||{}));let t='';try{t=await r.text()}catch(e){}return {s:r.status,t}}catch(e){return {s:0,t:e.message||String(e)}}};
+  const rows=[];
+  // 1) přihlášení do GoPay (gopay-status se zkušebním id: když GoPay odpoví „platba neexistuje“, údaje sedí)
+  const st=await call('gopay-status?id=1');
+  if(st.s===404&&/NOT_FOUND|not found/i.test(st.t)&&!/GoPay/.test(st.t)) rows.push([false,'gopay-status','Funkce není nasazená.']);
+  else if(/credentials chybí/i.test(st.t)) rows.push([false,'Přihlašovací údaje','V Supabase → Secrets chybí GOPAY_CLIENT_ID nebo GOPAY_CLIENT_SECRET.']);
+  else if(/OAuth selhal/i.test(st.t)) rows.push([false,'Přihlašovací údaje','GoPay je odmítl. Zkontroluj Client ID a Client Secret v Secrets a jestli GOPAY_MODE ('+(cfg.mode==='live'?'live':'test')+') sedí k nim – testovací údaje patří k test, provozní k live.']);
+  else if(/status fetch selhal/i.test(st.t)||st.s===200) rows.push([true,'Přihlašovací údaje','GoPay je přijal ('+(cfg.mode==='live'?'ostrý':'testovací')+' režim).']);
+  else rows.push([false,'gopay-status','Neočekávaná odpověď (HTTP '+st.s+').']);
+  // 2) založení platby – funkce musí odpovědět, že chybí údaje objednávky
+  const cp=await call('gopay-create-payment',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},H),body:'{}'});
+  rows.push(cp.s===400?[true,'gopay-create-payment','Nasazená a odpovídá.']:cp.s===404?[false,'gopay-create-payment','Funkce není nasazená.']:/není nakonfigurován/i.test(cp.t)?[false,'gopay-create-payment','V Secrets chybí GOPAY_GOID.']:[false,'gopay-create-payment','Neočekávaná odpověď (HTTP '+cp.s+').']);
+  // 3) oznámení z GoPay – bez id musí vrátit 400
+  const nt=await call('gopay-notification');
+  rows.push(nt.s===400?[true,'gopay-notification','Nasazená a odpovídá.']:nt.s===404?[false,'gopay-notification','Funkce není nasazená.']:nt.s===401?[false,'gopay-notification','Vypni u funkce „Verify JWT“ – GoPay posílá oznámení bez přihlášení.']:[false,'gopay-notification','Neočekávaná odpověď (HTTP '+nt.s+').']);
+  if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.l||'Otestovat připojení'}
+  const ok=rows.every(r=>r[0]);
+  let box=document.getElementById('gopayTestRes');
+  if(!box){box=document.createElement('div');box.id='gopayTestRes';box.style.padding='0 22px 4px';document.querySelector('#gopayPanel .pm-actions')?.before(box)}
+  box.innerHTML=`<div class="inv-box ${ok?'ok':'bad'}" role="status"><b>${ok?'✓ GoPay je připravené – můžeš zkusit objednávku':'Něco je potřeba opravit'}</b>${rows.map(r=>`<span>${r[0]?'✓':'✗'} <b>${escapeHtml(r[1])}</b> – ${escapeHtml(r[2])}</span>`).join('')}</div>`;
+};
 
 
 window.setPayMode=function(mode){
