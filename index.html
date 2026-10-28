@@ -4739,7 +4739,18 @@ async function handleGoPayReturn(){
     safeLSremove('hopi_pending_gopay_api');
     
     // Zobrazit success / failure
-    const _srvOrder = !!(lastOrder && lastOrder.pricing && lastOrder.pricing.verified);
+    const _srvOrder = !!(lastOrder && lastOrder.pricing && lastOrder.pricing.verified) || (!lastOrder && !!window._hvGpReturnOrderId);
+    if(!lastOrder && _srvOrder){
+      // návrat v jiném prohlížeči (např. banka otevřela odkaz jinde) – dokončí server, ukážeme jednoduché potvrzení
+      if(!_api4) await hvGoPayFinalize(paymentId);
+      const paidNoLs = data.state === 'PAID' || data.state === 'AUTHORIZED';
+      document.getElementById('app').innerHTML = `${renderNavbar()}<main class="page page-narrow"><div style="text-align:center;padding:60px 0 20px">
+        ${paidNoLs?'<div class="success-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>':''}
+        <h1 class="page-title">${paidNoLs?'Díky, zaplaceno!':'Platba neproběhla'}</h1>
+        <p class="page-sub" style="margin-left:auto;margin-right:auto">${paidNoLs?'Objednávka '+escapeHtml(window._hvGpReturnOrderId)+' je zaplacená. Potvrzení ti přijde e-mailem.':'Nic se nestrhlo. Zkus to prosím znovu.'}</p>
+        <a class="btn btn-primary" onclick="go('home')">Zpět do obchodu</a></div></main>${renderFooter()}`;
+      return;
+    }
     if(_srvOrder){
       // Objednávku založil server → zaplacení, sklad, kód, e-maily, Telegram i fakturu dokončí gopay-notification
       if(!_api4) await hvGoPayFinalize(paymentId);
@@ -4807,8 +4818,18 @@ async function handleGoPayReturn(){
 let _gopayReturnHandled = false;
 function _triggerGoPayReturn(){
   if(_gopayReturnHandled) return;
-  if(!location.hash.startsWith('#/gopay-return')) return;
+  const q=new URLSearchParams(location.search||'');
+  const qid=q.get('id')||'';
+  // GoPay vrací na ?gopay_return=1&orderId=…&id=… (část za # brány zahazují); starší cesta #/gopay-return
+  const fromQuery=q.get('gopay_return')==='1'||(qid&&qid===safeLSget('hopi_pending_gopay_payment_id'));
+  if(!fromQuery&&!location.hash.startsWith('#/gopay-return')) return;
   _gopayReturnHandled = true;
+  if(fromQuery){
+    if(qid) safeLSset('hopi_pending_gopay_payment_id',qid);
+    if(q.get('v')==='4') safeLSset('hopi_pending_gopay_api','4');
+    window._hvGpReturnOrderId=q.get('orderId')||'';
+    try{history.replaceState(null,'',location.pathname+'#/gopay-return')}catch(e){}
+  }
   handleGoPayReturn();
 }
 window.addEventListener('hashchange', _triggerGoPayReturn);
