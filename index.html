@@ -1804,6 +1804,26 @@ const STATUSES={
 const STEP_LABELS=['Nová','Přijato','Zpracovává se','Odesláno','Doručeno'];
 
 // ============== EMAIL ENGINE ==============
+// <HOPI_MAIL>
+// =====================================================================
+// HOPI_MAIL – e-maily zákazníkům (texty šablon + HTML). Sdílí ho web (náhled, demo)
+// i server (send-notification posílá přes Resend), takže e-mail vypadá všude stejně.
+// Zdroj: /home/claude/stage/mail.js → build-functions.py ho vloží do index.html i do funkce.
+// =====================================================================
+const HOPI_MAIL=(function(){
+  // ---- prostředí: nastaví build()/fill() z ctx (synchronní, bez await) ----
+  let C={settings:{},products:[],bankAccount:'',site:'',logo:''};
+  const SETTINGS_DEFAULT={shopName:'HOPI VIRTUAL',email:'eshophopivirtual@gmail.com',phone:''};
+  const STATUSES={new:{label:'Nová'},accepted:{label:'Přijato'},processing:{label:'Zpracovává se'},shipped:{label:'Odesláno'},delivered:{label:'Doručeno'},cancelled:{label:'Zrušeno'}};
+  const getSettings=()=>C.settings;
+  const getProducts=()=>C.products;
+  const getAppSetting=(k,d)=>k==='bank_account'?(C.bankAccount||d):d;
+  const hvSiteUrl=()=>C.site;
+  const hvMailLogo=()=>C.logo;
+  function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function formatPrice(p){return Number(p).toLocaleString('cs-CZ')}
+  function setCtx(ctx){ctx=ctx||{};C={settings:Object.assign({},SETTINGS_DEFAULT,ctx.settings||{}),products:Array.isArray(ctx.products)?ctx.products:[],bankAccount:ctx.bankAccount||'',site:ctx.site||'https://eshophopivirtual.com/',logo:ctx.logo||'https://eshophopivirtual.com/logo-email.png'}}
+
 const DEFAULT_EMAIL_TEMPLATES={
   new:{
     enabled:true,
@@ -1870,33 +1890,6 @@ Jestli je to omyl nebo máš dotaz, napiš nám na {email_shopu}. Rádi to vyře
 Tým {nazev_shopu}`,
   },
 };
-// Starší výchozí texty (před novým vzhledem) – poznáme je podle souhrnu, který teď e-mail vykreslí sám
-function hvEmailOldTexts(){const t=getEmailTemplates();return Object.keys(DEFAULT_EMAIL_TEMPLATES).filter(k=>t[k]&&/📦 Stav: \{stav\}|📦 SHRNUTÍ OBJEDNÁVKY/.test(t[k].body||''))}
-
-function getEmailTemplates(){
-  const saved=getAppSetting('email_templates',{});
-  const parsed=(typeof saved==='string')?JSON.parse(saved):(saved||{});
-  return Object.assign({},DEFAULT_EMAIL_TEMPLATES,parsed);
-}
-async function setEmailTemplates(t){await saveAppSetting('email_templates',t)}
-
-const DEFAULT_EMAIL_CONFIG={mode:'demo',emailjsServiceId:'',emailjsTemplateId:'',emailjsPublicKey:'',fromName:'HOPI VIRTUAL',fromEmail:'eshophopivirtual@gmail.com'};
-function getEmailConfig(){
-  const saved=getAppSetting('email_config',{});
-  const parsed=(typeof saved==='string')?JSON.parse(saved):(saved||{});
-  return Object.assign({},DEFAULT_EMAIL_CONFIG,parsed);
-}
-async function setEmailConfig(c){await saveAppSetting('email_config',c)}
-
-function getEmailLog(){return JSON.parse(localStorage.getItem('hopi_email_log')||'[]')}
-function setEmailLog(l){localStorage.setItem('hopi_email_log',JSON.stringify(l))}
-function addEmailLog(entry){
-  const log=getEmailLog();
-  log.unshift(entry);
-  // Nech jen posledních 500 záznamů
-  if(log.length>500)log.length=500;
-  setEmailLog(log);
-}
 
 // Nahrazení proměnných v šabloně
 function fillTemplate(text,order){
@@ -1961,9 +1954,7 @@ ${s.iban?'➡️ IBAN: '+s.iban+'\n':''}${s.bankName?'➡️ Banka: '+s.bankName
   return result;
 }
 
-// Vygenerování HTML e-mailu zákazníkovi – jednotný vzhled HOPI VIRTUAL (logo, zelený pruh, průběh, položky, souhrn)
-// Logo z webu, ze kterého e-mail odchází (stage → GitHub Pages, ostrý → eshophopivirtual.com); lokálně ostrá adresa
-function hvMailLogo(){try{const b=(typeof hvSiteUrl==='function'?hvSiteUrl():location.origin+location.pathname).replace(/[^/]*$/,'');if(/^https:\/\//.test(b)&&!/localhost|127\.0\.0\.1/.test(b))return b+'logo-email.png'}catch(e){}return 'https://eshophopivirtual.com/logo-email.png'}
+
 const HV_MAIL_FONT="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const HV_MAIL_HERO={
   new:{tag:'Objednávka přijata do systému',title:'Děkujeme za objednávku!'},
@@ -2079,6 +2070,10 @@ function buildEmailHTML(order,template){
     inner+=`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;background:#f6f7f6;border-radius:14px"><tr><td style="padding:14px 18px;font-family:${F};font-size:14px;color:#55555a">Sledovací číslo${tr.carrier?' · '+hvMailEsc(tr.carrier):''}<br><b style="font-family:'Courier New',monospace;font-size:17px;color:#111;letter-spacing:.5px">${hvMailEsc(tr.number||'—')}</b></td></tr></table>`;
     if(tr.url&&status==='shipped')inner+=hvMailButton(tr.url,'Sledovat zásilku &rarr;');
   }
+  // faktura v příloze (doplní server, když PDF z iDokladu opravdu přiloží)
+  if(order._invoiceAttached){
+    inner+=`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;background:#e9f6ee;border-radius:14px"><tr><td style="padding:14px 18px;font-family:${F};font-size:15px;line-height:1.5;color:#0d5a2c"><b>&#128206; Faktura${order._invoiceAttached!==true?' '+hvMailEsc(order._invoiceAttached):''} je v příloze.</b> Žádný další e-mail ti s ní nepřijde.</td></tr></table>`;
+  }
   // položky
   const products=getProducts();
   const items=(order.items||[]).map(i=>{
@@ -2120,6 +2115,58 @@ function buildEmailHTML(order,template){
     ref:order.id,site,progress:hvMailProgress(status),inner});
 }
 
+
+  function templates(saved){
+    let p=saved; if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){p={}}}
+    return Object.assign({},DEFAULT_EMAIL_TEMPLATES,p||{});
+  }
+  return {
+    DEFAULT_TEMPLATES:DEFAULT_EMAIL_TEMPLATES,
+    STATUS_LABEL:Object.fromEntries(Object.entries(STATUSES).map(([k,v])=>[k,v.label])),
+    templates,
+    fill:(text,order,ctx)=>{setCtx(ctx);return fillTemplate(text,order)},
+    build:(order,template,ctx)=>{setCtx(ctx);return buildEmailHTML(order,template)},
+  };
+})();
+// </HOPI_MAIL>
+const DEFAULT_EMAIL_TEMPLATES=HOPI_MAIL.DEFAULT_TEMPLATES;
+// Starší výchozí texty (před novým vzhledem) – poznáme je podle souhrnu, který teď e-mail vykreslí sám
+function hvEmailOldTexts(){const t=getEmailTemplates();return Object.keys(DEFAULT_EMAIL_TEMPLATES).filter(k=>t[k]&&/📦 Stav: \{stav\}|📦 SHRNUTÍ OBJEDNÁVKY/.test(t[k].body||''))}
+
+function getEmailTemplates(){
+  const saved=getAppSetting('email_templates',{});
+  const parsed=(typeof saved==='string')?JSON.parse(saved):(saved||{});
+  return Object.assign({},DEFAULT_EMAIL_TEMPLATES,parsed);
+}
+async function setEmailTemplates(t){await saveAppSetting('email_templates',t)}
+
+const DEFAULT_EMAIL_CONFIG={mode:'demo',emailjsServiceId:'',emailjsTemplateId:'',emailjsPublicKey:'',fromName:'HOPI VIRTUAL',fromEmail:'eshophopivirtual@gmail.com'};
+function getEmailConfig(){
+  const saved=getAppSetting('email_config',{});
+  const parsed=(typeof saved==='string')?JSON.parse(saved):(saved||{});
+  return Object.assign({},DEFAULT_EMAIL_CONFIG,parsed);
+}
+async function setEmailConfig(c){await saveAppSetting('email_config',c)}
+
+function getEmailLog(){return JSON.parse(localStorage.getItem('hopi_email_log')||'[]')}
+function setEmailLog(l){localStorage.setItem('hopi_email_log',JSON.stringify(l))}
+function addEmailLog(entry){
+  const log=getEmailLog();
+  log.unshift(entry);
+  // Nech jen posledních 500 záznamů
+  if(log.length>500)log.length=500;
+  setEmailLog(log);
+}
+
+// Kontext pro e-maily (nastavení, produkty, účet, adresa webu a logo) – stejný tvar jako na serveru
+function hvMailCtx(){const st=getSettings();return {settings:st,products:getProducts(),bankAccount:getAppSetting('bank_account',st.bankAccount),site:hvSiteUrl(),logo:hvMailLogo()}}
+// Nahrazení proměnných v šabloně (HOPI_MAIL – stejný kód běží i na serveru)
+function fillTemplate(text,order){return HOPI_MAIL.fill(text,order,hvMailCtx())}
+// Vygenerování HTML e-mailu zákazníkovi – jednotný vzhled HOPI VIRTUAL (logo, zelený pruh, průběh, položky, souhrn)
+// Logo z webu, ze kterého e-mail odchází (stage → GitHub Pages, ostrý → eshophopivirtual.com); lokálně ostrá adresa
+function hvMailLogo(){try{const b=(typeof hvSiteUrl==='function'?hvSiteUrl():location.origin+location.pathname).replace(/[^/]*$/,'');if(/^https:\/\//.test(b)&&!/localhost|127\.0\.0\.1/.test(b))return b+'logo-email.png'}catch(e){}return 'https://eshophopivirtual.com/logo-email.png'}
+function buildEmailHTML(order,template){return HOPI_MAIL.build(order,template,hvMailCtx())}
+
 // Hlavní funkce pro odeslání e-mailu — volaná při změně stavu
 async function sendStatusEmail(order,newStatus,options={}){
   const templates=getEmailTemplates();
@@ -2135,6 +2182,8 @@ async function sendStatusEmail(order,newStatus,options={}){
   }
 
   const config=getEmailConfig();
+  // Resend: e-mail k nové objednávce posílá server sám (create-order / gopay-notification)
+  if(config.mode==='resend'&&newStatus==='new'&&order.pricing&&order.pricing.verified&&!options.force){return {ok:true,reason:'server_sends'}}
   const subject=fillTemplate(template.subject,order);
   const bodyText=fillTemplate(template.body,order);
   const bodyHTML=buildEmailHTML(order,template);
@@ -2158,7 +2207,24 @@ async function sendStatusEmail(order,newStatus,options={}){
   };
 
   try{
-    if(config.mode==='emailjs'&&config.emailjsServiceId&&config.emailjsTemplateId&&config.emailjsPublicKey){
+    if(config.mode==='resend'){
+      // Server (send-notification) si objednávku načte z databáze, vykreslí stejný e-mail a pošle ho přes Resend.
+      // Nejdřív uložit aktuální stav (stav, sledovací číslo), ať server pracuje s čerstvými daty.
+      const fresh=getOrders().find(x=>x.id===order.id)||order;
+      if(getAdminUser())await saveOrderToSupabase(fresh);
+      const tok=await hvUserToken();
+      const res=await fetch(SUPABASE_URL+'/functions/v1/send-notification',{method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'x-user-token':tok||''},
+        body:JSON.stringify({action:'customer',ref:order.id,status:newStatus,force:!!options.force})});
+      const d=await res.json().catch(()=>({}));
+      if(d&&d.status==='skipped')return {ok:false,reason:d.reason||'skipped'};
+      if(d&&d.status==='duplicate')return {ok:false,reason:'already_sent'};
+      if(res.status===404&&!d.error)throw new Error('Funkce send-notification na tomhle projektu není nasazená');
+      if(!res.ok||!d.ok)throw new Error(d.error||('Server vrátil chybu '+res.status));
+      if(d.subject)logEntry.subject=d.subject;
+      if(d.html)logEntry.bodyHTML=d.html;
+      logEntry.success=true;
+    }else if(config.mode==='emailjs'&&config.emailjsServiceId&&config.emailjsTemplateId&&config.emailjsPublicKey){
       // Skutečné odeslání přes EmailJS
       const payload={
         service_id:config.emailjsServiceId,
@@ -2263,7 +2329,8 @@ async function advanceOrderStatus(orderId){
     }
 
     // 2. Zaslání faktury emailem zákazníkovi přes iDoklad (pokud zapnuto)
-    if(invConfig.enabled&&invConfig.sendInvoiceEmail){
+    // Resend: faktura jde jako příloha e-mailu „Odesláno“ (přiloží server) → žádný samostatný e-mail z iDokladu
+    if(invConfig.enabled&&invConfig.sendInvoiceEmail&&getEmailConfig().mode!=='resend'){
       const freshForInv=getOrders().find(x=>x.id===orderId)||o;
       if(freshForInv.invoiceId&&freshForInv.customer?.email){
         try{
@@ -3787,7 +3854,7 @@ function renderTipPanel(){
           <div class="ovw-f"><label for="tip_max">Nejvyšší částka</label><input type="number" id="tip_max" min="1" step="1" inputmode="numeric" value="${c.max}" placeholder="např. 2000"></div>
         </div>
         ${sw('tip_custom',c.custom,'Povolit vlastní částku','Zákazník si napíše libovolnou částku do výše limitu.')}
-        <div class="tip-adm-warn"><b>Před zapnutím na ostrém webu:</b> funkce <code>gopay-create-payment</code> a <code>idoklad-create-invoice</code> musí spropitné převzít (do platby i jako řádek faktury), jinak by faktura nesouhlasila se zaplacenou částkou. Dobírka a převod fungují hned.</div>
+        <div class="tip-adm-warn"><b>Před zapnutím na ostrém webu:</b> platba kartou už spropitné obsahuje (nová <code>gopay-create-payment</code>, nasadí se s GoPay). Faktura: <code>idoklad-create-invoice</code> v13 přidá spropitné jako řádek – nahraj ji na ostrý projekt dřív, než spropitné zapneš. Dobírka a převod fungují hned.</div>
       </div>
       <div style="padding:6px 22px 20px;display:flex;justify-content:flex-end"><button class="ovw-btn primary" id="tip_save" onclick="hvTipSave()">Uložit spropitné</button></div>
     </div>`;
@@ -6506,7 +6573,7 @@ window.hvSaveFreeShip=async function(){
 
 // ============== ADMIN: NOTIFIKACE A PŘÍJEMCI ==============
 const HV_NOTIF_EVENTS={new_registration:'Nová registrace zákazníka',new_order:'Nová objednávka',order_paid:'Zaplacená objednávka',ready_to_pack:'Objednávka k zabalení',payment_failed:'Neúspěšná platba'};
-const HV_NOTIF_LOG_LABEL=Object.assign({},HV_NOTIF_EVENTS,{telegram:'Telegram · nová objednávka',test:'Test'});
+const HV_NOTIF_LOG_LABEL=Object.assign({},HV_NOTIF_EVENTS,{telegram:'Telegram · nová objednávka',test:'Test',customer_new:'Zákazník · Děkujeme za objednávku',customer_accepted:'Zákazník · Přijato',customer_processing:'Zákazník · Balíme',customer_shipped:'Zákazník · Odesláno',customer_delivered:'Zákazník · Doručeno',customer_cancelled:'Zákazník · Zrušeno'});
 // Srozumitelný důvod chyby (Resend vrací anglicky)
 function hvNotifErrCz(e){e=String(e||'');if(/verify a domain|only send testing emails/i.test(e))return 'Resend zatím posílá jen na e-mail, se kterým jsi zakládal účet Resend. Ostatním příjemcům to půjde po ověření domény (Resend → Domains).';if(/send-admin-notification.*není nasazená/.test(e))return e+'. Telegram proto neodešel.';return e}
 let _hvRcp=null,_hvRcpErr='',_hvNLog=null,_hvNLogErr='';
@@ -6526,7 +6593,7 @@ function viewNotificationsAdmin(){
   const lastFail=(_hvNLog||[]).find(x=>x.status==='failed');
   return `
   <div class="hv-dash cmp">
-    ${hvPageHead('Notifikace','E-maily pro tebe a personál při registraci, objednávce a platbě',owner?`<button class="ovw-btn primary" onclick="hvRcpOpen()">+ Přidat příjemce</button>`:'')}
+    ${hvPageHead('Notifikace','E-maily pro tebe, personál i zákazníky a Telegram',owner?`<button class="ovw-btn primary" onclick="hvRcpOpen()">+ Přidat příjemce</button>`:'')}
     <div class="ur-setup nt-info">${hvIcon('mail',18)}<div><b>E-maily posílá Resend a Telegram server, hned po vytvoření objednávky.</b><span>Každá zpráva odejde každému příjemci jen jednou. Když se odeslání nepovede, uvidíš důvod níže a můžeš ho zkusit znovu.${lastFail?` Poslední chyba: <b>${escapeHtml(hvNotifErrCz(lastFail.error))}</b>`:''}</span></div></div>
     <div class="hv-panel">
       ${hvCpHead('Příjemci',(_hvRcp||[]).length?(_hvRcp.filter(r=>r.active).length+' aktivních'):'')}
@@ -11878,14 +11945,14 @@ function viewEmailsAdmin(){
   const log=getEmailLog();
   const templateOrder=['new','accepted','processing','shipped','delivered','cancelled'];
   const ok=log.filter(l=>l.success).length, bad=log.filter(l=>!l.success).length;
-  const real=config.mode==='emailjs';
+  const real=config.mode==='emailjs'||config.mode==='resend';
   const tab=(id,l)=>`<button type="button" class="${emailsView===id?'on':''}" onclick="emailsView='${id}';viewAdmin()">${l}</button>`;
   return `
   <div class="hv-dash cmp">
     ${hvPageHead('E-maily','Automatické e-maily zákazníkovi při změně stavu objednávky',`<button class="ovw-btn" onclick="sendTestEmail()">Odeslat test</button>`)}
     <div class="em-bar ${real?'ok':'warn'}">
-      ${hvStatusPill(real,'Odesílá se přes EmailJS','Demo – e-maily se jen ukládají',true)}
-      <span class="em-bar-t">${real?'Zákazníkům chodí opravdové e-maily.':'Pro skutečné odesílání nastav EmailJS v záložce Odesílání.'}</span>
+      ${hvStatusPill(real,config.mode==='resend'?'Odesílá se přes Resend':'Odesílá se přes EmailJS','Demo – e-maily se jen ukládají',true)}
+      <span class="em-bar-t">${real?'Zákazníkům chodí opravdové e-maily.':'Pro skutečné odesílání vyber v záložce Odesílání Resend.'}</span>
       <span class="em-cnt"><b>${ok}</b> odesláno · <b class="${bad?'od-err':''}">${bad}</b> chyb</span>
     </div>
     <div class="gpc-seg sf-seg em-tabs" role="tablist">${tab('templates','Šablony')}${tab('config','Odesílání')}${tab('log','Historie ('+log.length+')')}</div>
@@ -11927,29 +11994,40 @@ function renderTemplatesTab(templates,order){
   </div>`;
 }
 function renderConfigTab(config){
+  const st=getSettings(); const m=config.mode||'demo';
+  const radio=(v,t,sub,tag)=>`<label class="pm-row"><span class="pm-txt"><b>${t}${tag?` <span class="rl-chip" style="margin-left:6px">${tag}</span>`:''}</b><small>${sub}</small></span><input type="radio" name="emailMode" value="${v}" class="em-radio" ${m===v?'checked':''} onchange="setMode('${v}')"></label>`;
   return `
   <div class="cp-2">
     <div class="hv-panel">
       ${hvCpHead('Režim odesílání','')}
       <div class="pm-list">
-        <label class="pm-row"><span class="pm-txt"><b>Demo</b><small>E-maily se neodesílají, jen se uloží do historie. Na zkoušení šablon.</small></span><input type="radio" name="emailMode" value="demo" class="em-radio" ${config.mode==='demo'?'checked':''} onchange="setMode('demo')"></label>
-        <label class="pm-row"><span class="pm-txt"><b>EmailJS – skutečné odesílání</b><small>Zákazníkům chodí opravdové e-maily. Účet zdarma na emailjs.com.</small></span><input type="radio" name="emailMode" value="emailjs" class="em-radio" ${config.mode==='emailjs'?'checked':''} onchange="setMode('emailjs')"></label>
+        ${radio('resend','Resend','Posílá server z adresy notifikace@eshophopivirtual.com. Každý e-mail uvidíš v Správa → Notifikace a u chyby ho můžeš poslat znovu.','doporučeno')}
+        ${radio('demo','Demo','E-maily se neodesílají, jen se uloží do historie. Na zkoušení šablon.')}
+        ${radio('emailjs','EmailJS (starší)','Posílá prohlížeč přes tvůj Gmail. Limit 200 e-mailů měsíčně a Gmail se občas odpojí.')}
       </div>
+    </div>
+    ${m==='resend'?`<div class="hv-panel">
+      ${hvCpHead('Resend','e-maily zákazníkům posílá server')}
+      <div class="pm-list">
+        <div class="pm-row"><span class="pm-txt"><b>Odesílatel</b><small>HOPI VIRTUAL &lt;notifikace@eshophopivirtual.com&gt; – nastavuje se v Supabase → Secrets (NOTIFY_FROM)</small></span></div>
+        <div class="pm-row"><span class="pm-txt"><b>Odpovědi zákazníků</b><small>přijdou na ${escapeHtml(st.email||'—')} (Správa → Nastavení shopu → e-mail)</small></span></div>
+        <div class="pm-row"><span class="pm-txt"><b>Nová objednávka</b><small>e-mail pošle server hned po vytvoření (dobírka, převod) nebo po zaplacení kartou</small></span></div>
+      </div>
+      <div id="emTestMsg" style="padding:0 18px"></div>
+      <div class="pm-actions"><button class="ovw-btn" id="emTestBtn" onclick="sendTestEmail()">Poslat si test</button></div>
+    </div>`:''}
+    ${m==='emailjs'?`<div class="hv-panel">
+      ${hvCpHead('Údaje EmailJS','z dashboard.emailjs.com')}
       <div class="cf-grid">
         <div class="cf"><label for="cfg_fromName">Jméno odesílatele</label><input type="text" id="cfg_fromName" value="${escapeHtml(config.fromName||'')}" placeholder="např. HOPI VIRTUAL"></div>
         <div class="cf"><label for="cfg_fromEmail">E-mail pro odpovědi</label><input type="email" id="cfg_fromEmail" value="${escapeHtml(config.fromEmail||'')}" placeholder="např. shop@hopivirtual.cz" inputmode="email"></div>
-      </div>
-    </div>
-    <div class="hv-panel">
-      ${hvCpHead('Údaje EmailJS','z dashboard.emailjs.com')}
-      <div class="cf-grid">
         <div class="cf"><label for="cfg_service">Service ID</label><input type="text" id="cfg_service" value="${escapeHtml(config.emailjsServiceId||'')}" placeholder="např. service_abc1234" autocomplete="off"></div>
         <div class="cf"><label for="cfg_template">Template ID</label><input type="text" id="cfg_template" value="${escapeHtml(config.emailjsTemplateId||'')}" placeholder="např. template_abc1234" autocomplete="off"></div>
         <div class="cf wide"><label for="cfg_key">Public Key</label><input type="text" id="cfg_key" value="${escapeHtml(config.emailjsPublicKey||'')}" placeholder="např. AbCdEf123456" autocomplete="off"></div>
       </div>
-      <p class="hv-note pm-note">Public Key je bezpečný i ve webu. V EmailJS si přesto omez povolené domény.</p>
+      <p class="hv-note pm-note">Šablona v EmailJS musí mít v obsahu jen {{{message_html}}}.</p>
       <div class="pm-actions"><button class="ovw-btn" onclick="sendTestEmail()">Odeslat test</button><button class="ovw-btn primary" onclick="saveEmailConfig()">Uložit odesílání</button></div>
-    </div>
+    </div>`:''}
   </div>`;
 }
 function renderLogTab(log){
@@ -12567,8 +12645,8 @@ function showEmailPreview(subject,html){
 window.setMode=async function(mode){
   const c=getEmailConfig();
   c.mode=mode;
-  await setEmailConfig(c);
-  showToast(mode==='emailjs'?'Přepnuto na skutečné odesílání':'Přepnuto na DEMO režim');
+  const ok=await hvSave('email_config',c,mode==='resend'?'✅ E-maily zákazníkům teď posílá Resend':mode==='emailjs'?'Přepnuto na EmailJS':'Přepnuto na DEMO režim');
+  if(ok!==false)_appSettingsCache['email_config']=c;
   viewAdmin();
 }
 
@@ -12584,6 +12662,24 @@ window.saveEmailConfig=async function(){
 }
 
 window.sendTestEmail=async function(){
+  if(getEmailConfig().mode==='resend'){
+    const t=getEmailTemplates().new; const prods=getProducts();
+    const demo={id:'HV-TEST99',items:[{productId:prods[0]?.id||1,size:'L',qty:1,price:prods[0]?.price||690}],customer:{firstName:'Test',lastName:'Zákazník',email:'test@example.com',street:'Testovací 42',city:'Praha',zip:'110 00'},ship:'zasilkovna',shipBranch:'Z-BOX Praha 1',pay:'transfer',subtotal:prods[0]?.price||690,shipPrice:0,codFee:0,total:prods[0]?.price||690,status:'new',date:new Date().toISOString()};
+    const b=document.getElementById('emTestBtn'), m=document.getElementById('emTestMsg');
+    if(b){b.disabled=true;b.innerHTML='<span class="hv-spin"></span>Posílám…'}
+    let txt='',good=false;
+    try{
+      const tok=await hvUserToken();
+      const res=await fetch(SUPABASE_URL+'/functions/v1/send-notification',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'x-user-token':tok||''},body:JSON.stringify({action:'customer_test',subject:fillTemplate(t.subject,demo),html:buildEmailHTML(demo,t)})});
+      const d=await res.json().catch(()=>({}));
+      if(res.ok&&d.ok){good=true;txt='Testovací e-mail „Nová objednávka“ odešel na '+d.to+'.'}
+      else txt=(typeof hvNotifErrCz==='function'?hvNotifErrCz(d.error):d.error)||('Server vrátil chybu '+res.status);
+    }catch(e){txt='Nepodařilo se spojit se serverem: '+(e.message||e)}
+    if(b){b.disabled=false;b.textContent='Poslat si test'}
+    if(m)m.innerHTML=`<div class="inv-box ${good?'ok':'bad'}" role="status" style="margin:10px 0 0"><b>${good?'✓ Odesláno':'Neodešlo'}</b><span>${escapeHtml(txt)}</span></div>`;
+    else showToast((good?'✅ ':'❌ ')+txt,good?'success':'error');
+    return;
+  }
   const toEmail=prompt('Na jaký e-mail poslat test?','test@example.com');
   if(!toEmail)return;
   const config=getEmailConfig();
@@ -13274,7 +13370,7 @@ function viewInvoicesAdmin(){
         <div class="iv-switches">
           ${sw('inv_enabled',config.enabled,'Zapnout fakturaci přes iDoklad','U objednávek půjde vystavit fakturu jedním klikem.')}
           ${sw('inv_auto',config.autoIssue,'Vystavit automaticky','Faktura se vytvoří sama, jakmile objednávku posuneš do „Odesláno“.')}
-          ${sw('inv_send_email',config.sendInvoiceEmail,'Poslat fakturu zákazníkovi e-mailem','iDoklad pošle PDF při odeslání zásilky (potřebuje zapnuté automatické vystavení).')}
+          ${getEmailConfig().mode==='resend'?sw('inv_send_email',config.sendInvoiceEmail,'Přiložit fakturu k e-mailu „Odesláno“','PDF z iDokladu půjde v příloze e-mailu o odeslání – zákazníkovi nepřijde žádný e-mail navíc. Potřebuje zapnuté automatické vystavení.'):sw('inv_send_email',config.sendInvoiceEmail,'Poslat fakturu zákazníkovi e-mailem','iDoklad pošle PDF při odeslání zásilky (potřebuje zapnuté automatické vystavení).')}
         </div>
         <div class="an-l">Přístup k API iDokladu</div>
         <div class="ec-form" style="padding:0">
@@ -13579,7 +13675,8 @@ window.issueInvoice=async function(orderId, opts={}){
     o.invoiceNumber=data.invoiceNumber;
     setOrders(orders);
 
-    showToast('✅ Faktura '+data.invoiceNumber+' vystavena v iDokladu');
+    if(data.totalWarning)showToast('⚠️ Faktura '+data.invoiceNumber+' vystavena, ale zkontroluj ji: '+data.totalWarning,'error');
+    else showToast('✅ Faktura '+data.invoiceNumber+' vystavena v iDokladu');
     if(!opts?.silent) viewAdmin();
 
   }catch(err){
