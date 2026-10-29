@@ -993,6 +993,18 @@ body.ac-lock{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.ac-bg,.ac-modal,.ac-box::after{transition:none}.ac-spin{animation-duration:1.6s}}
 
 /* navbar – účet */
+.hv-acct{position:relative}
+.hv-acct-btn{padding:0;font:inherit}
+.hv-acct-av{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:13px;box-shadow:0 0 0 2px rgba(0,200,83,.25)}
+.hv-acct-menu{display:none;position:absolute;top:calc(100% + 10px);right:0;min-width:230px;max-width:calc(100vw - 32px);background:#111;border:1px solid #2a2a2a;border-radius:16px;padding:6px;box-shadow:0 18px 40px rgba(0,0,0,.55);z-index:150}
+.hv-acct.open .hv-acct-menu{display:block;animation:hvAcctIn .16s ease-out}
+@keyframes hvAcctIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.hv-acct-who{padding:10px 14px 10px;border-bottom:1px solid #222;margin-bottom:4px;display:flex;flex-direction:column;min-width:0}
+.hv-acct-who b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hv-acct-who small{color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hv-acct-menu a{display:flex;align-items:center;min-height:46px;padding:0 14px;border-radius:11px;color:#fff;font-weight:600;font-size:15.5px;cursor:pointer;text-decoration:none}
+.hv-acct-menu a:hover{background:#1c1c1c}
+.hv-acct-menu a.hv-acct-out{color:#ff5a52}
 .icon-btn.acct-on::after{content:"";position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--green-glow);box-shadow:0 0 8px var(--green-glow)}
 
 /* Můj účet */
@@ -3143,9 +3155,11 @@ function render(){
     complaint:viewComplaint,
     'admin-login':viewAdminLogin,admin:viewAdmin,
   };
+  // jiná stránka (např. Zpět na mobilu) → zavřít přihlašovací/adresní okno, ať nezůstane viset přes obchod
+  const key=path+(path==='product'?'?'+JSON.stringify(params||{}):'');
+  {const am=document.getElementById('acModal'); if(am&&am.dataset.hvPage!==undefined&&am.dataset.hvPage!==location.hash&&typeof _acMode!=='undefined'&&_acMode!=='newpass'){try{closeAuth()}catch(e){}}}
   (views[path]||viewHome)(params);
   // nová stránka (nebo jiný produkt) → začít nahoře
-  const key=path+(path==='product'?'?'+JSON.stringify(params||{}):'');
   if(window._hvLastPage!==undefined&&window._hvLastPage!==key)hvScrollTopNow();
   window._hvLastPage=key;
   bindGlobal();
@@ -3158,6 +3172,37 @@ function bindGlobal(){
 }
 
 // ============== COMPONENTS ==============
+// Ikona účtu v horní liště: nepřihlášený → přihlášení, přihlášený → kolečko s iniciálou a menu (Profil, Objednávky, Reklamace, Odhlásit se)
+function hvNavAccount(){
+  const u=getUser();
+  const personSvg='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>';
+  if(!u) return `<a class="icon-btn" onclick="openAccount()" title="Přihlásit se" aria-label="Přihlásit se">${personSvg}</a>`;
+  const ini=(String(u.firstName||u.name||u.email||'U').trim()[0]||'U').toUpperCase();
+  const nm=escapeHtml(u.name||[u.firstName,u.lastName].filter(Boolean).join(' ')||'Můj účet');
+  return `<div class="hv-acct">
+      <button type="button" class="icon-btn hv-acct-btn" onclick="hvAcctMenu(this)" aria-haspopup="menu" aria-expanded="false" aria-label="Můj účet" title="Můj účet"><span class="hv-acct-av">${escapeHtml(ini)}</span></button>
+      <div class="hv-acct-menu" role="menu">
+        <div class="hv-acct-who"><b>${nm}</b><small>${escapeHtml(u.email||'')}</small></div>
+        <a role="menuitem" onclick="hvAcctGo('overview')">Profil</a>
+        <a role="menuitem" onclick="hvAcctGo('orders')">Moje objednávky</a>
+        <a role="menuitem" onclick="hvAcctClose();go('complaint')">Reklamace</a>
+        <a role="menuitem" class="hv-acct-out" onclick="hvAcctClose();doLogout()">Odhlásit se</a>
+      </div>
+    </div>`;
+}
+window.hvAcctClose=function(){document.querySelectorAll('.hv-acct.open').forEach(x=>{x.classList.remove('open');const b=x.querySelector('.hv-acct-btn');if(b)b.setAttribute('aria-expanded','false')})};
+window.hvAcctMenu=function(btn){
+  const w=btn.closest('.hv-acct'); if(!w)return;
+  const open=!w.classList.contains('open'); hvAcctClose();
+  if(open){w.classList.add('open');btn.setAttribute('aria-expanded','true');const m=document.getElementById('menu');if(m)m.classList.remove('open')}
+};
+window.hvAcctGo=function(tab){
+  hvAcctClose();
+  if((location.hash||'').replace(/^#/,'').split('?')[0]==='account'&&typeof hvAcctTab==='function'){hvAcctTab(tab);window.scrollTo({top:0,left:0,behavior:'instant'});return}
+  _acctTab2=tab; go('account');
+};
+document.addEventListener('click',e=>{if(!e.target.closest('.hv-acct'))hvAcctClose()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hvAcctClose()});
 function renderNavbar(){
   return `
     <header class="nav">
@@ -3180,9 +3225,7 @@ function renderNavbar(){
         <a class="icon-btn" onclick="go('track')" title="Sledovat objednávku">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         </a>
-        <a class="icon-btn${getUser()?' acct-on':''}" onclick="openAccount()" title="${getUser()?'Můj účet':'Přihlásit se'}" aria-label="${getUser()?'Můj účet':'Přihlásit se'}">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-        </a>
+        ${hvNavAccount()}
         <a class="icon-btn" onclick="go('cart')" title="Košík">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
           ${cartCount()>0?`<span class="cart-badge">${cartCount()}</span>`:''}
@@ -5309,7 +5352,7 @@ window.openAuth=function(mode,opts){
   let m=document.getElementById('acModal');
   if(!m){
     _acLastFocus=document.activeElement;
-    m=document.createElement('div'); m.id='acModal'; m.className='ac-bg';
+    m=document.createElement('div'); m.id='acModal'; m.className='ac-bg'; m.dataset.hvPage=location.hash;   // stránka, na které se okno otevřelo
     m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); m.setAttribute('aria-labelledby','acTitle');
     m.addEventListener('mousedown',e=>{if(e.target===m&&_acMode!=='newpass')closeAuth()});
     document.body.appendChild(m); document.body.classList.add('ac-lock');
@@ -6613,7 +6656,7 @@ window.hvAcctTab=function(t){
 // ---------- adresy ----------
 function hvAddrSheet(title,body,actions){
   closeAuth();
-  const m=document.createElement('div'); m.id='acModal'; m.className='ac-bg'; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); m.setAttribute('aria-labelledby','acTitle');
+  const m=document.createElement('div'); m.id='acModal'; m.className='ac-bg'; m.dataset.hvPage=location.hash; m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); m.setAttribute('aria-labelledby','acTitle');
   m.innerHTML=`<div class="ac-modal"><button type="button" class="ac-x" aria-label="Zavřít" onclick="closeAuth()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button><h2 id="acTitle">${title}</h2>${body}${actions||''}</div>`;
   m.addEventListener('mousedown',e=>{if(e.target===m)closeAuth()});
   document.body.appendChild(m); document.body.classList.add('ac-lock'); _acMode='sheet';
@@ -7672,7 +7715,16 @@ window.hvToggle=function(id){
   const m=document.getElementById('hvNavMobile'); if(m){const x=m.scrollLeft;m.innerHTML=hvNavMobileItems(nav);m.scrollLeft=x;
     const g=m.querySelector('.hv-pill.group.open'); if(g&&g.nextElementSibling)g.nextElementSibling.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});}
 };
-window.hvToggleIdentity=function(){document.getElementById('hvIdentityMenu')?.classList.toggle('show')};
+// menu je v adminu 2× (počítač + mobil) → otevřít to u karty, na kterou se kliklo
+window.hvToggleIdentity=function(el){
+  const m=el&&el.nextElementSibling&&el.nextElementSibling.classList.contains('hv-idmenu')?el.nextElementSibling:null;
+  if(!m)return;
+  const open=!m.classList.contains('show');
+  document.querySelectorAll('.hv-idmenu.show').forEach(x=>x.classList.remove('show'));
+  if(open)m.classList.add('show');
+  el.setAttribute('aria-expanded',open?'true':'false');
+};
+document.addEventListener('click',e=>{if(!e.target.closest('.hv-identity,.hv-idmenu'))document.querySelectorAll('.hv-idmenu.show').forEach(x=>x.classList.remove('show'))});
 
 function hvBadge(n){return n>0?`<span class="hv-badge">${n}</span>`:''}
 function hvNavDesktopItems(nav){
@@ -7705,13 +7757,13 @@ function hvIdentityCard(newCount){
   const ad=(typeof getAdminUser==='function'&&getAdminUser())||{};
   const name=(ad.name||'Admin').trim(); const nm=name.charAt(0).toUpperCase()+name.slice(1);
   const ini=nm.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
-  return `<div class="hv-identity" onclick="hvToggleIdentity()" role="button" aria-label="Účet a možnosti">
+  return `<div class="hv-identity" onclick="hvToggleIdentity(this)" role="button" tabindex="0" aria-expanded="false" aria-label="Účet a možnosti">
       <div class="hv-avatar">${escapeHtml(ini)}</div>
       <div class="hv-idtext"><b>${escapeHtml(nm)}</b><small class="hv-idsub"><i class="hv-online"></i>${(()=>{const a=(typeof hvAccess==='function')?hvAccess():{};return a.none?'bez přístupu':(a.role&&!a.setup?escapeHtml(a.role.name):'Přihlášen · administrátor')})()}</small></div>
       ${newCount>0?`<span class="hv-count" title="Nové objednávky">${newCount}</span>`:''}
       <i class="hv-chev">${hvIcon('chevron',18)}</i>
     </div>
-    <div class="hv-idmenu" id="hvIdentityMenu">
+    <div class="hv-idmenu">
       <a onclick="go('home')">${hvIcon('external',18)}Otevřít web</a>
       <a onclick="adminLogout()">${hvIcon('logout',18)}Odhlásit se</a>
     </div>`;
