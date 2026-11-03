@@ -1402,68 +1402,13 @@ function setOrders(o){
     });
   }
 }
-// ============== ADMIN NOTIFIKACE (Telegram + Email) ==============
-async function notifyAdmin(type, order=null){
-  try {
-    const notif = (typeof getNotifSettings === 'function') ? getNotifSettings() : null;
-    // Respektovat checkboxy z admin panelu (Notifikace)
-    if(notif){
-      if(type==='new_order' && notif.notifyOnNew===false) return {ok:false,skipped:true};
-      if(type==='new_order_paid' && notif.notifyOnPaid===false) return {ok:false,skipped:true};
-      if(type==='payment_received' && notif.notifyOnPaid===false) return {ok:false,skipped:true};
-      if(type==='order_shipped' && notif.notifyOnShipped===false) return {ok:false,skipped:true};
-    }
-    // Sestavit normalizovaná data objednávky pro Edge Function
-    let payload = { type, channels: { telegram: true, email: notif?.emailAlerts !== false } };
-    if(order){
-      const products = (typeof getProducts==='function') ? getProducts() : [];
-      const items = (order.items||[]).map(i=>{
-        const p = products.find(x=>x.id===i.productId);
-        return { name: p?.name || ('Produkt #'+i.productId), quantity: i.qty, size: i.size||'' };
-      });
-      // Pro new_order_paid zobrazit kombinovanou zprávu
-      if(type==='new_order_paid') type='new_order_paid';
-      const payMap = { cod:'Dobírka', transfer:'Bankovní převod', card:'Platební karta', applepay:'Apple Pay', googlepay:'Google Pay' };
-      const shipMap = { zasilkovna:'Zásilkovna výdejní místo', zasilkovna_address:'Zásilkovna na adresu', balikovna:'Balíkovna', ppl:'PPL k ruce', kuryr:'Kurýr' };
-      payload.order = {
-        id: order.id,
-        customer_name: ((order.customer?.firstName||'')+' '+(order.customer?.lastName||'')).trim(),
-        customer_email: order.customer?.email || '',
-        customer_phone: order.customer?.phone || '',
-        total: order.total,
-        tip: Number(order.tip)||0,
-        currency: 'Kč',
-        payment_method: payMap[order.pay] || order.pay,
-        shipping_method: shipMap[order.ship] || order.ship,
-        items,
-      };
-    }
-    const res = await fetch(SUPABASE_URL + '/functions/v1/send-admin-notification', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(()=>({}));
-    console.log('[notifyAdmin]', type, data);
-    return data;
-  } catch(e){
-    console.warn('[notifyAdmin] error:', e);
-    return { ok:false, error: String(e) };
-  }
-}
-window.testAdminNotif = async function(){
-  showToast('Odesílám testovací notifikaci...');
-  const r = await notifyAdmin('test');
-  if(r?.ok) showToast('✅ Test odeslán — zkontroluj Telegram');
-  else showToast('❌ Chyba: '+(r?.error||'neznámá'),'error');
-};
-
+// Upozornění pro admina a personál posílá jen e-mailem server (send-notification → příjemci v adminu → Notifikace). Telegram je zrušený.
 function saveOrder(o){
   const orders=getOrders();
   orders.unshift(o);
   localStorage.setItem('hopi_orders',JSON.stringify(orders));
   // Uložit do Supabase
-  if(_supabaseReady) saveOrderToSupabase(o);
+  return _supabaseReady?saveOrderToSupabase(o):Promise.resolve();
 }
 
 // ============== SUPABASE ORDERS SYNC ==============
@@ -2509,7 +2454,7 @@ function renderCookieBanner(){
   banner.innerHTML=`
     <div class="cookie-inner">
       <div class="cookie-text">
-        🍪 <strong>Používáme cookies</strong> pro správné fungování webu a lepší zážitek. Nezbytné cookies potřebujeme pro košík a objednávky, ostatní (analytika, marketing) můžeš odmítnout. Více v <a onclick="go('info?t=cookies');hideCookieBanner()">Zásadách cookies</a>.
+        🍪 <strong>Používáme jen nezbytné cookies</strong> – pro košík, přihlášení a chat. Analytické ani marketingové cookies teď nemáme; kdybychom je přidali, zeptáme se tě tady. Více v <a onclick="go('info?t=cookies');hideCookieBanner()">Zásadách cookies</a>.
       </div>
       <div class="cookie-btns">
         <button class="cookie-btn cookie-btn-reject" onclick="rejectCookies()">Jen nezbytné</button>
@@ -2553,7 +2498,7 @@ function renderCookieBanner(){
             <strong>🎯 Marketingové</strong>
             <div class="cookie-toggle" id="toggle_marketing" onclick="toggleCookieCategory('marketing')"></div>
           </div>
-          <p>Pro personalizovanou reklamu (Facebook Pixel, Google Ads). Bez nich uvidíš obecnou, nerelevantní reklamu.</p>
+          <p>Teď žádné marketingové cookies nepoužíváme. Kdybychom je v budoucnu přidali (např. pro reklamu), jen s tvým souhlasem.</p>
         </div>
 
         <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
@@ -3332,6 +3277,7 @@ function renderFooter(){
             <ul>
               <li><a onclick="go('info?t=doprava')">Doprava a platba</a></li>
               <li><a onclick="go('info?t=vratky')">Vrácení a reklamace</a></li>
+              <li><a onclick="go('info?t=odstoupeni')">Formulář pro odstoupení</a></li>
               <li><a onclick="go('info?t=velikosti')">Velikostní tabulka</a></li>
             </ul>
           </div>
@@ -4834,7 +4780,7 @@ async function handleGoPayReturn(){
       return;
     }
     if(_srvOrder){
-      // Objednávku založil server → zaplacení, sklad, kód, e-maily, Telegram i fakturu dokončí gopay-notification
+      // Objednávku založil server → zaplacení, sklad, kód, e-maily i fakturu dokončí gopay-notification
       if(!_api4) hvGoPayFinalize(paymentId);   // zaplacení dokončí server na pozadí (GoPay mu to oznámí i sám) – zákazník nečeká na e-maily a fakturu
       if(data.state === 'PAID' || data.state === 'AUTHORIZED'){
         if(lastOrder) pushOrderToSheets(lastOrder).catch(()=>{});
@@ -4851,8 +4797,6 @@ async function handleGoPayReturn(){
     if(data.state === 'PAID' || data.state === 'AUTHORIZED'){
       // ✅ Úspěšná platba — uložit do Supabase + Packeta zásilka
       if(lastOrder && _supabaseReady) saveOrderToSupabase(lastOrder).then(()=>{hvNotify('order_paid',lastOrder.id);hvNotify('ready_to_pack',lastOrder.id)});
-      // 🔔 Admin notifikace — jedna zpráva: nová objednávka + platba přijata
-      if(lastOrder) notifyAdmin('new_order_paid', lastOrder).catch(()=>{});
       // 📊 Google Sheets sync
       if(lastOrder) pushOrderToSheets(lastOrder).catch(()=>{});
       // 🎟️ Inkrementovat použití slevového kódu
@@ -6197,7 +6141,7 @@ async function hvSubmitStandard(order,input){
       pushOrderToSheets(o).catch(()=>{});
       syncStockToSheets().catch(()=>{});
       sendStatusEmail(o,'new').catch(()=>{});
-      // Telegram posílá server (create-order) – výsledek je v adminu → Notifikace
+      // upozornění e-mailem posílá server (create-order) – výsledek je v adminu → Notifikace
       if(r.warnings&&r.warnings.length)console.warn('create-order:',r.warnings);
       go('success');
       return;
@@ -6205,14 +6149,14 @@ async function hvSubmitStandard(order,input){
   }
   // ---- dřívější cesta (bez serverové funkce) ----
   if(order.promo&&!order.promo.loyalty){const p=getPromos().find(x=>x.code===order.promo.code);if(p)incrementPromoUses(p.code).catch(()=>{})}
-  saveOrder(order);
+  const _saved=saveOrder(order);
   localStorage.setItem('hopi_last_order',JSON.stringify(order));
   order.items.forEach(i=>decreaseStock(i.productId,i.qty,i.size));
   setCart([]); setAppliedPromo(null);
   pushOrderToSheets(order).catch(()=>{});
   syncStockToSheets().catch(()=>{});
   sendStatusEmail(order,'new').catch(()=>{});
-  notifyAdmin('new_order',order).catch(()=>{});
+  Promise.resolve(_saved).then(()=>hvNotify('new_order',order.id)).catch(()=>{});   // e-mail příjemcům z adminu → Notifikace
   go('success');
 }
 // Platba kartou: server uloží objednávku (ověřená cena) → GoPay dostane částku z databáze
@@ -6971,8 +6915,8 @@ function viewNotificationsAdmin(){
   const lastFail=(_hvNLog||[]).find(x=>x.status==='failed');
   return `
   <div class="hv-dash cmp">
-    ${hvPageHead('Notifikace','E-maily pro tebe, personál i zákazníky a Telegram',owner?`<button class="ovw-btn primary" onclick="hvRcpOpen()">+ Přidat příjemce</button>`:'')}
-    <div class="ur-setup nt-info">${hvIcon('mail',18)}<div><b>E-maily posílá Resend a Telegram server, hned po vytvoření objednávky.</b><span>Každá zpráva odejde každému příjemci jen jednou. Když se odeslání nepovede, uvidíš důvod níže a můžeš ho zkusit znovu.${lastFail?` Poslední chyba: <b>${escapeHtml(hvNotifErrCz(lastFail.error))}</b>`:''}</span></div></div>
+    ${hvPageHead('Notifikace','E-maily pro tebe, personál i zákazníky',owner?`<button class="ovw-btn primary" onclick="hvRcpOpen()">+ Přidat příjemce</button>`:'')}
+    <div class="ur-setup nt-info">${hvIcon('mail',18)}<div><b>E-maily posílá server přes Resend, hned po vytvoření objednávky.</b><span>Každá zpráva odejde každému příjemci jen jednou. Když se odeslání nepovede, uvidíš důvod níže a můžeš ho zkusit znovu.${lastFail?` Poslední chyba: <b>${escapeHtml(hvNotifErrCz(lastFail.error))}</b>`:''}</span></div></div>
     <div class="hv-panel">
       ${hvCpHead('Příjemci',(_hvRcp||[]).length?(_hvRcp.filter(r=>r.active).length+' aktivních'):'')}
       ${_hvRcpErr?`<div class="cp-empty"><b>Příjemce se nepodařilo načíst</b><span>${escapeHtml(_hvRcpErr)}</span><span>Spustil jsi SQL hopi-vernost-notifikace.sql?</span></div>`:_hvRcp===null?'<div class="cp-empty"><span><span class="hv-spin"></span> Načítám…</span></div>':_hvRcp.length?`<div class="ur-list">${_hvRcp.map(r=>`
@@ -6985,7 +6929,6 @@ function viewNotificationsAdmin(){
         </div>`).join('')}</div>`:`<div class="cp-empty"><b>Zatím žádní příjemci</b><span>Přidej sebe (registrace, objednávky, platby) a baliče (objednávky k zabalení).</span>${owner?'<button class="ovw-btn primary" onclick="hvRcpOpen()">+ Přidat příjemce</button>':''}</div>`}
       ${owner?'':'<p class="hv-note">Příjemce může měnit jen majitel.</p>'}
     </div>
-    ${hvTelegramPanel(owner)}
     <div class="hv-panel">
       ${hvCpHead('Odeslané e-maily','posledních 60',`<button class="ovw-btn sm" onclick="_hvRcp=null;_hvNLog=null;hvLoadNotif()">Obnovit</button>`)}
       ${_hvNLogErr?`<div class="cp-empty"><b>Log se nepodařilo načíst</b><span>${escapeHtml(_hvNLogErr)}</span></div>`:_hvNLog===null?'<div class="cp-empty"><span><span class="hv-spin"></span> Načítám…</span></div>':_hvNLog.length?`<div class="nt-log">${_hvNLog.map(l=>`
@@ -6995,43 +6938,6 @@ function viewNotificationsAdmin(){
     </div>
   </div>`;
 }
-// ---------- Telegram (přesunuto z Nabídka a marketing) ----------
-// Bot a chat jsou v Supabase → Edge Functions → Secrets (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID); tady jen co posílat.
-function hvTelegramPanel(owner){
-  const n=getNotifSettings()||{};
-  const sw=(id,on,l,sub)=>`<label class="pm-row sm"><span class="pm-txt"><b>${l}</b><small>${sub}</small></span><input type="checkbox" class="hv-cbsw" role="switch" id="${id}" ${on!==false?'checked':''} ${owner?'':'disabled'} aria-label="${l}"></label>`;
-  return `<div class="hv-panel" id="tgPanel">
-      ${hvCpHead('Telegram','zpráva hned po objednávce')}
-      <div class="pm-list">
-        ${sw('tg_new',n.notifyOnNew,'Nová objednávka','dobírka nebo převod')}
-        ${sw('tg_paid',n.notifyOnPaid,'Objednávka zaplacená kartou','po potvrzení platby z GoPay')}
-      </div>
-      <p class="hv-note" style="margin:4px 18px 0">Bota a chat nastavíš v Supabase → Edge Functions → Secrets (<code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_CHAT_ID</code>). Když tam nejsou, Telegram se přeskočí a notifikace jdou jen e-mailem.</p>
-      <div id="tgMsg" style="padding:0 18px"></div>
-      ${owner?`<div class="pm-actions"><button class="ovw-btn" id="tgTest" onclick="hvTgTest()">Poslat test</button><button class="ovw-btn primary" onclick="hvTgSave()">Uložit</button></div>`:''}
-    </div>`;
-}
-window.hvTgSave=async function(){
-  const n=Object.assign({},getNotifSettings()||{},{notifyOnNew:document.getElementById('tg_new').checked,notifyOnPaid:document.getElementById('tg_paid').checked});
-  try{localStorage.setItem('hopi_notif',JSON.stringify(n))}catch(e){}
-  const ok=await hvSave('hopi_notif',n,'✅ Telegram uložený');
-  if(ok!==false)_appSettingsCache['hopi_notif']=n;
-};
-window.hvTgTest=async function(){
-  const b=document.getElementById('tgTest'), m=document.getElementById('tgMsg');
-  b.disabled=true; b.innerHTML='<span class="hv-spin"></span>Posílám…';
-  let txt='', good=false;
-  try{
-    const r=await fetch(SUPABASE_URL+'/functions/v1/send-admin-notification',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},body:JSON.stringify({type:'test',channels:{telegram:true,email:false}})});
-    const d=await r.json().catch(()=>null); const t=d&&d.results&&d.results.telegram;
-    if(r.status===404)txt='Funkce send-admin-notification v tomhle Supabase projektu není nasazená.';
-    else if(t&&t.ok){good=true;txt='Zpráva odešla – mrkni do Telegramu.'}
-    else if(t&&/není v Secrets/.test(t.error||''))txt='Telegram není nastavený: v Supabase → Edge Functions → Secrets chybí TELEGRAM_BOT_TOKEN nebo TELEGRAM_CHAT_ID.';
-    else txt='Telegram zprávu nepřijal: '+((t&&t.error)||(d&&(d.error||d.message))||('HTTP '+r.status));
-  }catch(e){txt='Nepodařilo se spojit se serverem: '+(e.message||e)}
-  b.disabled=false; b.textContent='Poslat test';
-  m.innerHTML=`<div class="inv-box ${good?'ok':'bad'}" role="status" style="margin:10px 0 0"><b>${good?'✓ Funguje':'Neodešlo'}</b><span>${escapeHtml(txt)}</span></div>`;
-};
 window.hvRcpOpen=function(id){
   const r=id?(_hvRcp||[]).find(x=>x.id===id):{name:'',email:'',active:true,events:['new_order','order_paid']};
   if(!r)return;
@@ -7285,28 +7191,28 @@ function viewInfo({t='doprava'}={}){
       <p>Jako spotřebitel máš právo odstoupit od smlouvy bez udání důvodu do <strong style="color:#fff">14 dnů</strong> od převzetí zboží. Tato lhůta je stanovena zákonem.</p>
       <h2 style="font-family:'Archivo Black',sans-serif;font-size:20px;margin-bottom:14px;margin-top:24px;text-transform:uppercase">Podmínky vrácení</h2>
       <ul style="padding-left:24px;line-height:1.8">
-        <li>Zboží musí být <strong style="color:#fff">nepoužité</strong>, nepoškozené, s visačkami</li>
-        <li>Pokud možno v <strong style="color:#fff">originálním obalu</strong></li>
-        <li>Bez stop po použití</li>
+        <li>Zboží si můžeš vyzkoušet jako v kamenném obchodě – ale nenos ho, neper ho a nepoškoď.</li>
+        <li>Pošli ho pokud možno s visačkami a v <strong style="color:#fff">originálním obalu</strong>.</li>
+        <li>Když bude zboží opotřebené nad rámec vyzkoušení, můžeme odečíst částku odpovídající snížení jeho hodnoty.</li>
       </ul>
       <h2 style="font-family:'Archivo Black',sans-serif;font-size:20px;margin-bottom:14px;margin-top:24px;text-transform:uppercase">Jak na to?</h2>
       <ol style="padding-left:24px;line-height:2">
-        <li>Napiš nám e-mail na <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a> s číslem objednávky a sdělením, že odstupuješ od smlouvy.</li>
+        <li>Napiš nám e-mail na <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a> s číslem objednávky a sdělením, že odstupuješ od smlouvy. Můžeš použít <a onclick="go('info?t=odstoupeni')" style="color:var(--green-glow);cursor:pointer">vzorový formulář</a>.</li>
         <li>Do <strong style="color:#fff">14 dnů</strong> od odstoupení zašli zboží zpět na vlastní náklady.</li>
-        <li>Peníze ti vrátíme do <strong style="color:#fff">14 dnů</strong> od přijetí zboží — stejnou cestou jako jsi platil(a).</li>
+        <li>Peníze (včetně dopravy v nejlevnější nabízené výši a spropitného) ti vrátíme do <strong style="color:#fff">14 dnů</strong> od odstoupení – stejnou cestou, jakou jsi platil(a). Můžeme počkat, až nám zboží dorazí nebo nám pošleš potvrzení o jeho odeslání.</li>
       </ol>
       <div style="background:rgba(0,138,63,0.08);border-left:3px solid var(--green);padding:14px 18px;margin:20px 0;font-size:14px;line-height:1.7">
         ⚠️ Právo na odstoupení se <strong style="color:#fff">nevztahuje</strong> na zboží upravené podle přání zákazníka (např. produkty s individuálním potiskem).
       </div>
       <h2 style="font-family:'Archivo Black',sans-serif;font-size:20px;margin-bottom:14px;margin-top:24px;text-transform:uppercase">🔄 Reklamace (vadné zboží)</h2>
-      <p>Na zakoupené zboží se vztahuje zákonná záruční lhůta <strong style="color:#fff">24 měsíců</strong> od převzetí. V případě vady máš právo na:</p>
+      <p>Vadu zboží můžeš reklamovat do <strong style="color:#fff">24 měsíců</strong> od převzetí. Když se vada ukáže během prvního roku, bereme, že tam byla už při převzetí. V případě vady máš právo na:</p>
       <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
         <li>výměnu za nové zboží,</li>
         <li>opravu zboží,</li>
         <li>přiměřenou slevu z ceny,</li>
         <li>odstoupení od smlouvy (při podstatné nebo opakované vadě).</li>
       </ul>
-      <p style="margin-top:14px">Reklamaci vyřídíme nejpozději do <strong style="color:#fff">30 dnů</strong> od jejího uplatnění.</p>
+      <p style="margin-top:14px">Reklamaci vyřídíme nejpozději do <strong style="color:#fff">30 dnů</strong> od jejího uplatnění a pošleme ti potvrzení o přijetí i o vyřízení. Při oprávněné reklamaci ti uhradíme i náklady na poslání zboží. Podrobnosti jsou v <a onclick="go('info?t=obchodni-podminky')" style="color:var(--green-glow);cursor:pointer">obchodních podmínkách</a>.</p>
       <p style="margin-top:20px"><a class="btn btn-primary" onclick="go('complaint')">🔄 Reklamovat objednávku</a></p>
     `},
     'velikosti':{title:'Velikostní tabulka',html:`
@@ -7333,8 +7239,7 @@ function viewInfo({t='doprava'}={}){
       <p style="color:var(--muted);font-size:13px;margin-top:20px">💡 Měř podobné tričko co máš doma a porovnej.</p>
     `},
     'obchodni-podminky':{title:'Obchodní podmínky',html:`
-      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">Josef Kugler · Platné od 20. 5. 2026</p>
-
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">Josef Kugler · Platné od 1. 11. 2026</p>
       <div style="background:rgba(0,138,63,0.08);border-left:3px solid var(--green);padding:14px 18px;margin-bottom:24px;font-size:14px;line-height:1.7">
         <strong style="color:#fff">Prodávající:</strong><br>
         Josef Kugler<br>
@@ -7342,228 +7247,160 @@ function viewInfo({t='doprava'}={}){
         Sídlo: Medový Újezd 70, 337 01 Medový Újezd<br>
         E-mail: <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a><br>
         Telefon: <a href="tel:+420731846021" style="color:var(--green-glow)">+420 731 846 021</a><br>
-        <em style="color:var(--muted);font-size:12px">Prodávající není plátcem DPH.</em>
+        <em style="color:var(--muted);font-size:12px">Fyzická osoba podnikající dle živnostenského zákona, zapsaná v živnostenském rejstříku. Prodávající není plátcem DPH.</em>
       </div>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">1. Úvodní ustanovení</h2>
-      <p>Tyto všeobecné obchodní podmínky (dále jen „obchodní podmínky") jsou vydány dle § 1751 a násl. zákona č. 89/2012 Sb., občanský zákoník.</p>
-      <p style="margin-top:10px">Tyto obchodní podmínky upravují vzájemná práva a povinnosti prodávajícího a fyzické osoby, která uzavírá kupní smlouvu mimo svou podnikatelskou činnost jako spotřebitel, nebo v rámci své podnikatelské činnosti (dále jen „kupující") prostřednictvím webového rozhraní Eshopu HOPI VIRTUAL (dále jen „internetový obchod").</p>
-      <p style="margin-top:10px">Ustanovení obchodních podmínek jsou nedílnou součástí kupní smlouvy. Odchylná ujednání v kupní smlouvě mají přednost před ustanoveními těchto obchodních podmínek.</p>
-      <p style="margin-top:10px">Tyto obchodní podmínky a kupní smlouva se uzavírají v českém jazyce.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">1. Úvodní ustanovení</h2>
+      <p>Tyto všeobecné obchodní podmínky (dále jen „obchodní podmínky“) jsou vydány dle § 1751 a násl. zákona č. 89/2012 Sb., občanský zákoník (dále jen „občanský zákoník“).</p>
+      <p style="margin-top:10px">Upravují vzájemná práva a povinnosti prodávajícího a kupujícího při nákupu přes internetový obchod HOPI VIRTUAL na adrese eshophopivirtual.com (dále jen „internetový obchod“). Kupujícím je spotřebitel (fyzická osoba, která nakupuje mimo svou podnikatelskou činnost) nebo podnikatel.</p>
+      <p style="margin-top:10px">Obchodní podmínky jsou nedílnou součástí kupní smlouvy. Odchylná ujednání v kupní smlouvě mají přednost. Smlouva se uzavírá v českém jazyce.</p>
+      <p style="margin-top:10px">Prodávající s kupujícím komunikuje především e-mailem a telefonicky. Kupující souhlasí s použitím komunikačních prostředků na dálku při uzavírání smlouvy; náklady na ně (internet, telefon) si hradí sám.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">2. Uživatelský účet</h2>
-      <p>Kupující může provádět objednávky bez registrace nebo prostřednictvím uživatelského účtu.</p>
-      <p style="margin-top:10px">Při registraci do uživatelského účtu a při objednávání zboží je kupující povinen uvádět správně a pravdivě všechny údaje. Kupující je povinen chránit přístup ke svému účtu a nezpřístupňovat jej třetím osobám.</p>
-      <p style="margin-top:10px">Prodávající může uživatelský účet zrušit, zejména v případě, kdy kupující svůj účet déle nevyužívá nebo poruší své povinnosti z kupní smlouvy či těchto obchodních podmínek.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">2. Uživatelský účet</h2>
+      <p>Nakupovat lze bez registrace i přes uživatelský účet. V účtu kupující vidí své objednávky a jejich stav, uložené adresy a věrnostní úroveň.</p>
+      <p style="margin-top:10px">Při registraci a objednávání je kupující povinen uvádět správné a pravdivé údaje a chránit přístup ke svému účtu.</p>
+      <p style="margin-top:10px">Kupující může účet kdykoli zrušit v sekci <strong style="color:#fff">Můj účet → Údaje a zabezpečení</strong>. Objednávky zůstávají uložené po dobu nutnou pro účetnictví a vyřízení reklamací.</p>
+      <p style="margin-top:10px">Prodávající může účet zrušit, pokud jej kupující dlouhodobě nevyužívá nebo porušuje povinnosti z kupní smlouvy či těchto obchodních podmínek.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">3. Uzavření kupní smlouvy</h2>
-      <p>Veškerá prezentace zboží umístěná v katalogu internetového obchodu má informativní charakter a prodávající není povinen uzavřít kupní smlouvu ohledně tohoto zboží.</p>
-      <p style="margin-top:10px">Objednávka kupujícího je návrhem na uzavření kupní smlouvy. Kupní smlouva vzniká okamžikem potvrzení objednávky prodávajícím na e-mailovou adresu kupujícího.</p>
-      <p style="margin-top:10px">Před odesláním objednávky je kupujícímu umožněno kontrolovat a měnit údaje, které do objednávky vložil. Podmínkou platnosti objednávky je vyplnění všech povinných údajů a potvrzení kupujícího o tom, že se s těmito obchodními podmínkami seznámil.</p>
-      <p style="margin-top:10px">Prodávající si vyhrazuje právo objednávku odmítnout, např. z důvodu vyprodání zásob nebo nedostupnosti zboží. V takovém případě kupujícího bezodkladně informuje a případně uhrazené prostředky vrátí do 14 dnů.</p>
-      <p style="margin-top:10px">V případě zjevné technické chyby v ceně zboží není prodávající povinen zboží za tuto chybnou cenu dodat. Kupujícího o chybě bezodkladně informuje a nabídne pozměněnou nabídku.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">3. Uzavření kupní smlouvy</h2>
+      <p>Prezentace zboží v internetovém obchodě má informativní charakter a není návrhem na uzavření smlouvy.</p>
+      <p style="margin-top:10px">Objednávka kupujícího je návrhem na uzavření kupní smlouvy. Před odesláním může kupující údaje v objednávce zkontrolovat a změnit. Odesláním objednávky kupující potvrzuje, že se s obchodními podmínkami seznámil.</p>
+      <p style="margin-top:10px">Kupní smlouva vzniká okamžikem, kdy prodávající potvrdí objednávku e-mailem na adresu kupujícího. U platby kartou, Apple Pay nebo Google Pay přijde potvrzení po úspěšném zaplacení; když platba neproběhne, objednávka se zruší a nic se neúčtuje.</p>
+      <p style="margin-top:10px">Prodávající může objednávku odmítnout nebo od smlouvy odstoupit, zejména když je zboží vyprodané nebo při zjevné technické chybě v ceně. Kupujícího o tom bez zbytečného odkladu informuje a již zaplacené částky vrátí do 14 dnů.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">4. Cena zboží a platební podmínky</h2>
-      <p>Všechny ceny uvedené na e-shopu jsou konečné. Prodávající není plátcem DPH.</p>
-      <p style="margin-top:10px">Kupující může cenu zboží uhradit následujícími způsoby:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li>bankovním převodem na účet prodávajícího,</li>
-        <li>online platební metodou prostřednictvím platební brány,</li>
-        <li>na dobírku.</li>
-      </ul>
-      <p style="margin-top:10px">V případě platby převodem je kupní cena splatná do 7 dnů od uzavření smlouvy. V případě dobírky je splatná při převzetí zboží.</p>
-      <p style="margin-top:10px">V případě bezhotovostní platby je závazek kupujícího uhradit kupní cenu splněn okamžikem připsání příslušné částky na bankovní účet prodávajícího.</p>
-      <p style="margin-top:10px">Prodávající vystaví kupujícímu daňový doklad – fakturu, která bude zaslána na e-mailovou adresu kupujícího.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">4. Cena zboží a platba</h2>
+      <p>Ceny v internetovém obchodě jsou konečné. Prodávající není plátcem DPH. Cena dopravy a případných příplatků se zobrazí před odesláním objednávky; aktuální přehled je na stránce <a onclick="go('info?t=doprava')" style="color:var(--green-glow);cursor:pointer">Doprava a platba</a>.</p>
+      <p style="margin-top:10px">Kupující může zaplatit:</p>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">platební kartou, Apple Pay nebo Google Pay</strong> přes platební bránu GoPay – platí se při objednávce,</li><li><strong style="color:#fff">bankovním převodem</strong> – údaje k platbě a QR kód přijdou v potvrzení objednávky; cena je splatná do 7 dnů. Když platba v této lhůtě nedorazí, může prodávající objednávku zrušit,</li><li><strong style="color:#fff">na dobírku</strong> – platí se při převzetí zásilky, za dobírku se účtuje poplatek podle ceníku.</li></ul>
+      <p style="margin-top:10px">Při bezhotovostní platbě je cena zaplacena připsáním částky na účet prodávajícího.</p>
+      <p style="margin-top:10px">Ke každé objednávce prodávající vystaví <strong style="color:#fff">doklad o koupi (fakturu)</strong> a pošle jej e-mailem, zpravidla jako přílohu e-mailu o odeslání zásilky. Protože prodávající není plátcem DPH, faktura není daňovým dokladem.</p>
+      <p style="margin-top:10px"><strong style="color:#fff">Slevy:</strong> na jednu objednávku lze uplatnit jeden slevový kód. Slevový kód a věrnostní sleva se nesčítají – uplatní se ta výhodnější a kupující to vidí v pokladně. Doprava zdarma platí podle aktuálních podmínek uvedených v internetovém obchodě (limit, období, dopravci).</p>
+      <p style="margin-top:10px"><strong style="color:#fff">Spropitné:</strong> v pokladně může kupující dobrovolně přidat spropitné na rozvoj e-shopu. Není cenou zboží ani podmínkou nákupu. Při odstoupení od smlouvy nebo zrušení objednávky se vrací spolu s ostatními platbami.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">5. Doprava a dodání zboží</h2>
-      <p>Zboží je kupujícímu doručeno prostřednictvím dopravních společností na adresu uvedenou v objednávce, případně prostřednictvím výdejního místa zásilek.</p>
-      <p style="margin-top:10px">Cena dopravy je vždy uvedena při objednávce. Dodatečné náklady na dopravu při zvláštním požadavku kupujícího nese kupující.</p>
-      <p style="margin-top:10px">Dodací lhůta se odvíjí od dostupnosti zboží a obvykle činí několik pracovních dní.</p>
-      <p style="margin-top:10px">Při převzetí zboží od přepravce je kupující povinen zkontrolovat neporušenost obalů. Případné závady je povinen neprodleně oznámit přepravci. V případě zjevného poškození obalu nemusí kupující zásilku převzít.</p>
-      <p style="margin-top:10px">Kupující nabývá vlastnické právo ke zboží zaplacením celé kupní ceny, nejdříve však převzetím zboží. Odpovědnost za nahodilou zkázu, poškození či ztrátu zboží přechází na kupujícího okamžikem jeho převzetí.</p>
-      <p style="margin-top:10px">Je-li z důvodů na straně kupujícího nutno zboží doručovat opakovaně, nese kupující náklady spojené s opakovaným doručením.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">5. Věrnostní program</h2>
+      <p>Registrovaní zákazníci se automaticky řadí do věrnostních úrovní podle součtu zaplacených nákupů. Počítá se cena zboží po slevách, bez dopravy, dobírky a spropitného a po odečtení vrácených částek; zrušené objednávky se nepočítají.</p>
+      <p style="margin-top:10px">Aktuální úroveň, výši slevy a částku do další úrovně vidí kupující ve svém účtu. Sleva se uplatní automaticky v pokladně při přihlášení.</p>
+      <p style="margin-top:10px">Prodávající může podmínky programu změnit nebo program ukončit; slevy uplatněné v již uzavřených objednávkách tím nejsou dotčeny. Věrnostní sleva nemá peněžní hodnotu a nelze ji převést na jinou osobu.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">6. Odstoupení od smlouvy</h2>
-      <p>Kupující, který uzavřel kupní smlouvu jako spotřebitel, má právo od smlouvy odstoupit bez udání důvodu do <strong style="color:#fff">14 dnů</strong> od převzetí zboží.</p>
-      <p style="margin-top:10px">Kupující je povinen o odstoupení informovat prodávajícího na e-mailové adrese <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a> a následně zaslat zboží zpět na vlastní náklady do 14 dnů od odstoupení.</p>
-      <p style="margin-top:10px">Zboží musí být vráceno nepoškozené, neopotřebené a pokud možno v původním obalu.</p>
-      <p style="margin-top:10px">Právo na odstoupení se nevztahuje na zboží upravené podle přání kupujícího nebo pro jeho osobu, zejména na produkty s individuálním potiskem.</p>
-      <p style="margin-top:10px">Prodávající vrátí kupujícímu všechny peněžní prostředky včetně nákladů na dodání bezodkladně, nejpozději do 14 dnů od odstoupení od smlouvy – stejným způsobem, jakým byly přijaty.</p>
-      <p style="margin-top:10px">Prodávající není povinen vrátit peníze dříve, než mu kupující zboží předá nebo prokáže, že jej prodávajícímu odeslal.</p>
-      <p style="margin-top:10px">Prodávající je oprávněn jednostranně započíst nárok na náhradu škody vzniklou na vráceném zboží oproti nároku kupujícího na vrácení kupní ceny.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">6. Doprava a dodání zboží</h2>
+      <p>Zboží se doručuje do České republiky a na Slovensko prostřednictvím dopravců a výdejních míst nabízených v pokladně. Ceny a obvyklé doby doručení jsou na stránce <a onclick="go('info?t=doprava')" style="color:var(--green-glow);cursor:pointer">Doprava a platba</a>.</p>
+      <p style="margin-top:10px">Zboží odesíláme obvykle do několika pracovních dnů od zaplacení (u dobírky od potvrzení objednávky). Když zboží není skladem, prodávající kupujícího bez zbytečného odkladu informuje.</p>
+      <p style="margin-top:10px">Při převzetí je kupující povinen zkontrolovat neporušenost obalu a případné poškození ihned oznámit přepravci. Zásilku se zjevně poškozeným obalem nemusí převzít.</p>
+      <p style="margin-top:10px">Kupující nabývá vlastnické právo ke zboží zaplacením celé ceny, nejdříve však jeho převzetím. Nebezpečí škody na zboží přechází na kupujícího převzetím.</p>
+      <p style="margin-top:10px">Musí-li se zásilka z důvodů na straně kupujícího doručovat opakovaně nebo jiným způsobem, než byl objednán, hradí kupující náklady s tím spojené.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">7. Reklamace a práva z vadného plnění</h2>
-      <p>Prodávající odpovídá kupujícímu, že zboží při převzetí nemá vady a že má vlastnosti, které si strany ujednaly, hodí se k uvedenému účelu a vyhovuje požadavkům právních předpisů.</p>
-      <p style="margin-top:10px">Kupující je oprávněn uplatnit právo z vady, která se vyskytne u spotřebního zboží, v době <strong style="color:#fff">24 měsíců</strong> od převzetí zboží.</p>
-      <p style="margin-top:10px">V případě výskytu vady může kupující uplatnit reklamaci a požadovat:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li>výměnu za nové zboží,</li>
-        <li>opravu zboží,</li>
-        <li>přiměřenou slevu z kupní ceny,</li>
-        <li>odstoupení od smlouvy (při podstatné vadě nebo opakovaném výskytu vady).</li>
-      </ul>
-      <p style="margin-top:10px">Reklamaci může kupující uplatnit prostřednictvím e-mailu <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a> nebo telefonicky. Prodávající je povinen kupujícímu vydat písemné potvrzení o přijetí reklamace, jejím obsahu a požadovaném způsobu vyřízení.</p>
-      <p style="margin-top:10px">Reklamace musí být vyřízena bezodkladně, nejpozději do <strong style="color:#fff">30 dnů</strong> ode dne jejího uplatnění. Marné uplynutí této lhůty se považuje za podstatné porušení smlouvy a kupující má právo od smlouvy odstoupit.</p>
-      <p style="margin-top:10px">Právo z vadného plnění kupujícímu nenáleží, pokud vadu sám způsobil nebo o ní před převzetím zboží věděl.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">7. Odstoupení od smlouvy</h2>
+      <p>Kupující – spotřebitel – má právo odstoupit od kupní smlouvy <strong style="color:#fff">bez udání důvodu do 14 dnů od převzetí zboží</strong>. Když objednávka obsahuje více kusů dodaných zvlášť, běží lhůta od převzetí poslední dodávky.</p>
+      <p style="margin-top:10px">Odstoupit lze jakýmkoli jednoznačným prohlášením, zejména e-mailem na <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a> nebo dopisem na adresu sídla. Kupující může použít <a onclick="go('info?t=odstoupeni')" style="color:var(--green-glow);cursor:pointer">vzorový formulář pro odstoupení</a>, není to však povinné. Lhůta je zachována, když kupující prohlášení odešle před jejím uplynutím.</p>
+      <p style="margin-top:10px">Kupující zašle zboží zpět na adresu sídla prodávajícího (případně po dohodě jiným způsobem) <strong style="color:#fff">do 14 dnů od odstoupení</strong>. Náklady na vrácení zboží nese kupující.</p>
+      <p style="margin-top:10px">Prodávající vrátí kupujícímu <strong style="color:#fff">všechny přijaté platby</strong>, včetně nákladů na dodání a spropitného, <strong style="color:#fff">do 14 dnů od odstoupení</strong>, a to stejným způsobem, jakým je přijal, pokud se nedohodnou jinak. Když si kupující zvolil dražší než nejlevnější nabízený způsob dodání, vrací se náklady na dodání ve výši nejlevnějšího nabízeného způsobu. Prodávající nemusí peníze vrátit dříve, než mu kupující zboží předá nebo prokáže, že jej odeslal.</p>
+      <p style="margin-top:10px">Kupující odpovídá za snížení hodnoty zboží, které vzniklo nakládáním se zbožím jinak, než je nutné k seznámení se s jeho povahou a vlastnostmi (zboží lze vyzkoušet jako v kamenném obchodě, ale ne nosit, prát nebo poškodit). Nárok na náhradu takového snížení hodnoty může prodávající započíst proti vracené částce.</p>
+      <p style="margin-top:10px">Právo na odstoupení se nevztahuje na zboží upravené podle přání kupujícího nebo pro jeho osobu (např. individuální potisk či gravírování na přání).</p>
+      <p style="margin-top:10px">Kupující, který nakupuje jako podnikatel (na IČO), nemá právo od smlouvy odstoupit bez udání důvodu.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">8. Ochrana osobních údajů</h2>
-      <p>Osobní údaje kupujícího jsou zpracovávány za účelem vyřízení objednávky a plnění smlouvy v souladu s platnými právními předpisy.</p>
-      <p style="margin-top:10px">Prodávající se zavazuje chránit osobní údaje kupujícího a neposkytovat je třetím stranám bez souhlasu kupujícího, s výjimkou případů stanovených zákonem nebo nezbytných pro plnění smlouvy (např. přepravce).</p>
-      <p style="margin-top:10px">Kupující má právo kdykoliv odvolat souhlas se zasíláním obchodních sdělení, a to zasláním e-mailu na adresu <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a>.</p>
-      <p style="margin-top:10px">Podrobnější informace o ochraně osobních údajů jsou uvedeny v samostatném dokumentu – <a onclick="go('info?t=gdpr')" style="color:var(--green-glow);cursor:pointer">Zásady ochrany osobních údajů</a>.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">8. Práva z vadného plnění (reklamace)</h2>
+      <p>Prodávající odpovídá za to, že zboží při převzetí nemá vady – zejména odpovídá popisu, má ujednané vlastnosti, hodí se k obvyklému účelu, je v odpovídajícím množství a jakosti a splňuje požadavky právních předpisů.</p>
+      <p style="margin-top:10px">Kupující – spotřebitel – může vadu uplatnit <strong style="color:#fff">do 24 měsíců od převzetí zboží</strong>. Projeví-li se vada během prvního roku, má se za to, že zboží bylo vadné již při převzetí.</p>
+      <p style="margin-top:10px">Reklamaci lze uplatnit <a onclick="go('complaint')" style="color:var(--green-glow);cursor:pointer">online formulářem Reklamace</a>, e-mailem na <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a> nebo písemně na adresu sídla. Prodávající vydá kupujícímu potvrzení o tom, kdy reklamaci uplatnil, co je jejím obsahem a jaký způsob vyřízení požaduje, a po vyřízení potvrzení o datu a způsobu vyřízení.</p>
+      <p style="margin-top:10px">Kupující může požadovat odstranění vady <strong style="color:#fff">výměnou nebo opravou</strong>; když to není možné nebo to prodávající neprovede v přiměřené době či bez značných obtíží, nebo když jde o podstatné porušení smlouvy či se vada projevuje opakovaně, může požadovat <strong style="color:#fff">přiměřenou slevu</strong> nebo <strong style="color:#fff">od smlouvy odstoupit</strong>.</p>
+      <p style="margin-top:10px">Reklamace bude vyřízena bez zbytečného odkladu, <strong style="color:#fff">nejpozději do 30 dnů</strong> od uplatnění, pokud se strany nedohodnou na delší lhůtě. Při oprávněné reklamaci uhradí prodávající kupujícímu účelně vynaložené náklady na zaslání zboží.</p>
+      <p style="margin-top:10px">Práva z vadného plnění nevznikají, jestliže kupující vadu sám způsobil, o vadě před převzetím věděl, nebo jde o běžné opotřebení zboží způsobené jeho užíváním.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">9. Mimosoudní řešení sporů</h2>
-      <p>Kupující má právo na mimosoudní řešení spotřebitelského sporu z kupní smlouvy.</p>
-      <p style="margin-top:10px">K mimosoudnímu řešení spotřebitelských sporů z kupní smlouvy je příslušná Česká obchodní inspekce, se sídlem Štěpánská 567/15, 120 00 Praha 2, IČ: 000 20 869, internetová adresa: <a href="https://adr.coi.cz/cs" target="_blank" style="color:var(--green-glow)">adr.coi.cz/cs</a>.</p>
-      <p style="margin-top:10px">Platforma pro řešení sporů on-line je dostupná na adrese <a href="http://ec.europa.eu/consumers/odr" target="_blank" style="color:var(--green-glow)">ec.europa.eu/consumers/odr</a>.</p>
-      <p style="margin-top:10px">Prodávající je oprávněn k prodeji zboží na základě živnostenského oprávnění. Živnostenské kontroly provádí příslušný živnostenský úřad.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">9. Ochrana osobních údajů</h2>
+      <p>Osobní údaje zpracováváme hlavně kvůli vyřízení objednávky. Podrobnosti – jaké údaje, proč, komu je předáváme a jaká máte práva – jsou v dokumentu <a onclick="go('info?t=gdpr')" style="color:var(--green-glow);cursor:pointer">Zásady ochrany osobních údajů</a>.</p>
+      <p style="margin-top:10px">Souhlas se zasíláním obchodních sdělení lze kdykoli odvolat odkazem v každém e-mailu, ve svém účtu nebo e-mailem na <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a>.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">10. Závěrečná ustanovení</h2>
-      <p>Veškerá ujednání mezi prodávajícím a kupujícím se řídí právním řádem České republiky.</p>
-      <p style="margin-top:10px">Prodávající není ve vztahu ke kupujícímu vázán žádnými kodexy chování ve smyslu § 1826 odst. 1 písm. e) občanského zákoníku.</p>
-      <p style="margin-top:10px">Kupní smlouva včetně obchodních podmínek je archivována prodávajícím v elektronické podobě a není přístupná třetím osobám.</p>
-      <p style="margin-top:10px">Prodávající si vyhrazuje právo tyto obchodní podmínky měnit. Touto změnou nejsou dotčena práva a povinnosti vzniklá za účinnosti předchozího znění.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">10. Mimosoudní řešení sporů a dozor</h2>
+      <p>Reklamace a stížnosti vyřizuje prodávající na <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a>. Spotřebitel má právo na mimosoudní řešení sporu z kupní smlouvy. Příslušným subjektem je <strong style="color:#fff">Česká obchodní inspekce</strong>, Gorazdova 1969/24, 120 00 Praha 2, IČO 00020869, web <a href="https://coi.gov.cz" style="color:var(--green-glow)">coi.gov.cz</a> (sekce Mimosoudní řešení spotřebitelských sporů – ADR).</p>
+      <p style="margin-top:10px">Dozor nad dodržováním povinností vykonává Česká obchodní inspekce (<a href="https://coi.gov.cz" style="color:var(--green-glow)">coi.gov.cz</a>), v oblasti živnostenského podnikání příslušný živnostenský úřad a v oblasti ochrany osobních údajů Úřad pro ochranu osobních údajů.</p>
+
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">11. Závěrečná ustanovení</h2>
+      <p>Vztahy mezi prodávajícím a kupujícím se řídí právním řádem České republiky; tím nejsou dotčena práva, která spotřebiteli dávají kogentní předpisy státu jeho bydliště.</p>
+      <p style="margin-top:10px">Prodávající není vázán žádnými kodexy chování ve smyslu § 1826 odst. 1 písm. e) občanského zákoníku.</p>
+      <p style="margin-top:10px">Kupní smlouva je archivována prodávajícím v elektronické podobě a není přístupná třetím osobám. Kupující dostane potvrzení objednávky e-mailem.</p>
+      <p style="margin-top:10px">Prodávající může obchodní podmínky měnit. Pro objednávku platí znění účinné v den jejího odeslání. Předchozí znění (platné od 20. 5. 2026) zašleme na vyžádání.</p>
+      <p style="margin-top:24px;color:var(--muted);font-size:13px">Josef Kugler · Platné od 1. 11. 2026</p>
+    `},
+    'odstoupeni':{title:'Formulář pro odstoupení od smlouvy',html:`
+      <p>Formulář vyplň a pošli nám ho jen v případě, že chceš odstoupit od smlouvy. Stačí ho zkopírovat do e-mailu – nemusíš nic tisknout ani podepisovat.</p>
+      <div style="background:var(--card);border:1px solid var(--border);padding:20px 22px;margin:18px 0;line-height:1.9;font-size:15px">
+        <strong style="color:#fff">Oznámení o odstoupení od smlouvy</strong><br><br>
+        <strong style="color:#fff">Adresát:</strong> Josef Kugler, IČO 17753953, Medový Újezd 70, 337 01 Medový Újezd, e-mail: eshophopivirtual@gmail.com<br><br>
+        Oznamuji, že tímto odstupuji od smlouvy o nákupu tohoto zboží: ……………………<br>
+        Číslo objednávky: ……………………<br>
+        Datum objednání / datum převzetí: ……………………<br>
+        Jméno a příjmení: ……………………<br>
+        Adresa: ……………………<br>
+        Číslo účtu pro vrácení peněz (nepovinné, při platbě dobírkou nebo převodem): ……………………<br>
+        Podpis (jen při zaslání v papírové podobě): ……………………<br>
+        Datum: ……………………
+      </div>
+      <p><a class="btn btn-primary" href="mailto:eshophopivirtual@gmail.com?subject=Odstoupen%C3%AD%20od%20smlouvy&body=Ozn%C3%A1men%C3%AD%20o%20odstoupen%C3%AD%20od%20smlouvy%0A%0AOznamuji%2C%20%C5%BEe%20t%C3%ADmto%20odstupuji%20od%20smlouvy%20o%20n%C3%A1kupu%20tohoto%20zbo%C5%BE%C3%AD%3A%20%0A%C4%8C%C3%ADslo%20objedn%C3%A1vky%3A%20%0ADatum%20objedn%C3%A1n%C3%AD%20%2F%20datum%20p%C5%99evzet%C3%AD%3A%20%0AJm%C3%A9no%20a%20p%C5%99%C3%ADjmen%C3%AD%3A%20%0AAdresa%3A%20%0A%C4%8C%C3%ADslo%20%C3%BA%C4%8Dtu%20pro%20vr%C3%A1cen%C3%AD%20pen%C4%9Bz%20(nepovinn%C3%A9)%3A%20%0ADatum%3A%20">✉️ Napsat e-mail s formulářem</a></p>
+      <p style="margin-top:16px;color:var(--muted);font-size:13px">Vzor podle nařízení vlády č. 363/2013 Sb. Podrobnosti o odstoupení jsou v <a onclick="go('info?t=obchodni-podminky')" style="color:var(--green-glow);cursor:pointer">obchodních podmínkách</a> (čl. 7) a na stránce <a onclick="go('info?t=vratky')" style="color:var(--green-glow);cursor:pointer">Vrácení a reklamace</a>.</p>
     `},
     'gdpr':{title:'Zásady ochrany osobních údajů',html:`
-      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">Platné od 20. 5. 2026 · V souladu s GDPR (EU) 2016/679</p>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:20px">Platné od 1. 11. 2026 · V souladu s nařízením (EU) 2016/679 (GDPR)</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">1. Kdo zpracovává vaše údaje</h2>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">1. Kdo zpracovává vaše údaje</h2>
       <p>Správcem osobních údajů je:</p>
-      <div style="background:rgba(0,138,63,0.08);border-left:3px solid var(--green);padding:14px 18px;margin:10px 0;font-size:14px;line-height:1.7">
-        <strong style="color:#fff">Josef Kugler</strong><br>
-        IČO: 17753953<br>
-        Sídlo: Medový Újezd 70, 337 01 Medový Újezd<br>
-        E-mail: <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a><br>
-        Telefon: <a href="tel:+420731846021" style="color:var(--green-glow)">+420 731 846 021</a>
-      </div>
-      <p style="font-size:13px;color:var(--muted)">(dále jen „správce")</p>
+      <div style="background:rgba(0,138,63,0.08);border-left:3px solid var(--green);padding:14px 18px;margin:14px 0;font-size:14px;line-height:1.7"><strong style="color:#fff">Josef Kugler</strong><br>IČO: 17753953<br>Sídlo: Medový Újezd 70, 337 01 Medový Újezd<br>E-mail: <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a><br>Telefon: <a href="tel:+420731846021" style="color:var(--green-glow)">+420 731 846 021</a></div>
+      <p style="font-size:13px;color:var(--muted)">(dále jen „správce“ nebo „my“)</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">2. Jaké údaje zpracováváme</h2>
-      <p>Zpracováváme pouze údaje, které nám sami poskytnete:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li>jméno a příjmení</li>
-        <li>e-mailová adresa</li>
-        <li>telefonní číslo</li>
-        <li>doručovací a fakturační adresa</li>
-        <li>IČO a DIČ (pokud nakupujete jako podnikatel)</li>
-        <li>informace o objednávkách (produkty, cena, datum)</li>
-      </ul>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">2. Jaké údaje zpracováváme</h2>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">kontaktní a identifikační údaje</strong> – jméno a příjmení, e-mail, telefon,</li><li><strong style="color:#fff">doručovací a fakturační údaje</strong> – adresa nebo výdejní místo, u firem název, IČO a DIČ,</li><li><strong style="color:#fff">údaje o objednávkách</strong> – zboží, ceny, slevy, způsob platby a dopravy, stav objednávky, reklamace a vratky,</li><li><strong style="color:#fff">zákaznický účet</strong> – přihlašovací e-mail, heslo (jen v zašifrované podobě, nikdo z nás ho nevidí), uložené adresy, věrnostní úroveň vypočtená z vašich nákupů a souhlas s obchodními sděleními,</li><li><strong style="color:#fff">komunikace</strong> – e-maily a zprávy v chatu na webu,</li><li><strong style="color:#fff">platební údaje</strong> – číslo karty zadáváte jen platební bráně GoPay, my ho nevidíme; dostáváme pouze výsledek platby. Při platbě kartou přímo v e-shopu zpracovává GoPay i technické údaje (IP adresa, prohlížeč, průběh platby) kvůli bezpečnosti platby.</li></ul>
+      <p style="margin-top:10px">Návštěvnost webu měříme anonymně – viz čl. 6. Takové údaje nelze přiřadit konkrétní osobě.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">3. Proč údaje potřebujeme</h2>
-      <p>Vaše údaje využíváme pro:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li>vyřízení a doručení objednávky</li>
-        <li>vystavení faktury a splnění zákonných povinností</li>
-        <li>komunikaci ohledně objednávky</li>
-        <li>řešení reklamací a vratek</li>
-        <li>zasílání obchodních sdělení (pouze s vaším souhlasem)</li>
-      </ul>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">3. Proč údaje potřebujeme a na jakém základě</h2>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">vyřízení, zaplacení a doručení objednávky, reklamace a vratky</strong> – plnění smlouvy,</li><li><strong style="color:#fff">zákaznický účet a věrnostní program</strong> – plnění smlouvy (podmínky v obchodních podmínkách),</li><li><strong style="color:#fff">vystavení faktury, účetnictví a daně</strong> – zákonná povinnost,</li><li><strong style="color:#fff">zákaznická podpora</strong> (e-mail, telefon, chat) – plnění smlouvy, případně oprávněný zájem odpovědět na váš dotaz,</li><li><strong style="color:#fff">zasílání novinek a slev e-mailem (newsletter)</strong> – váš souhlas, který můžete kdykoli odvolat,</li><li><strong style="color:#fff">bezpečnost webu, ochrana před podvody a uplatnění našich nároků</strong> – oprávněný zájem,</li><li><strong style="color:#fff">anonymní statistika návštěvnosti</strong> – oprávněný zájem zlepšovat e-shop.</li></ul>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">4. Na jakém základě údaje zpracováváme</h2>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">4. Jak dlouho údaje uchováváme</h2>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">faktury a účetní záznamy:</strong> 10 let (zákon o účetnictví a daňové předpisy),</li><li><strong style="color:#fff">objednávky, reklamace a komunikace k nim:</strong> 3 roky od vyřízení objednávky (promlčecí lhůta),</li><li><strong style="color:#fff">zákaznický účet:</strong> do jeho zrušení – objednávky pak zůstávají jen po dobu uvedenou výše,</li><li><strong style="color:#fff">newsletter:</strong> do odvolání souhlasu,</li><li><strong style="color:#fff">zprávy v chatu:</strong> nejdéle 1 rok,</li><li><strong style="color:#fff">anonymní statistika návštěvnosti:</strong> nejdéle 25 měsíců.</li></ul>
+      <p style="margin-top:10px">Po uplynutí lhůt údaje smažeme nebo anonymizujeme.</p>
+
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">5. Komu údaje předáváme</h2>
+      <p>Údaje neprodáváme. Předáváme je jen ověřeným zpracovatelům, kteří nám pomáhají e-shop provozovat, a vždy jen v rozsahu, který potřebují:</p>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">dopravci</strong> – Zásilkovna s.r.o. (Packeta), Česká pošta, s.p. (Balíkovna), PPL CZ s.r.o.: jméno, adresa nebo výdejní místo, telefon, e-mail,</li><li><strong style="color:#fff">platební brána</strong> – GoPay s.r.o.: platby kartou, Apple Pay a Google Pay,</li><li><strong style="color:#fff">fakturace</strong> – iDoklad (Solitea, a.s.),</li><li><strong style="color:#fff">databáze, zákaznické účty a serverové funkce</strong> – Supabase Inc. (USA),</li><li><strong style="color:#fff">hosting webu</strong> – Netlify, Inc. (USA),</li><li><strong style="color:#fff">odesílání e-mailů</strong> (potvrzení objednávek, přihlašovací e-maily) – Resend (USA),</li><li><strong style="color:#fff">chat na webu</strong> – Smartsupp.com, s.r.o.,</li><li><strong style="color:#fff">newsletter</strong> (jen se souhlasem) – Ecomail.cz, s.r.o.,</li><li><strong style="color:#fff">technické služby webu</strong> – při načtení stránky se poskytovatelům písma a knihoven (Google Fonts, jsDelivr, unpkg) předává IP adresa vašeho prohlížeče.</li></ul>
+      <p style="margin-top:10px">Někteří zpracovatelé sídlí mimo EU (zejména v USA). Přenos je v takovém případě zajištěn rámcem EU–USA pro ochranu osobních údajů (Data Privacy Framework) nebo standardními smluvními doložkami schválenými Evropskou komisí.</p>
+      <p style="margin-top:10px">Údaje můžeme předat také orgánům veřejné moci, pokud nám to ukládá zákon.</p>
+
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">6. Cookies a měření návštěvnosti</h2>
       <ul style="padding-left:24px;line-height:1.8">
-        <li><strong style="color:#fff">Plnění smlouvy</strong> – objednávka, doručení a fakturace zboží</li>
-        <li><strong style="color:#fff">Zákonná povinnost</strong> – účetnictví, daňové povinnosti</li>
-        <li><strong style="color:#fff">Souhlas</strong> – zasílání marketingových e-mailů (udělený dobrovolně, kdykoliv odvolatelný)</li>
-        <li><strong style="color:#fff">Oprávněný zájem</strong> – ochrana proti podvodům a zneužití, anonymní statistika návštěvnosti webu</li>
+        <li><strong style="color:#fff">Nezbytné úložiště prohlížeče</strong> – obsah košíku, přihlášení k účtu a vaše volba cookies. Bez nich e-shop nefunguje, souhlas nevyžadují.</li>
+        <li><strong style="color:#fff">Chat Smartsupp</strong> – ukládá cookies potřebné k fungování chatu (aby konverzace nezmizela při přechodu mezi stránkami).</li>
+        <li><strong style="color:#fff">Analytické a marketingové cookies</strong> – momentálně nepoužíváme. Kdybychom je v budoucnu přidali, jen s vaším souhlasem.</li>
+        <li><strong style="color:#fff">Měření návštěvnosti bez cookies</strong> – počítáme zobrazení stránek (jaká stránka, odkud návštěvník přišel, typ zařízení, čas). IP adresu ani jiné osobní údaje neukládáme; návštěvník je jen denní anonymní otisk, který se každý den mění a nelze jej zpětně přiřadit konkrétní osobě. Do vašeho zařízení se nic neukládá.</li>
       </ul>
+      <p style="margin-top:10px">Podrobnosti a změnu nastavení najdete v <a onclick="go('info?t=cookies')" style="color:var(--green-glow);cursor:pointer">Zásadách cookies</a>.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">5. Jak dlouho údaje uchováváme</h2>
-      <p>Vaše údaje uchováváme pouze po dobu nezbytně nutnou:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li><strong style="color:#fff">Fakturační a účetní záznamy:</strong> 10 let (dle zákona o účetnictví)</li>
-        <li><strong style="color:#fff">Objednávky a komunikace:</strong> 3 roky od realizace objednávky</li>
-        <li><strong style="color:#fff">Marketingový souhlas:</strong> do jeho odvolání</li>
-        <li><strong style="color:#fff">Anonymní statistika návštěvnosti:</strong> max. 25 měsíců (bez IP adres a osobních údajů)</li>
-      </ul>
-      <p style="margin-top:10px">Po uplynutí těchto lhůt jsou údaje bezpečně vymazány nebo anonymizovány.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">7. Automatizované rozhodování a profilování</h2>
+      <p>Věrnostní program automaticky přiřadí registrovanému zákazníkovi úroveň podle součtu jeho zaplacených nákupů a podle ní nabídne slevu. Jde o jednoduchý výpočet bez právních nebo podobně závažných účinků. Jinak automatizované rozhodování ani profilování ve smyslu čl. 22 GDPR neprovádíme; o objednávkách a reklamacích rozhoduje člověk.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">6. Cookies</h2>
-      <p>Náš eshop může používat soubory cookies pro zajištění základní funkčnosti a případnou analytiku návštěvnosti. Rozlišujeme:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li><strong style="color:#fff">Nezbytné cookies</strong> – zajišťují fungování eshopu (košík, přihlášení). Nevyžadují souhlas.</li>
-        <li><strong style="color:#fff">Analytické cookies</strong> – momentálně je nepoužíváme. Pokud bychom je v budoucnu nasadili, pouze s vaším souhlasem.</li>
-        <li><strong style="color:#fff">Měření návštěvnosti bez cookies</strong> – počítáme zobrazení stránek (jaká stránka, odkud návštěvník přišel, typ zařízení, čas). Neukládáme IP adresu ani jiné osobní údaje; návštěvník je jen denní anonymní otisk, který se každý den mění a nelze jej zpětně přiřadit konkrétní osobě. Do zařízení se nic neukládá, proto nevyžaduje souhlas.</li>
-      </ul>
-      <p style="margin-top:10px">Souhlas s analytickými cookies můžete kdykoliv odvolat v nastavení prohlížeče nebo přes lištu cookies na webu.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">8. Jak vaše údaje chráníme</h2>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li>šifrované připojení HTTPS,</li><li>hesla jen v zašifrované podobě (hash) – nikdo z nás je nevidí,</li><li>přístup do administrace jen pověřeným osobám s ověřeným e-mailem a omezením podle role,</li><li>údaje o platebních kartách zpracovává výhradně platební brána, k nám se nedostanou,</li><li>pravidelná kontrola přístupů a nastavení zabezpečení.</li></ul>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">7. Komu údaje předáváme</h2>
-      <p>Vaše údaje předáváme pouze ověřeným partnerům, kteří jsou smluvně zavázáni k jejich ochraně v souladu s GDPR:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li><strong style="color:#fff">Dopravci</strong> – např. Zásilkovna, PPL (doručení zásilek)</li>
-        <li><strong style="color:#fff">Fakturační systémy</strong> – iDoklad (vystavení faktur)</li>
-        <li><strong style="color:#fff">Platební brány</strong> – poskytovatelé online plateb (např. GoPay)</li>
-        <li><strong style="color:#fff">E-mailové služby</strong> – např. EmailJS (komunikace se zákazníky)</li>
-      </ul>
-      <p style="margin-top:10px">Některé z těchto služeb mohou sídlit mimo EU/EHP (např. USA). V takovém případě je přenos dat zajištěn prostřednictvím standardních smluvních doložek schválených Evropskou komisí, nebo jiným platným mechanismem dle GDPR.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">9. Vaše práva</h2>
+      <p>Podle GDPR máte právo:</p>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">na přístup</strong> – vědět, jaké údaje o vás zpracováváme, a dostat jejich kopii,</li><li><strong style="color:#fff">na opravu</strong> nepřesných nebo neúplných údajů (adresy a kontakty můžete upravit i sami ve svém účtu),</li><li><strong style="color:#fff">na výmaz</strong> – pokud to nebrání zákonná povinnost (účet můžete zrušit sami v sekci Můj účet),</li><li><strong style="color:#fff">na omezení zpracování</strong>,</li><li><strong style="color:#fff">na přenositelnost</strong> – dostat údaje ve strojově čitelném formátu,</li><li><strong style="color:#fff">odvolat souhlas</strong> – kdykoli a zdarma, bez vlivu na předchozí zpracování,</li><li><strong style="color:#fff">vznést námitku</strong> proti zpracování na základě oprávněného zájmu.</li></ul>
+      <p style="margin-top:10px">Na žádost odpovíme nejpozději do 1 měsíce. Pokud se domníváte, že zpracování porušuje GDPR, můžete podat stížnost u <strong style="color:#fff">Úřadu pro ochranu osobních údajů</strong>, Pplk. Sochora 27, 170 00 Praha 7, <a href="https://www.uoou.cz" style="color:var(--green-glow)">www.uoou.cz</a>.</p>
 
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">8. Automatizované rozhodování a profilování</h2>
-      <p>Náš eshop neprovádí automatizované rozhodování ani profilování ve smyslu čl. 22 GDPR. Veškerá rozhodnutí týkající se vaší objednávky jsou prováděna manuálně nebo jsou výsledkem standardního zpracování objednávky bez profilování zákazníka.</p>
-
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">9. Jak vaše údaje chráníme</h2>
-      <p>Přijímáme technická a organizační opatření k ochraně vašich osobních údajů před neoprávněným přístupem, ztrátou nebo zneužitím, zejména:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li>šifrované HTTPS připojení na webu</li>
-        <li>přístup k datům pouze pro oprávněné osoby</li>
-        <li>pravidelná kontrola přístupů a bezpečnostních nastavení</li>
-      </ul>
-
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">10. Vaše práva</h2>
-      <p>V souladu s GDPR máte tato práva:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li><strong style="color:#fff">Přístup k údajům</strong> – právo vědět, jaké údaje o vás zpracováváme</li>
-        <li><strong style="color:#fff">Oprava</strong> – právo na opravu nepřesných nebo neúplných údajů</li>
-        <li><strong style="color:#fff">Výmaz (právo být zapomenut)</strong> – právo na smazání údajů, pokud to nebrání zákonné povinnosti</li>
-        <li><strong style="color:#fff">Omezení zpracování</strong> – právo požádat o dočasné pozastavení zpracování</li>
-        <li><strong style="color:#fff">Přenositelnost</strong> – právo obdržet vaše údaje ve strojově čitelném formátu</li>
-        <li><strong style="color:#fff">Odvolání souhlasu</strong> – kdykoliv a bezplatně, bez vlivu na předchozí zpracování</li>
-        <li><strong style="color:#fff">Námitka</strong> – právo vznést námitku proti zpracování na základě oprávněného zájmu</li>
-      </ul>
-      <p style="margin-top:10px">Na vaši žádost odpovíme do <strong style="color:#fff">30 dnů</strong> od jejího obdržení. Žádost podejte e-mailem nebo telefonicky (viz sekce 11).</p>
-      <p style="margin-top:10px">Pokud se domníváte, že zpracování vašich osobních údajů porušuje GDPR, máte právo podat stížnost u dozorového úřadu:</p>
-      <div style="background:var(--card);border:1px solid var(--border);padding:14px 18px;margin:10px 0;font-size:14px;line-height:1.7">
-        <strong style="color:#fff">Úřad pro ochranu osobních údajů (ÚOOÚ)</strong><br>
-        Web: <a href="https://www.uoou.cz" target="_blank" style="color:var(--green-glow)">www.uoou.cz</a><br>
-        Adresa: Pplk. Sochora 27, 170 00 Praha 7
-      </div>
-
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:20px;text-transform:uppercase">11. Kontakt</h2>
-      <p>V případě jakýchkoliv dotazů, žádostí nebo stížností týkajících se ochrany osobních údajů nás kontaktujte:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px">
-        <li>E-mail: <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a></li>
-        <li>Telefon: <a href="tel:+420731846021" style="color:var(--green-glow)">+420 731 846 021</a></li>
-      </ul>
-      <p style="margin-top:14px;color:var(--muted);font-size:13px">Tyto zásady mohou být průběžně aktualizovány. Aktuální verze je vždy k dispozici na našem webu.</p>
-      <p style="margin-top:10px;color:var(--muted);font-size:12px;font-style:italic">Dokument byl vytvořen v souladu s Obecným nařízením o ochraně osobních údajů (GDPR) – nařízení EU 2016/679.</p>
-      <p style="margin-top:6px;color:var(--muted);font-size:12px;font-weight:600">Josef Kugler · Platné od 20. 5. 2026</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">10. Kontakt</h2>
+      <p>S dotazy a žádostmi k osobním údajům se obracejte na e-mail <a href="mailto:eshophopivirtual@gmail.com" style="color:var(--green-glow)">eshophopivirtual@gmail.com</a> nebo telefon <a href="tel:+420731846021" style="color:var(--green-glow)">+420 731 846 021</a>.</p>
+      <p style="margin-top:24px;color:var(--muted);font-size:13px">Tyto zásady můžeme aktualizovat; aktuální verze je vždy na tomto webu. Josef Kugler · Platné od 1. 11. 2026</p>
     `},
     'cookies':{title:'Zásady cookies',html:`
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:20px;margin-bottom:14px;margin-top:20px;text-transform:uppercase">🍪 Co jsou cookies?</h2>
-      <p>Cookies jsou malé textové soubory, které se ukládají ve tvém prohlížeči. Pomáhají nám, aby web fungoval správně a abychom ti mohli nabídnout lepší zážitek.</p>
-
-      <h2 style="font-family:'Archivo Black',sans-serif;font-size:20px;margin-bottom:14px;margin-top:24px;text-transform:uppercase">Jaké cookies používáme</h2>
-
-      <div style="background:var(--card);border:1px solid var(--border);padding:18px;margin:14px 0">
-        <strong style="color:#fff;display:block;margin-bottom:6px">✅ Nezbytné cookies</strong>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">Potřebné pro základní fungování webu. Uchovávají obsah tvého košíku, přihlášení do administrace a preference. Bez nich web nefunguje. <strong style="color:#fff">Nelze vypnout.</strong></p>
-      </div>
-
-      <div style="background:var(--card);border:1px solid var(--border);padding:18px;margin:14px 0">
-        <strong style="color:#fff;display:block;margin-bottom:6px">📊 Analytické cookies</strong>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">Momentálně žádné analytické cookies nepoužíváme. Návštěvnost měříme anonymně bez cookies (stránka, odkud návštěvník přišel, typ zařízení, čas – bez IP adresy a osobních údajů). Kdybychom analytické cookies v budoucnu přidali, jen s vaším souhlasem. <strong style="color:#fff">Lze vypnout.</strong></p>
-      </div>
-
-      <div style="background:var(--card);border:1px solid var(--border);padding:18px;margin:14px 0">
-        <strong style="color:#fff;display:block;margin-bottom:6px">🎯 Marketingové cookies</strong>
-        <p style="color:var(--muted);font-size:13px;line-height:1.7">Pro personalizovanou reklamu (Facebook Pixel, Google Ads). Díky nim vidíš reklamu, která tě zajímá, místo náhodných reklam. <strong style="color:#fff">Lze vypnout.</strong></p>
-      </div>
-
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:20px;margin-bottom:14px;margin-top:24px;text-transform:uppercase;margin-top:20px">🍪 Co jsou cookies?</h2>
+      <p>Cookies a podobné úložiště prohlížeče jsou malé soubory, které si web ukládá do tvého zařízení. Používáme jen to, co je potřeba, aby e-shop fungoval.</p>
+      <h2 style="font-family:'Archivo Black',sans-serif;font-size:20px;margin-bottom:14px;margin-top:24px;text-transform:uppercase">Co používáme</h2>
+      <div style="background:var(--card);border:1px solid var(--border);padding:18px;margin:14px 0"><strong style="color:#fff;display:block;margin-bottom:6px">✅ Nezbytné</strong><p style="color:var(--muted);font-size:13.5px;line-height:1.7">Obsah košíku, přihlášení k zákaznickému účtu a tvoje volba v liště cookies. Bez nich e-shop nefunguje, proto souhlas nevyžadují. <strong style="color:#fff">Nelze vypnout.</strong></p></div>
+      <div style="background:var(--card);border:1px solid var(--border);padding:18px;margin:14px 0"><strong style="color:#fff;display:block;margin-bottom:6px">💬 Chat Smartsupp</strong><p style="color:var(--muted);font-size:13.5px;line-height:1.7">Cookies potřebné k fungování chatu vpravo dole – aby konverzace nezmizela při přechodu mezi stránkami. Provozovatel: Smartsupp.com, s.r.o.</p></div>
+      <div style="background:var(--card);border:1px solid var(--border);padding:18px;margin:14px 0"><strong style="color:#fff;display:block;margin-bottom:6px">📈 Měření návštěvnosti bez cookies</strong><p style="color:var(--muted);font-size:13.5px;line-height:1.7">Počítáme zobrazení stránek (jaká stránka, odkud návštěvník přišel, typ zařízení, čas). Do tvého zařízení se nic neukládá, IP adresu ani jiné osobní údaje neukládáme. Návštěvník je jen denní anonymní otisk, který se každý den mění.</p></div>
+      <div style="background:var(--card);border:1px solid var(--border);padding:18px;margin:14px 0"><strong style="color:#fff;display:block;margin-bottom:6px">📊 Analytické a 🎯 marketingové cookies</strong><p style="color:var(--muted);font-size:13.5px;line-height:1.7">Momentálně <strong style="color:#fff">žádné nepoužíváme</strong> (žádný Google Analytics, Facebook Pixel ani Google Ads). Kdybychom je v budoucnu přidali, jen s tvým souhlasem v liště cookies.</p></div>
       <h2 style="font-family:'Archivo Black',sans-serif;font-size:20px;margin-bottom:14px;margin-top:24px;text-transform:uppercase">Jak změnit nastavení</h2>
-      <p>Můžeš kdykoliv změnit své preference:</p>
+      <p>Svoji volbu můžeš kdykoli změnit:</p>
       <p style="margin-top:14px">
         <button class="btn btn-primary" onclick="openCookieBannerAgain();setTimeout(openCookieSettings,400)">🍪 Změnit nastavení cookies</button>
       </p>
-
-      <p style="margin-top:24px;color:var(--muted);font-size:13px">Cookies můžeš kdykoli smazat i v nastavení svého prohlížeče.</p>
+      <p style="margin-top:24px;color:var(--muted);font-size:13px">Cookies můžeš kdykoli smazat i v nastavení prohlížeče. Více o osobních údajích v <a onclick="go('info?t=gdpr')" style="color:var(--green-glow);cursor:pointer">Zásadách ochrany osobních údajů</a>.</p>
     `},
   };
   const info=TOPICS[t]||TOPICS['doprava'];
