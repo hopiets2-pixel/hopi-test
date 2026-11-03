@@ -14843,137 +14843,142 @@ window.saveInvoiceConfig=function(){
 }
 
 // ============== PACKING SLIP / PRINT ==============
-window.printPackingSlip=function(orderId){
-  const orders=getOrders();
-  const o=orders.find(x=>x.id===orderId);
-  if(!o){showToast('Objednávka nenalezena','error');return}
+// Dodací list: jedna A4, šetří toner (žádné černé plochy), ceny z objednávky (v době nákupu),
+// bez záhlaví/zápatí prohlížeče. Interní poznámka se ukáže jen na obrazovce, do balíku se netiskne.
+function hvPackingSlipHtml(o){
   const products=getProducts();
   const s=getSettings();
-  const invConfig=getInvoiceConfig();
-  const shipL={zasilkovna:'Zásilkovna',zasilkovna_address:'Zásilkovna na adresu',balikovna:'Balíkovna',ppl:'PPL k ruce',kuryr:'Kurýr'}[o.ship]||o.ship;
-  const payL={card:'Karta',applepay:'Apple Pay',googlepay:'Google Pay',transfer:'Převod',cod:'Dobírka'}[o.pay]||o.pay;
-
-  const html=`<!DOCTYPE html><html lang="cs"><head><meta charset="UTF-8"><title>Dodací list ${o.id}</title>
+  const inv=getInvoiceConfig()||{};
+  const esc=escapeHtml, fp=n=>formatPrice(Math.round(Number(n)||0));
+  const c=o.customer||{};
+  const shipL={zasilkovna:'Zásilkovna – výdejní místo',zasilkovna_address:'Zásilkovna na adresu',balikovna:'Balíkovna',ppl:'PPL k ruce',kuryr:'Kurýr'}[o.ship]||o.ship||'—';
+  const payL={card:'Kartou',applepay:'Apple Pay',googlepay:'Google Pay',transfer:'Převodem',cod:'Dobírka'}[o.pay]||o.pay||'—';
+  const ps=typeof getPaymentStatus==='function'?getPaymentStatus(o):(o.paymentStatus||'pending');
+  const branch=o.shipBranch||o.packeta_point_name||o.balikovna_point_name||'';
+  const items=(o.items||[]).map(i=>{
+    const p=products.find(x=>String(x.id)===String(i.productId));
+    const price=Number(i.price)>0?Number(i.price):Number(p&&p.price)||0;
+    const name=(p&&p.name)||i.name||'Produkt';
+    const qty=Number(i.qty)||1;
+    return {name,size:i.size||'',qty,price,total:price*qty};
+  });
+  const goods=items.reduce((a,i)=>a+i.total,0);
+  const pieces=items.reduce((a,i)=>a+i.qty,0);
+  const disc=o.promo&&Number(o.promo.discount)>0?Number(o.promo.discount):0;
+  const discL=!disc?'':o.promo.loyalty?`Věrnostní sleva${o.loyalty&&o.loyalty.tier?' '+esc(o.loyalty.tier):''}${o.promo.value?' (−'+esc(o.promo.value)+' %)':''}`
+    :`Sleva ${esc(o.promo.code||'')}${o.promo.type==='percent'&&o.promo.value?' (−'+esc(o.promo.value)+' %)':''}`;
+  const totalL=ps==='cod'?'Vybrat při převzetí':ps==='paid'?'Celkem · zaplaceno':'Celkem k úhradě';
+  const seller=inv.companyName||'Josef Kugler';
+  const sellerLine=[inv.companyAddress,inv.companyIco?'IČO '+inv.companyIco:'',inv.companyDic?'DIČ '+inv.companyDic:'',s.email,s.phone].filter(Boolean).map(esc).join(' · ');
+  // logo ze stejného webu (stage i ostrý), když tam chybí, tak z ostrého
+  const logo=location.origin+location.pathname.replace(/[^/]*$/,'')+'logo-email.png', logo2='https://eshophopivirtual.com/logo-email.png';
+  const sum=(l,v,cls)=>`<tr${cls?` class="${cls}"`:''}><td>${l}</td><td>${v}</td></tr>`;
+  return `<!DOCTYPE html><html lang="cs"><head><meta charset="UTF-8"><title>Dodací list ${esc(o.id)}</title>
 <style>
+@page{size:A4;margin:0}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,Arial,sans-serif;padding:30px;color:#111;font-size:13px;line-height:1.5;max-width:800px;margin:0 auto}
-.head{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:20px;border-bottom:2px solid #000;margin-bottom:20px}
-.logo{background:#008a3f;color:#fff;padding:10px 16px;font-weight:900;font-size:22px;letter-spacing:-1px;display:inline-block}
-.brand{margin-top:10px;font-weight:700;font-size:14px}
-.info{text-align:right;font-size:12px;color:#555;line-height:1.6}
-h1{font-size:24px;margin:20px 0 4px;letter-spacing:-0.5px}
-.meta{color:#666;font-family:monospace;font-size:12px;margin-bottom:24px}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-bottom:24px}
-.col{padding:16px;background:#fafafa;border:1px solid #eee}
-.col h3{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:10px;font-weight:700}
-.col strong{display:block;font-size:15px;margin-bottom:6px}
-.col p{font-size:13px;color:#333;line-height:1.6}
-table{width:100%;border-collapse:collapse;margin:20px 0}
-th{background:#000;color:#fff;padding:12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
-td{padding:12px;border-bottom:1px solid #eee}
-tr.total td{background:#f0f0f0;font-weight:700;font-size:15px;border-top:2px solid #000}
-.qty{text-align:center}
-.price{text-align:right;font-family:monospace}
-.note{background:#fff3cd;border:1px solid #ffe082;padding:14px;margin:20px 0;font-size:12px;line-height:1.6}
-.foot{margin-top:40px;padding-top:20px;border-top:1px solid #ddd;text-align:center;color:#666;font-size:11px}
-.barcode{text-align:center;margin:20px 0;font-family:monospace;font-size:20px;letter-spacing:3px;background:#000;color:#fff;padding:10px}
-@media print{body{padding:10mm}.no-print{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-.print-btn{position:fixed;top:20px;right:20px;background:#008a3f;color:#fff;border:none;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;border-radius:4px}
-.close-btn{position:fixed;top:20px;right:160px;background:#666;color:#fff;border:none;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;border-radius:4px}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Arial,sans-serif;color:#111;font-size:12.5px;line-height:1.45;background:#e9e9ee}
+.sheet{width:210mm;min-height:297mm;margin:16px auto;background:#fff;padding:14mm 15mm 12mm;display:flex;flex-direction:column;box-shadow:0 6px 30px rgba(0,0,0,.12)}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
+.brand img{height:64px;width:auto;display:block}
+.brand .txt{display:none;font-weight:900;font-size:22px;letter-spacing:-.5px}.brand .txt b{color:#008a3f}
+.seller{margin-top:10px;font-size:11px;color:#555;max-width:95mm}
+.seller strong{color:#111;font-size:12px}
+.doc{text-align:right}
+.doc .t{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#008a3f}
+.doc .n{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:26px;font-weight:800;letter-spacing:.02em;margin-top:2px}
+.doc .d{font-size:11px;color:#555;margin-top:2px}
+.rule{height:3px;background:#008a3f;margin:12px 0 14px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.box{border:1px solid #dcdce0;border-radius:10px;padding:11px 13px}
+.box h3{font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#777;margin-bottom:5px}
+.box .big{font-size:15px;font-weight:700;margin-bottom:2px}
+.box p{color:#333}
+.box .sub{margin-top:6px;font-size:11px;color:#555}
+.pay{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{display:inline-block;padding:3px 9px;border-radius:999px;font-weight:700;font-size:11px;border:1.5px solid currentColor}
+.pill.ok{color:#0a7a35}.pill.wait{color:#b26a00}
+.cod{margin-top:8px;border:2px solid #c62828;border-radius:8px;padding:7px 10px;color:#c62828;font-weight:800;font-size:14px}
+table{width:100%;border-collapse:collapse;margin-top:14px}
+thead th{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#777;text-align:left;padding:0 6px 6px;border-bottom:1.5px solid #111}
+tbody td{padding:6px 6px;border-bottom:1px solid #e6e6ea;vertical-align:top}
+tbody tr{page-break-inside:avoid}
+.ck{width:22px}.ck span{display:inline-block;width:13px;height:13px;border:1.5px solid #888;border-radius:3px;margin-top:1px;vertical-align:top}
+.nm strong{font-weight:600}.nm small{color:#666;font-size:11px;white-space:nowrap}
+.q,.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.q{text-align:center;font-weight:700}
+.sum{margin:10px 0 0 auto;width:78mm;border-collapse:collapse}
+.sum td{padding:3px 6px;border:0;text-align:left}.sum td+td{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sum .neg td{color:#0a7a35}
+.sum .tot td{border-top:1.5px solid #111;padding-top:7px;font-weight:800;font-size:15px}
+.foot{margin-top:auto;padding-top:14px;border-top:1px solid #e0e0e4;display:flex;justify-content:space-between;gap:16px;font-size:10.5px;color:#666}
+.foot b{color:#111}
+.bar{position:sticky;top:0;z-index:5;display:flex;gap:10px;justify-content:center;align-items:center;padding:10px;background:rgba(233,233,238,.92);backdrop-filter:blur(10px)}
+.bar button{border:0;border-radius:10px;padding:11px 20px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;background:#fff;color:#111}
+.bar button.p{background:#008a3f;color:#fff}
+.inote{max-width:210mm;margin:0 auto;background:#fff4e5;border:1px solid #ffb74d;border-radius:10px;padding:10px 14px;font-size:13px;color:#7a4a00}
+@media print{body{background:#fff}.sheet{margin:0;box-shadow:none;min-height:297mm}.noprint{display:none!important}}
 </style></head><body>
-
-
-<div class="head">
-  <div>
-    <div class="logo">HOPI</div>
-    <div class="brand">${escapeHtml(invConfig.companyName||s.shopName||'HOPI VIRTUAL s.r.o.')}</div>
+<div class="bar noprint"><button class="p" onclick="window.print()">Vytisknout / uložit PDF</button><button onclick="window.close()">Zavřít</button></div>
+${o.adminNote?`<div class="inote noprint"><b>Interní poznámka (netiskne se):</b> ${esc(o.adminNote)}</div>`:''}
+<div class="sheet">
+  <div class="head">
+    <div class="brand">
+      <img src="${logo}" alt="HOPI VIRTUAL" onerror="if(this.src!=='${logo2}'){this.src='${logo2}'}else{this.style.display='none';this.nextElementSibling.style.display='block'}"><div class="txt">HOPI <b>VIRTUAL</b></div>
+      <div class="seller"><strong>${esc(seller)}</strong><br>${sellerLine}</div>
+    </div>
+    <div class="doc"><div class="t">Dodací list</div><div class="n">${esc(o.id)}</div>
+      <div class="d">Objednáno ${new Date(o.date).toLocaleDateString('cs-CZ')}${o.invoiceNumber?' · Faktura '+esc(o.invoiceNumber):''}</div></div>
   </div>
-  <div class="info">
-    ${invConfig.companyAddress?escapeHtml(invConfig.companyAddress)+'<br>':''}
-    ${invConfig.companyIco?'IČO: '+escapeHtml(invConfig.companyIco)+'<br>':''}
-    ${invConfig.companyDic?'DIČ: '+escapeHtml(invConfig.companyDic)+'<br>':''}
-    ${s.email||''}<br>${s.phone||''}
+  <div class="rule"></div>
+  <div class="cols">
+    <div class="box"><h3>Příjemce</h3>
+      <div class="big">${esc([c.firstName,c.lastName].filter(Boolean).join(' '))}</div>
+      <p>${c.street?esc(c.street)+'<br>':''}${esc([c.zip,c.city].filter(Boolean).join(' '))}${c.country&&String(c.country).toLowerCase()==='sk'?'<br>Slovensko':''}</p>
+      <p class="sub">${[c.phone,c.email].filter(Boolean).map(esc).join(' · ')}</p>
+      ${o.invoice&&(o.invoice.companyName||o.invoice.ico)?`<p class="sub">Firma: <b>${esc(o.invoice.companyName||'')}</b>${o.invoice.ico?' · IČO '+esc(o.invoice.ico):''}${o.invoice.dic?' · DIČ '+esc(o.invoice.dic):''}</p>`:''}
+    </div>
+    <div class="box"><h3>Doprava a platba</h3>
+      <div class="big">${esc(shipL)}</div>
+      ${branch?`<p>${esc(branch)}</p>`:''}
+      ${o.tracking&&o.tracking.number?`<p class="sub">Zásilka: <b>${esc(o.tracking.number)}</b></p>`:''}
+      <div class="pay">Platba: <b>${esc(payL)}</b>${ps==='paid'?'<span class="pill ok">✓ Zaplaceno</span>':ps==='cod'?'':'<span class="pill wait">Čeká na platbu</span>'}</div>
+      ${ps==='cod'?`<div class="cod">DOBÍRKA – vybrat ${fp(o.total)} Kč</div>`:''}
+    </div>
   </div>
-</div>
-
-<h1>DODACÍ LIST</h1>
-<div class="meta">Objednávka: <strong>${escapeHtml(o.id)}</strong> · Datum: ${new Date(o.date).toLocaleDateString('cs-CZ')}${o.invoiceNumber?' · Faktura: '+escapeHtml(o.invoiceNumber):''}</div>
-
-<div class="barcode">* ${o.id} *</div>
-
-<div class="cols">
-  <div class="col">
-    <h3>📦 PŘÍJEMCE</h3>
-    <strong>${escapeHtml(o.customer.firstName)} ${escapeHtml(o.customer.lastName)}</strong>
-    <p>
-      ${escapeHtml(o.customer.street)}<br>
-      ${escapeHtml(o.customer.zip)} ${escapeHtml(o.customer.city)}<br>
-      📞 ${escapeHtml(o.customer.phone)}<br>
-      ✉️ ${escapeHtml(o.customer.email)}
-    </p>
+  <table>
+    <thead><tr><th class="ck"></th><th>Položka</th><th class="q">Ks</th><th class="r">Cena/ks</th><th class="r">Celkem</th></tr></thead>
+    <tbody>${items.map(i=>`<tr><td class="ck"><span></span></td><td class="nm"><strong>${esc(i.name)}</strong>${i.size?` <small>· velikost ${esc(i.size)}</small>`:''}</td><td class="q">${i.qty}</td><td class="r">${fp(i.price)} Kč</td><td class="r">${fp(i.total)} Kč</td></tr>`).join('')}</tbody>
+  </table>
+  <table class="sum">
+    ${sum(`Zboží (${pieces} ks)`,fp(goods)+' Kč')}
+    ${disc?sum(discL,'−'+fp(disc)+' Kč','neg'):''}
+    ${o.ship?sum('Doprava',Number(o.shipPrice)>0?fp(o.shipPrice)+' Kč':'zdarma'):''}
+    ${Number(o.codFee)>0?sum('Dobírka',fp(o.codFee)+' Kč'):''}
+    ${Number(o.tip)>0?sum('Spropitné',fp(o.tip)+' Kč'):''}
+    ${sum(totalL,fp(o.total)+' Kč','tot')}
+  </table>
+  <div class="foot">
+    <div><b>Děkujeme za nákup!</b><br>Vrácení do 14 dnů: eshophopivirtual.com → Vrácení a reklamace</div>
+    <div style="text-align:right">${esc(s.email||'')}${s.phone?'<br>'+esc(s.phone):''}</div>
   </div>
-  <div class="col">
-    <h3>🚚 DORUČENÍ</h3>
-    <strong>${shipL}</strong>
-    ${o.shipBranch?`<p>📍 Pobočka: <strong>${escapeHtml(o.shipBranch)}</strong></p>`:''}
-    <p style="margin-top:10px">Platba: <strong>${payL}</strong></p>
-    ${o.pay==='cod'?`<p style="color:#c62828;font-weight:700;margin-top:8px">⚠️ DOBÍRKA: Vybrat ${formatPrice(o.total)} Kč</p>`:'<p style="color:#2e7d32;margin-top:8px">✓ Zaplaceno předem</p>'}
-  </div>
-</div>
-
-${o.invoice?`
-<div class="col" style="margin-bottom:20px">
-  <h3>🏢 FAKTURAČNÍ ÚDAJE</h3>
-  <strong>${escapeHtml(o.invoice.companyName||'')}</strong>
-  <p>IČO: ${escapeHtml(o.invoice.ico||'')}${o.invoice.dic?' · DIČ: '+escapeHtml(o.invoice.dic):''}</p>
-</div>
-`:''}
-
-<table>
-  <thead>
-    <tr><th>Položka</th><th>Velikost</th><th class="qty">Ks</th><th class="price">Cena/ks</th><th class="price">Celkem</th></tr>
-  </thead>
-  <tbody>
-    ${o.items.map(i=>{
-      const p=products.find(x=>x.id===i.productId);
-      if(!p)return '';
-      return `<tr>
-        <td><strong>${escapeHtml(p.name)}</strong></td>
-        <td>${escapeHtml(i.size||'—')}</td>
-        <td class="qty">${i.qty}</td>
-        <td class="price">${formatPrice(p.price)} Kč</td>
-        <td class="price">${formatPrice(p.price*i.qty)} Kč</td>
-      </tr>`;
-    }).join('')}
-    ${o.promo&&o.promo.discount>0?`<tr><td colspan="4" style="color:#2e7d32">Sleva ${o.promo.type==='percent'?'('+escapeHtml(o.promo.code)+' −'+o.promo.value+'%)':'('+escapeHtml(o.promo.code)+')'}</td><td class="price" style="color:#2e7d32">−${formatPrice(o.promo.discount)} Kč</td></tr>`:''}
-    ${o.shipPrice?`<tr><td colspan="4">Doprava</td><td class="price">${formatPrice(o.shipPrice)} Kč</td></tr>`:''}
-    ${o.codFee?`<tr><td colspan="4">Poplatek za dobírku</td><td class="price">${formatPrice(o.codFee)} Kč</td></tr>`:''}
-    ${Number(o.tip)>0?`<tr><td colspan="4">Spropitné (tým a rozvoj HOPI VIRTUAL)</td><td class="price">${formatPrice(o.tip)} Kč</td></tr>`:''}
-    <tr class="total"><td colspan="4">CELKEM K ÚHRADĚ</td><td class="price">${formatPrice(o.total)} Kč</td></tr>
-  </tbody>
-</table>
-
-${o.adminNote?`<div class="note">📝 <strong>Interní poznámka:</strong> ${escapeHtml(o.adminNote)}</div>`:''}
-
-<div class="foot">
-  Děkujeme za nákup! · ${escapeHtml(s.shopName||'HOPI VIRTUAL')} · ${s.email||''}
 </div>
 </body></html>`;
-
-  // Stažení jako PDF — otevřít v novém okně, uložit přes prohlížeč jako PDF
-  showToast('⏳ Připravuji dodací list...');
-  function _openPrintWindow(){
-    const w = window.open('', '_blank', 'width=900,height=700');
-    if(!w){showToast('Povol vyskakovací okna v prohlížeči','error');return;}
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(()=>{
-      w.print();
-    }, 800);
-  }
-  _openPrintWindow();
 }
+window.hvPackingSlipHtml=hvPackingSlipHtml;
+window.printPackingSlip=function(orderId){
+  const o=getOrders().find(x=>x.id===orderId);
+  if(!o){showToast('Objednávka nenalezena','error');return}
+  const html=hvPackingSlipHtml(o);
+  const w=window.open('','_blank','width=900,height=1000');
+  if(!w){showToast('Povol vyskakovací okna v prohlížeči','error');return}
+  w.document.write(html); w.document.close(); w.focus();
+  // tisk až po načtení loga (jinak by na papíře chybělo)
+  const go=()=>{try{w.print()}catch(e){}};
+  const img=w.document.querySelector('.brand img');
+  if(img&&!img.complete){let done=false;const f=()=>{if(!done){done=true;setTimeout(go,150)}};img.addEventListener('load',f);img.addEventListener('error',f);setTimeout(f,2500)}
+  else setTimeout(go,300);
+};
 
 window.syncOrderToSheets=async function(orderId){
   const orders=getOrders();
