@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOPI VIRTUAL</title>
+<script>
+// GitHub Pages (stage) neumí přesměrování – tahle stránka se ukáže u neexistující adresy.
+// /hopi-test/spoluprace/ridic → /hopi-test/#spoluprace/ridic, cokoli jiného → úvodní stránka.
+(function(){
+  var p=decodeURIComponent(location.pathname);
+  var m=p.match(/^(.*\/)spoluprace\/(ridic|řidič|firma)\/?$/i);
+  var base=m?m[1]:(p.match(/^\/[^\/]+\//)&&location.hostname.indexOf('github.io')>-1?p.match(/^\/[^\/]+\//)[0]:'/');
+  location.replace(base+(m?'#spoluprace/'+(/firma/i.test(m[2])?'firma':'ridic'):''));
+})();
+</script>
+</head>
+<body style="background:#000;color:#fff;font-family:sans-serif;text-align:center;padding:60px 20px">
+<p>Přesměrovávám na <a href="/" style="color:#00c853">HOPI VIRTUAL</a>…</p>
+</body>
+</html>

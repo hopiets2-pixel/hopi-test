@@ -2,6 +2,11 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
+<script>
+// Hezké odkazy eshophopivirtual.com/spoluprace/ridic a /spoluprace/firma → stránka e-shopu #spoluprace/…
+// (Netlify je díky _redirects obslouží tímhle index.html; adresa se hned přepíše na kořen webu, ať sedí obrázky a skripty.)
+(function(){try{var p=decodeURIComponent(location.pathname),m=p.match(/^(.*\/)spoluprace\/(ridic|řidič|firma)\/?$/i);if(m){var t=/firma/i.test(m[2])?'firma':'ridic';history.replaceState(null,'',m[1]+location.search+'#spoluprace/'+t)}}catch(e){}})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HOPI VIRTUAL — Official Merch</title>
 <link rel="icon" type="image/png" href="favicon.png">
@@ -1200,6 +1205,163 @@ body.ac-lock{overflow:hidden}
 .gp-qr-t{font-size:14px;line-height:1.5;color:#ddd;margin:0 0 12px;text-align:center}.gp-qr-dl{display:block;text-align:center;margin:0 auto 12px;max-width:220px}
 .gp-qr-rows{display:grid;gap:6px;background:rgba(255,255,255,.05);padding:12px 14px;margin-bottom:12px}.gp-qr-rows div{display:flex;justify-content:space-between;gap:12px;font-size:14px}.gp-qr-rows span{color:var(--muted)}.gp-qr-rows b{color:#fff;text-align:right;word-break:break-all}
 .gp-qr-wait{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted);margin:0}
+/* ============== SPOLUPRÁCE (nábor řidičů, firmy) ============== */
+.sp-page{position:relative;background:radial-gradient(900px 520px at 8% -6%,rgba(0,138,63,.20),transparent 60%),#000;overflow:hidden}
+.sp-wrap{max-width:1240px;margin:0 auto;padding:124px 40px 96px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:64px;align-items:start}
+.sp-left{padding-top:8px;min-width:0}
+.sp-switch{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid #1f1f1f;margin-bottom:22px}
+.sp-switch a{min-height:40px;display:inline-flex;align-items:center;padding:0 18px;border-radius:999px;color:#bdbdbd;font-weight:600;font-size:15px;text-decoration:none;touch-action:manipulation}
+.sp-switch a.on{background:#fff;color:#000}
+.sp-switch a:not(.on):hover{color:#fff}
+.sp-tag{display:inline-flex;align-items:center;gap:10px;padding:9px 16px;border-radius:999px;background:rgba(0,138,63,.12);border:1px solid rgba(0,200,83,.28);color:var(--green-glow);font-weight:700;font-size:15px}
+.sp-tag i{width:8px;height:8px;border-radius:50%;background:var(--green-glow);box-shadow:0 0 0 4px rgba(0,200,83,.18)}
+.sp-h1{font-family:'Archivo Black',sans-serif;font-size:clamp(40px,5.4vw,74px);line-height:1.02;letter-spacing:-.02em;text-transform:uppercase;color:#fff;margin:22px 0 20px;overflow-wrap:break-word}
+.sp-h1 span{color:var(--green-glow);display:inline}
+.sp-lead{font-size:18px;line-height:1.6;color:#b9b9b9;max-width:560px;margin:0 0 30px}
+.sp-img{display:block;width:100%;max-width:620px;aspect-ratio:16/10;object-fit:cover;border-radius:26px;margin:0 0 30px;border:1px solid #1f1f1f;background:#0d0d0d}
+.sp-perks{list-style:none;margin:0;padding:0;max-width:620px}
+.sp-perks li{display:flex;gap:18px;align-items:flex-start;padding:20px 0;border-top:1px solid #1f1f1f}
+.sp-perks li:last-child{border-bottom:1px solid #1f1f1f}
+.sp-pi{flex:0 0 52px;height:52px;border-radius:16px;background:rgba(0,138,63,.14);color:var(--green-glow);display:flex;align-items:center;justify-content:center}
+.sp-perks b{display:block;color:#fff;font-size:18px;font-weight:700;margin:3px 0 4px}
+.sp-perks li>span:last-child>span{display:block;color:#a3a3a3;font-size:16px;line-height:1.5}
+.sp-other{display:inline-flex;align-items:center;gap:8px;margin-top:26px;color:var(--green-glow);font-weight:600;font-size:16px;text-decoration:none;min-height:44px}
+.sp-other:hover{text-decoration:underline}
+
+.sp-card{background:#0c0c0c;border:1px solid #1f1f1f;border-radius:30px;padding:36px;box-shadow:0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.04);position:relative;min-width:0}
+.sp-card::before{content:"";position:absolute;inset:0 0 auto;height:3px;border-radius:30px 30px 0 0;background:linear-gradient(90deg,transparent,rgba(0,200,83,.55),transparent)}
+.sp-card-h{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.sp-ct{font-family:'Archivo',sans-serif;font-weight:800;font-size:28px;line-height:1.15;letter-spacing:-.01em;color:#fff;margin:0}
+.sp-cs{color:#9a9a9a;font-size:16px;margin:6px 0 0}
+.sp-pct{flex:0 0 auto;min-width:64px;text-align:center;padding:8px 14px;border-radius:999px;background:rgba(0,138,63,.15);color:var(--green-glow);font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+.sp-pct.full{background:var(--green);color:#fff}
+.sp-bar{height:4px;border-radius:4px;background:rgba(255,255,255,.06);margin:20px 0 6px;overflow:hidden}
+.sp-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--green-glow));border-radius:4px;transition:width .35s cubic-bezier(.32,.72,0,1)}
+.sp-form{margin:0}
+.sp-sec{margin:30px 0 0;padding:26px 0 0;border-top:1px solid #1c1c1c;min-width:0}
+.sp-bar+.sp-form .sp-sec:first-of-type{border-top:0;padding-top:4px;margin-top:20px}
+.sp-sh{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--green-glow);padding:0;margin:0}
+.sp-sh span{color:#fff}
+.sp-f{margin-top:18px;min-width:0}
+.sp-f[hidden]{display:none}
+.sp-l{display:block;color:#fff;font-weight:700;font-size:16px;line-height:1.35;margin-bottom:10px}
+.sp-opt{color:#8c8c8c;font-weight:400}
+.sp-in{width:100%;box-sizing:border-box;min-height:54px;padding:14px 18px;background:#141414;border:1px solid #2a2a2a;border-radius:14px;color:#fff;font:inherit;font-size:16px;line-height:1.4;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
+.sp-in::placeholder{color:#6f6f6f}
+.sp-in:focus{outline:none;border-color:var(--green-glow);box-shadow:0 0 0 4px rgba(0,200,83,.16);background:#171717}
+.sp-ta{min-height:104px;resize:vertical}
+.sp-row{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.sp-grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 12px}
+.sp-chips{display:flex;flex-wrap:wrap;gap:10px}
+.sp-chips.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.sp-chip{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:10px 18px;border-radius:14px;border:1px solid #2a2a2a;background:#121212;color:#d6d6d6;font:inherit;font-size:16px;font-weight:500;line-height:1.25;text-align:left;cursor:pointer;touch-action:manipulation;transition:background .15s,border-color .15s,color .15s,transform .1s}
+.sp-chip:hover{border-color:#3a3a3a;color:#fff}
+.sp-chip:active{transform:scale(.97)}
+.sp-chip:focus-visible,.sp-send:focus-visible,.sp-switch a:focus-visible,.sp-tc:focus-visible{outline:2px solid var(--green-glow);outline-offset:2px}
+.sp-ck{display:none;width:20px;height:20px;border-radius:6px;background:var(--green-glow);color:#000;align-items:center;justify-content:center;flex:0 0 20px}
+.sp-chip.on{background:rgba(0,138,63,.2);border-color:var(--green-glow);color:#fff}
+.sp-chip.on .sp-ck{display:inline-flex}
+.sp-note{color:#8c8c8c;font-size:14px;margin:10px 0 0;line-height:1.45}
+.sp-hint{margin-top:8px;font-size:14px;line-height:1.45;color:#ffb74d}
+.sp-hint[hidden]{display:none}
+.sp-err{color:#ff6b61;font-size:14px;line-height:1.4}
+.sp-err:not(:empty){margin-top:8px}
+.sp-f.bad .sp-in{border-color:#ff5a4f}
+.sp-f.bad .sp-chip{border-color:rgba(255,90,79,.55)}
+.sp-f.bad .sp-box{border-color:#ff5a4f}
+.sp-rules{margin-top:14px;background:#121212;border:1px solid #2a2a2a;border-radius:16px}
+.sp-rules-h{display:flex;align-items:center;gap:12px;min-height:54px;padding:0 18px;color:#fff;font-weight:700;font-size:16px;border-bottom:1px solid #222}
+.sp-rules-h svg{color:var(--green-glow);flex:0 0 auto}
+.sp-rules-b{padding:4px 18px 18px}
+.sp-rl p{margin:10px 0 0;color:#cfcfcf;font-size:15px;line-height:1.5}
+.sp-rl p.n{display:flex;gap:10px}
+.sp-rl p.n b{flex:0 0 26px;color:var(--green-glow)}
+.sp-rl-load{color:#9a9a9a;font-size:15px;margin:12px 0 0}
+.sp-rl-load a{color:var(--green-glow)}
+.sp-cb{display:flex;gap:14px;align-items:flex-start;cursor:pointer;color:#c9c9c9;font-size:15px;line-height:1.5;min-height:44px;padding-top:2px}
+.sp-cb input{position:absolute;opacity:0;width:1px;height:1px}
+.sp-box{flex:0 0 26px;height:26px;border-radius:8px;border:1.5px solid #3a3a3a;background:#121212;display:flex;align-items:center;justify-content:center;color:transparent;transition:background .15s,border-color .15s}
+.sp-cb input:checked+.sp-box{background:var(--green-glow);border-color:var(--green-glow);color:#000}
+.sp-cb input:focus-visible+.sp-box{outline:2px solid var(--green-glow);outline-offset:2px}
+.sp-cb a{color:#fff;text-decoration:underline;cursor:pointer}
+.sp-hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}
+.sp-msg{display:none}
+.sp-msg.on{display:block;margin-top:18px;padding:14px 16px;border-radius:14px;background:rgba(255,59,48,.1);border:1px solid rgba(255,90,79,.4)}
+.sp-msg b{display:block;color:#fff;margin-bottom:2px}
+.sp-msg span{color:#ffb3ad;font-size:15px;line-height:1.45}
+.sp-send{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:58px;margin-top:26px;border:0;border-radius:16px;background:linear-gradient(100deg,#00d26a 0%,#00a24b 40%,#006b31 100%);color:#fff;font-family:'Archivo',sans-serif;font-weight:800;font-size:18px;letter-spacing:.01em;cursor:pointer;text-decoration:none;box-shadow:0 14px 34px rgba(0,138,63,.28);touch-action:manipulation;transition:transform .1s,filter .2s}
+.sp-send:hover{filter:brightness(1.08)}
+.sp-send:active{transform:scale(.98)}
+.sp-send:disabled{opacity:.75;cursor:progress}
+.sp-send .hv-spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;display:inline-block;animation:hvSpSpin .8s linear infinite}
+@keyframes hvSpSpin{to{transform:rotate(360deg)}}
+.sp-done{text-align:center;padding:24px 4px 8px}
+.sp-done-ic{width:84px;height:84px;margin:0 auto 22px;border-radius:26px;background:linear-gradient(135deg,#00e676,#008a3f 70%);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 16px 40px rgba(0,138,63,.35)}
+.sp-done p{color:#bdbdbd;font-size:17px;line-height:1.6;margin:12px auto 0;max-width:440px}
+.sp-done-a{max-width:380px;margin:6px auto 0}
+.sp-link{display:inline-flex;align-items:center;min-height:44px;margin-top:12px;color:var(--green-glow);font-weight:600;text-decoration:none}
+.sp-link:hover{text-decoration:underline}
+
+/* karty nad patičkou na úvodní stránce */
+.sp-teaser{background:#060606;border-top:1px solid #151515;padding:72px 40px}
+.sp-teaser-in{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.sp-tc{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:150px;padding:34px 40px;border-radius:28px;background:linear-gradient(120deg,#1c1c1c 0%,#0f0f0f 45%,#04331a 100%);background-origin:border-box;border:1px solid rgba(0,200,83,.22);text-decoration:none;color:#fff;box-shadow:0 18px 50px rgba(0,0,0,.35);transition:transform .2s cubic-bezier(.32,.72,0,1),border-color .2s;touch-action:manipulation;min-width:0}
+.sp-tc:hover{transform:translateY(-3px);border-color:rgba(0,200,83,.45);box-shadow:0 22px 60px rgba(0,138,63,.22)}
+.sp-tc:active{transform:scale(.985)}
+.sp-tc b{display:block;font-family:'Archivo',sans-serif;font-weight:800;font-size:28px;line-height:1.15;letter-spacing:-.01em}
+.sp-tc>span>span{display:block;margin-top:8px;color:#a8a8a8;font-size:17px;line-height:1.45}
+.sp-ta-btn{flex:0 0 66px;height:66px;border-radius:20px;background:linear-gradient(135deg,#00e676,#008a3f 70%);box-shadow:0 8px 22px rgba(0,200,83,.35);color:#fff;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.sp-tc:hover .sp-ta-btn{transform:translateX(3px)}
+.sp-tc.alt{background:linear-gradient(110deg,#005226 0%,#007534 48%,#00a24b 76%,#00e676 100%);background-origin:border-box;border-color:transparent;box-shadow:0 22px 60px rgba(0,200,83,.28)}
+.sp-tc.alt:hover{box-shadow:0 26px 70px rgba(0,200,83,.4)}
+.sp-tc.alt>span>span{color:rgba(255,255,255,.88)}
+.sp-tc.alt .sp-ta-btn{background:#fff;color:#008a3f;box-shadow:0 8px 22px rgba(0,0,0,.25)}
+.sp-tc.alt>span>span{color:rgba(255,255,255,.92)}
+.sp-tc.alt b{text-shadow:0 1px 2px rgba(0,0,0,.18)}
+
+/* animace vyplňování */
+@keyframes spIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes spPop{0%{transform:scale(.4)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes spBump{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:scale(1)}}
+@keyframes spShake{0%,100%{transform:none}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+@keyframes spDone{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}
+.sp-f.sp-new{animation:spIn .32s cubic-bezier(.32,.72,0,1) both}
+.sp-chip.on .sp-ck,.sp-cb input:checked+.sp-box svg{animation:spPop .3s cubic-bezier(.32,.72,0,1) both}
+.sp-pct.bump{animation:spBump .32s cubic-bezier(.32,.72,0,1)}
+.sp-pct.full{box-shadow:0 0 0 4px rgba(0,200,83,.18)}
+.sp-f.shake{animation:spShake .36s ease}
+.sp-err:not(:empty){animation:spIn .25s ease both}
+.sp-done{animation:spDone .42s cubic-bezier(.32,.72,0,1) both}
+.sp-done-ic{animation:spPop .5s .12s cubic-bezier(.32,.72,0,1) both}
+.sp-sec{animation:spIn .4s cubic-bezier(.32,.72,0,1) both}
+
+@media(max-width:980px){
+  .sp-wrap{grid-template-columns:1fr;gap:36px;padding:104px 20px 72px}
+  .sp-img,.sp-perks{max-width:none}
+  .sp-teaser-in{grid-template-columns:1fr;gap:16px}
+  .sp-teaser{padding:48px 20px}
+}
+@media(max-width:600px){
+  .sp-wrap{padding:96px 16px 64px}
+  .sp-card{padding:24px 18px;border-radius:26px}
+  .sp-ct{font-size:24px}
+  .sp-row,.sp-grid3{grid-template-columns:1fr}
+  .sp-chips.tiles{grid-template-columns:1fr}
+  .sp-chip{padding:10px 16px}
+  .sp-lead{font-size:17px}
+  .sp-perks li{gap:14px;padding:16px 0}
+  .sp-pi{flex-basis:46px;height:46px;border-radius:14px}
+  .sp-tc{min-height:0;padding:24px 22px;border-radius:24px}
+  .sp-tc b{font-size:22px}
+  .sp-tc>span>span{font-size:16px}
+  .sp-ta-btn{flex-basis:54px;height:54px;border-radius:16px}
+  .sp-tc.alt{background:linear-gradient(115deg,#005226 0%,#007534 58%,#009a47 84%,#00e676 100%)}
+}
+@media(prefers-reduced-motion:reduce){.sp-bar i,.sp-tc,.sp-ta-btn{transition:none}.sp-tc:hover{transform:none}.sp-f.sp-new,.sp-chip.on .sp-ck,.sp-cb input:checked+.sp-box svg,.sp-pct.bump,.sp-f.shake,.sp-err:not(:empty),.sp-done,.sp-done-ic,.sp-sec{animation:none}}
+
+/* tvar tlačítek jako zbytek e-shopu (ostré rohy) */
+.sp-tc,.sp-ta-btn,.sp-send,.sp-chip,.sp-switch,.sp-switch a,.sp-ck{border-radius:0}
+@media(max-width:600px){.sp-tc,.sp-ta-btn{border-radius:0}}
 </style>
 </head>
 <body>
@@ -3139,12 +3301,15 @@ function render(){
     track:viewTrack,trackOrder:viewTrackOrder,
     login:viewLogin,register:viewRegister,account:viewAccount,info:viewInfo,
     complaint:viewComplaint,
+    'spoluprace/ridic':()=>viewSpoluprace('ridic'),'spoluprace/firma':()=>viewSpoluprace('firma'),
     'admin-login':viewAdminLogin,admin:viewAdmin,
   };
   // jiná stránka (např. Zpět na mobilu) → zavřít přihlašovací/adresní okno, ať nezůstane viset přes obchod
   const key=path+(path==='product'?'?'+JSON.stringify(params||{}):'');
   {const cm=document.getElementById('hopiCartModal'); if(cm&&cm.style.display==='block'&&cm.dataset.hvPage!==undefined&&cm.dataset.hvPage!==location.hash){try{closeAddedToCartModal()}catch(e){}}}
   {const am=document.getElementById('acModal'); if(am&&am.dataset.hvPage!==undefined&&am.dataset.hvPage!==location.hash&&typeof _acMode!=='undefined'&&_acMode!=='newpass'){try{closeAuth()}catch(e){}}}
+  if(path!=='admin'&&document.getElementById('hvSheet')){try{hvSheetClose()}catch(e){}}
+  if(path.startsWith('spoluprace/')&&typeof _spS!=='undefined'&&_spS&&_spS.done&&window._hvLastPage!==key)_spS=null;
   (views[path]||viewHome)(params);
   try{hvTrack(views[path]?path:'home',params)}catch(e){}
   // nová stránka (nebo jiný produkt) → začít nahoře
@@ -3270,6 +3435,8 @@ function renderFooter(){
               <li><a onclick="go('home')">Všechny produkty</a></li>
               <li><a onclick="go('cart')">Košík</a></li>
               <li><a onclick="go('track')">Sledování objednávky</a></li>
+              <li><a onclick="go('spoluprace/ridic')">Nábor řidičů</a></li>
+              <li><a onclick="go('spoluprace/firma')">Spolupráce s firmami</a></li>
             </ul>
           </div>
           <div class="footer-col">
@@ -3476,6 +3643,8 @@ function viewHome(){
       <div class="faq-item" onclick="this.classList.toggle('open')"><div class="faq-q">Dodáváte na Slovensko? <span class="faq-toggle">+</span></div><div class="faq-a">Ano, doručení 2–3 dny.</div></div>
       <div class="faq-item" onclick="this.classList.toggle('open')"><div class="faq-q">Můžu platit kartou? <span class="faq-toggle">+</span></div><div class="faq-a">Kartou, Apple Pay, Google Pay, převodem i dobírkou.</div></div>
     </section>
+
+    ${hvSpTeaser()}
 
     ${renderFooter()}
 
@@ -6894,7 +7063,7 @@ window.hvSaveFreeShip=async function(){
 };
 
 // ============== ADMIN: NOTIFIKACE A PŘÍJEMCI ==============
-const HV_NOTIF_EVENTS={new_registration:'Nová registrace zákazníka',new_order:'Nová objednávka',order_paid:'Zaplacená objednávka',ready_to_pack:'Objednávka k zabalení',payment_failed:'Neúspěšná platba'};
+const HV_NOTIF_EVENTS={new_registration:'Nová registrace zákazníka',new_order:'Nová objednávka',order_paid:'Zaplacená objednávka',ready_to_pack:'Objednávka k zabalení',payment_failed:'Neúspěšná platba',join_driver:'Přihláška řidiče',join_company:'Žádost o spolupráci'};
 const HV_NOTIF_LOG_LABEL=Object.assign({},HV_NOTIF_EVENTS,{telegram:'Telegram · nová objednávka',test:'Test',customer_new:'Zákazník · Děkujeme za objednávku',customer_accepted:'Zákazník · Přijato',customer_processing:'Zákazník · Balíme',customer_shipped:'Zákazník · Odesláno',customer_delivered:'Zákazník · Doručeno',customer_cancelled:'Zákazník · Zrušeno'});
 // Srozumitelný důvod chyby (Resend vrací anglicky)
 function hvNotifErrCz(e){e=String(e||'');if(/verify a domain|only send testing emails/i.test(e))return 'Resend zatím posílá jen na e-mail, se kterým jsi zakládal účet Resend. Ostatním příjemcům to půjde po ověření domény (Resend → Domains).';if(/send-admin-notification.*není nasazená/.test(e))return e+'. Telegram proto neodešel.';return e}
@@ -6934,7 +7103,7 @@ function viewNotificationsAdmin(){
       ${_hvNLogErr?`<div class="cp-empty"><b>Log se nepodařilo načíst</b><span>${escapeHtml(_hvNLogErr)}</span></div>`:_hvNLog===null?'<div class="cp-empty"><span><span class="hv-spin"></span> Načítám…</span></div>':_hvNLog.length?`<div class="nt-log">${_hvNLog.map(l=>`
         <div class="nt-lr"><span class="nt-t">${fmt(l.created_at)}</span><span class="nt-w"><b>${escapeHtml(HV_NOTIF_LOG_LABEL[l.event]||l.event)}${l.event!=='test'&&l.event!=='new_registration'?' · '+escapeHtml(l.ref):''}</b><small>${escapeHtml(l.recipient_email)}${l.attempts>1?' · '+l.attempts+'. pokus':''}${l.error?' · '+escapeHtml(hvNotifErrCz(l.error)):''}</small></span>
           <span>${odPill((st[l.status]||[l.status])[0],(st[l.status]||[0,'#8E8E93'])[1])}</span>
-          <span>${l.status==='failed'&&l.event!=='test'&&l.event!=='telegram'?`<button class="ovw-btn sm" onclick="hvNotifRetry(${l.id},this)">Zkusit znovu</button>`:''}</span></div>`).join('')}</div>`:'<div class="cp-empty"><b>Zatím nic neodešlo</b><span>Pošli si testovací e-mail z úpravy příjemce.</span></div>'}
+          <span>${l.status==='failed'&&l.event!=='test'&&l.event!=='telegram'&&!/^join_/.test(l.event)?`<button class="ovw-btn sm" onclick="hvNotifRetry(${l.id},this)">Zkusit znovu</button>`:''}</span></div>`).join('')}</div>`:'<div class="cp-empty"><b>Zatím nic neodešlo</b><span>Pošli si testovací e-mail z úpravy příjemce.</span></div>'}
     </div>
   </div>`;
 }
@@ -6946,8 +7115,8 @@ window.hvRcpOpen=function(id){
     <div class="cf"><label for="rcName">Jméno</label><input type="text" id="rcName" value="${escapeHtml(r.name)}" maxlength="80" placeholder="např. Tonda – balení"></div>
     <div class="cf"><label for="rcEmail">E-mail</label><input type="email" id="rcEmail" value="${escapeHtml(r.email)}" inputmode="email" placeholder="např. balic@seznam.cz" oninput="this.classList.remove('gpc-bad');document.getElementById('rcEmailErr').hidden=true"><div class="gpc-err" id="rcEmailErr" hidden></div></div>
     <div class="cf"><label>Co mu chodí</label>
-      <div class="nt-presets">${preset('Administrátor',['new_registration','new_order','order_paid','payment_failed'])}${preset('Balič',['ready_to_pack'])}</div>
-      <div class="pm-list">${Object.entries(HV_NOTIF_EVENTS).map(([k,l])=>`<label class="pm-row sm"><span class="pm-txt"><b>${l}</b><small>${{new_registration:'jen interně – nový zákaznický účet',new_order:'každá nová objednávka',order_paid:'platba kartou nebo označený převod',ready_to_pack:'zaplacená objednávka nebo dobírka – můžeš balit',payment_failed:'zákazník platbu nedokončil'}[k]}</small></span><input type="checkbox" class="hv-cbsw nt-evc" role="switch" value="${k}" ${r.events.includes(k)?'checked':''} aria-label="${l}"></label>`).join('')}</div></div>
+      <div class="nt-presets">${preset('Administrátor',['new_registration','new_order','order_paid','payment_failed','join_driver','join_company'])}${preset('Balič',['ready_to_pack'])}</div>
+      <div class="pm-list">${Object.entries(HV_NOTIF_EVENTS).map(([k,l])=>`<label class="pm-row sm"><span class="pm-txt"><b>${l}</b><small>${{new_registration:'jen interně – nový zákaznický účet',new_order:'každá nová objednávka',order_paid:'platba kartou nebo označený převod',ready_to_pack:'zaplacená objednávka nebo dobírka – můžeš balit',payment_failed:'zákazník platbu nedokončil',join_driver:'nový zájemce z formuláře Nábor řidičů',join_company:'jiná virtuální firma chce spolupracovat'}[k]}</small></span><input type="checkbox" class="hv-cbsw nt-evc" role="switch" value="${k}" ${r.events.includes(k)?'checked':''} aria-label="${l}"></label>`).join('')}</div></div>
     <label class="pm-row sm"><span class="pm-txt"><b>Aktivní</b><small>vypnutému nic nechodí</small></span><input type="checkbox" class="hv-cbsw" role="switch" id="rcActive" ${r.active?'checked':''} aria-label="Aktivní"></label>
     <div id="rcMsg"></div>
     <p class="hv-note">Příjemce nepotřebuje účet v adminu. Odkaz v e-mailu otevře objednávku až po přihlášení.</p>`,
@@ -7129,6 +7298,303 @@ window.submitComplaint=function(){
 
   showToast('✅ Reklamace odeslána — ozveme se do 24 h');
   setTimeout(()=>go('home'),1500);
+}
+
+// ============== SPOLUPRÁCE: nábor řidičů a spolupráce firem ==============
+// Stránky #spoluprace/ridic a #spoluprace/firma (odkaz z venku: eshophopivirtual.com/spoluprace/ridic).
+// Odpovědi posílá Edge Function „spoluprace“ do Google Formuláře (→ Google Tabulka) a e-mailem
+// příjemcům z Admin → Notifikace. Pravidla se načítají z Google dokumentu.
+const HV_SP_RULES_DOC='https://docs.google.com/document/d/1RmgNfowo6OgB3z8qzhnGSr6EvZMcmKKImVORK4nkCPY/view';
+const HV_SP_IC={
+  route:'<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
+  chat:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  chart:'<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  shirt:'<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+  mega:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  truck:'<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  arrow:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  book:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
+};
+function hvSpIcon(n,s=22){return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${HV_SP_IC[n]||''}</svg>`}
+
+const HV_SP={
+  ridic:{
+    tag:'Nábor řidičů', h1a:'Jezdi s námi', h1b:'v HOPI VIRTUAL.',
+    lead:'Jsme česko-slovenská virtuální firma v Euro Truck Simulatoru 2. Hledáme řidiče, kteří rádi jezdí v partě, chodí na konvoje a drží se pravidel.',
+    img:'spoluprace-ridic.jpg',
+    perks:[['route','Pravidelné konvoje','Firemní jízdy po Evropě. Přidáš se, kdykoli máš čas.'],['chat','Parta na Discordu','CZ/SK komunita, rady pro nováčky a pokec i mimo jízdu.'],['chart','Statistiky v Trucky','Zakázky a najeté kilometry se ti počítají do firemních statistik.'],['shirt','Vlastní merch','Oblečení HOPI VIRTUAL přímo z našeho e-shopu.']],
+    title:'Přihláška do firmy', sub:'Zabere to asi tři minuty.', send:'Odeslat přihlášku',
+    okTitle:'Přihláška je odeslaná', okText:'Děkujeme za podání přihlášky do HOPI VIRTUAL. Po zkontrolování údajů tě budeme kontaktovat přes Discord. Přejeme mnoho bezpečně najetých kilometrů!',
+    rules:true,
+    sections:[
+      ['O tobě',[
+        {k:'name',t:'text',l:'Jak tě máme oslovovat?',ph:'např. Pepa',max:60,req:1,ac:'nickname'},
+        {row:[{k:'age',t:'num',l:'Kolik je ti let?',ph:'např. 21',req:1},{k:'country',t:'chips',l:'Odkud jsi?',o:['CZ','SK'],req:1}]},
+      ]],
+      ['Tvoje přezdívky',[
+        {grid:[{k:'discord',t:'text',l:'Discord',ph:'např. pepa_hopi',max:60,req:1},{k:'trucky',t:'text',l:'Trucky',ph:'nick v Trucky',max:60,req:1},{k:'steam',t:'text',l:'Steam',ph:'nick na Steamu',max:60,req:1}]},
+        {note:'Ideálně všude stejná přezdívka – patří to k pravidlům firmy.'},
+      ]],
+      ['ETS2',[
+        {k:'hours',t:'chips',l:'Kolik hodin máš v ETS2?',o:['Do 100','100–500','500–1000','Více než 1000'],req:1},
+        {k:'pref',t:'chips',l:'Co víc preferuješ?',o:['TruckersMP','SinglePlayer','Obojí'],req:1},
+        {k:'tmpExp',t:'chips',l:'Máš zkušenosti s TruckersMP?',o:['Ano','Ne'],req:1,show:a=>a.pref==='SinglePlayer'},
+        {k:'freq',t:'chips',l:'Jak často hraješ?',o:['Denně','Několikrát do týdne','Přes víkendy','Občas'],req:1},
+        {k:'km',t:'chips',l:'Kolik km měsíčně najezdíš?',o:['5 000–10 000 km','10 000–20 000 km','Více než 20 000 km'],req:1},
+        {k:'dlc',t:'multi',l:'Jaká DLC s mapami máš?',hint:'můžeš vybrat víc',o:['Going East!','Scandinavia','Italia','Beyond the Baltic Sea','Road to the Black Sea','Iberia','West Balkans','Greece','Nemám DLC'],none:'Nemám DLC',req:1,tiles:1},
+      ]],
+      ['Konvoje a zkušenosti',[
+        {k:'convoyCan',t:'chips',l:'Můžeš chodit na firemní konvoje?',o:['Ano, pravidelně','Spíše ne'],req:1},
+        {k:'convoyExp',t:'chips',l:'Jezdil/a jsi už v konvoji?',o:['Ano','Stále se učím','Ne, ale mám chuť to zkusit'],req:1},
+        {k:'vtcHas',t:'chips',l:'Byl/a jsi už v jiné virtuální firmě?',o:['Ano','Ne'],req:1},
+        {k:'vtc',t:'text',l:'Ve které?',ph:'název firmy',max:120,req:1,show:a=>a.vtcHas==='Ano'},
+        {k:'vtcWhy',t:'area',l:'Proč jsi odešel/odešla?',ph:'pár slov stačí',max:600,req:1,show:a=>a.vtcHas==='Ano'},
+      ]],
+      ['Motivace',[
+        {k:'why',t:'area',l:'Proč se chceš přidat právě do HOPI VIRTUAL?',ph:'Co tě k nám táhne…',max:1200,req:1},
+        {k:'expect',t:'area',l:'Co od nás očekáváš?',ph:'Konvoje, parta, pomoc s TruckersMP…',max:1200,req:1},
+        {k:'note',t:'area',l:'Chceš nám ještě něco říct?',ph:'Cokoli dalšího',max:1200},
+      ]],
+    ],
+  },
+  firma:{
+    tag:'Pro virtuální firmy', h1a:'Máte firmu?', h1b:'Pojeďme spolu.',
+    lead:'Rádi se spojíme s dalšími VTC z ETS2 i ATS. Společné konvoje, vzájemná propagace nebo eventy – napište nám, co vás láká, a ozveme se přes Discord.',
+    img:'spoluprace-firma.jpg',
+    perks:[['truck','Společné konvoje','Naplánujeme trasu a vyrazíme v jednom konvoji.'],['mega','Vzájemná propagace','Sdílíme vaše akce na sítích a Discordu, vy ty naše.'],['users','CZ/SK komunita','Propojíme řidiče obou firem a rozšíříme partu.'],['trophy','Eventy a soutěže','Společné akce, soutěže a speciální jízdy.']],
+    title:'Žádost o spolupráci', sub:'Zabere to asi minutu.', send:'Odeslat žádost',
+    okTitle:'Díky, máme to!', okText:'Žádost o spolupráci dorazila. Ozveme se vám přes Discord.',
+    sections:[
+      ['Vaše firma',[
+        {k:'company',t:'text',l:'Název firmy',ph:'např. Trans CZ Virtual',max:80,req:1,ac:'organization'},
+        {k:'link',t:'text',l:'Odkaz na firmu',ph:'TruckersMP, Trucky nebo web',max:300,req:1,im:'url'},
+        {row:[{k:'game',t:'chips',l:'Jakou hru jezdíte?',o:['ETS2','ATS','Obojí'],req:1},{k:'where',t:'chips',l:'Kde jezdíte?',o:['TruckersMP','SinglePlayer','Obojí'],req:1}]},
+        {k:'drivers',t:'chips',l:'Kolik máte řidičů?',o:['Do 10','10–30','30–60','Více než 60'],req:1},
+      ]],
+      ['Spolupráce',[
+        {k:'coop',t:'multi',l:'O jakou spolupráci máte zájem?',hint:'můžete vybrat víc',o:['Společné konvoje','Vzájemná propagace','Eventy a soutěže','Jiné'],req:1},
+        {k:'often',t:'chips',l:'Jak často byste chtěli jezdit spolu?',o:['Jednorázově','Zhruba 1x měsíčně','Pravidelně'],req:1},
+      ]],
+      ['Kontakt',[
+        {row:[{k:'contact',t:'text',l:'Kontaktní osoba',ph:'přezdívka',max:60,req:1},{k:'discord',t:'text',l:'Discord',ph:'např. karel_vtc',max:60,req:1}]},
+        {k:'role',t:'chips',l:'Role ve firmě',o:['Majitel','Vedení','Event manažer','Jiné'],req:1},
+        {k:'invite',t:'text',l:'Pozvánka na váš Discord',ph:'discord.gg/…',max:300,im:'url'},
+        {k:'message',t:'area',l:'Zpráva nebo návrh',ph:'Co máte v plánu, termín konvoje…',max:2000},
+      ]],
+    ],
+  },
+};
+let _spS=null;   // {form, a:{}, start, sending, done, cons:{gdpr,rules}}
+function hvSpFields(cfg){const out=[];cfg.sections.forEach(([,list])=>list.forEach(x=>{if(x.row)out.push(...x.row);else if(x.grid)out.push(...x.grid);else if(x.k)out.push(x)}));return out}
+function hvSpDraftKey(f){return 'hv_sp_'+f}
+function hvSpLoadDraft(f){try{const d=JSON.parse(sessionStorage.getItem(hvSpDraftKey(f))||'null');return d&&typeof d==='object'?d:null}catch(e){return null}}
+function hvSpSaveDraft(){if(!_spS||_spS.done)return;try{sessionStorage.setItem(hvSpDraftKey(_spS.form),JSON.stringify({a:_spS.a,cons:_spS.cons}))}catch(e){}}
+
+function hvSpFieldHtml(f,a){
+  const v=a[f.k];
+  const req=f.req?'':' <span class="sp-opt">(nepovinné)</span>';
+  const hint=f.hint?` <span class="sp-opt">(${escapeHtml(f.hint)})</span>`:'';
+  const hid=f.show&&!f.show(a)?' hidden':'';
+  const id='sp_'+f.k;
+  let ctl='';
+  if(f.t==='text'||f.t==='num'){
+    ctl=`<input class="sp-in" id="${id}" name="${f.k}" type="text" ${f.t==='num'?'inputmode="numeric" maxlength="2" pattern="[0-9]*"':`maxlength="${f.max||200}"`} ${f.im?`inputmode="${f.im}"`:''} ${f.ac?`autocomplete="${f.ac}"`:'autocomplete="off"'} placeholder="${escapeHtml(f.ph||'')}" value="${escapeHtml(v||'')}" oninput="hvSpIn(this)" aria-describedby="${id}_e">`;
+  }else if(f.t==='area'){
+    ctl=`<textarea class="sp-in sp-ta" id="${id}" name="${f.k}" rows="3" maxlength="${f.max||1200}" placeholder="${escapeHtml(f.ph||'')}" oninput="hvSpIn(this)" aria-describedby="${id}_e">${escapeHtml(v||'')}</textarea>`;
+  }else{
+    const multi=f.t==='multi', sel=multi?(Array.isArray(v)?v:[]):v;
+    ctl=`<div class="sp-chips${f.tiles?' tiles':''}" role="group" aria-labelledby="${id}_l">${f.o.map(o=>{const on=multi?sel.includes(o):sel===o;return `<button type="button" class="sp-chip${on?' on':''}" data-k="${f.k}" data-v="${escapeHtml(o)}" aria-pressed="${on}" onclick="hvSpPick(this)"><span class="sp-ck">${hvSpIcon('check',14)}</span>${escapeHtml(o)}</button>`}).join('')}</div>`;
+  }
+  const labFor=(f.t==='chips'||f.t==='multi')?`id="${id}_l"`:`for="${id}"`;
+  const extra=f.k==='age'?`<div class="sp-hint" id="sp_age_h"${(+v>0&&+v<18)?'':' hidden'}>Pravidla počítají s 18+. Výjimku může posoudit náborář – klidně pošli přihlášku.</div>`:'';
+  return `<div class="sp-f" data-k="${f.k}"${hid}><label class="sp-l" ${labFor}>${escapeHtml(f.l)}${req}${hint}</label>${ctl}${extra}<div class="sp-err" id="${id}_e" role="alert"></div></div>`;
+}
+function hvSpFormHtml(form){
+  const cfg=HV_SP[form], a=_spS.a;
+  if(_spS.done)return hvSpDoneHtml(form);
+  let n=0;
+  const secs=cfg.sections.map(([h,list])=>{n++;return `<div class="sp-sec" role="group" aria-labelledby="sp_sh${n}"><h3 class="sp-sh" id="sp_sh${n}"><span>${String(n).padStart(2,'0')}</span> / ${escapeHtml(h)}</h3>${list.map(x=>{
+    if(x.note)return `<p class="sp-note">${escapeHtml(x.note)}</p>`;
+    if(x.row)return `<div class="sp-row">${x.row.map(f=>hvSpFieldHtml(f,a)).join('')}</div>`;
+    if(x.grid)return `<div class="sp-grid3">${x.grid.map(f=>hvSpFieldHtml(f,a)).join('')}</div>`;
+    return hvSpFieldHtml(x,a)}).join('')}</div>`}).join('');
+  const rules=cfg.rules?`
+    <div class="sp-sec" role="group" aria-labelledby="sp_shr"><h3 class="sp-sh" id="sp_shr"><span>${String(++n).padStart(2,'0')}</span> / Pravidla</h3>
+      <div class="sp-rules"><div class="sp-rules-h">${hvSpIcon('book',20)}<span>Pravidla HOPI VIRTUAL</span></div><div class="sp-rules-b" id="spRulesBody">${hvSpRulesHtml()}</div></div>
+      <div class="sp-f" data-k="rules"><label class="sp-cb"><input type="checkbox" id="sp_rules" ${_spS.cons.rules?'checked':''} onchange="hvSpCons(this,'rules')" aria-describedby="sp_rules_e"><span class="sp-box">${hvSpIcon('check',16)}</span><span>Přečetl/a jsem si pravidla HOPI VIRTUAL a budu je dodržovat.</span></label><div class="sp-err" id="sp_rules_e" role="alert"></div></div>
+    </div>`:'';
+  return `
+    <div class="sp-card-h"><div><h2 class="sp-ct">${escapeHtml(cfg.title)}</h2><p class="sp-cs">${escapeHtml(cfg.sub)}</p></div><span class="sp-pct" id="spPct" aria-live="polite">0 %</span></div>
+    <div class="sp-bar" aria-hidden="true"><i id="spBar"></i></div>
+    <form class="sp-form" novalidate onsubmit="event.preventDefault();hvSpSubmit()">
+      <input type="text" name="web" id="sp_hp" class="sp-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      ${secs}${rules}
+      <div class="sp-f" data-k="gdpr"><label class="sp-cb"><input type="checkbox" id="sp_gdpr" ${_spS.cons.gdpr?'checked':''} onchange="hvSpCons(this,'gdpr')" aria-describedby="sp_gdpr_e"><span class="sp-box">${hvSpIcon('check',16)}</span><span>Beru na vědomí, že údaje zpracujete podle <a onclick="event.preventDefault();go('info?t=gdpr')" href="#info?t=gdpr">Zásad ochrany osobních údajů</a>.</span></label><div class="sp-err" id="sp_gdpr_e" role="alert"></div></div>
+      <div class="sp-msg" id="spMsg" role="alert"></div>
+      <button type="submit" class="sp-send" id="spSend"><span>${escapeHtml(cfg.send)}</span>${hvSpIcon('arrow',20)}</button>
+    </form>`;
+}
+function hvSpDoneHtml(form){
+  const cfg=HV_SP[form];
+  return `<div class="sp-done"><div class="sp-done-ic">${hvSpIcon('check',38)}</div><h2 class="sp-ct">${escapeHtml(cfg.okTitle)}</h2><p>${escapeHtml(cfg.okText)}</p>
+    <div class="sp-done-a"><a class="sp-send" href="#home" onclick="event.preventDefault();go('home')"><span>Zpět do obchodu</span>${hvSpIcon('arrow',20)}</a>
+    <a class="sp-link" href="#spoluprace/${form==='ridic'?'firma':'ridic'}" onclick="event.preventDefault();go('spoluprace/${form==='ridic'?'firma':'ridic'}')">${form==='ridic'?'Máte firmu? Žádost o spolupráci':'Chceš jezdit u nás? Přihláška řidiče'}</a></div></div>`;
+}
+function hvSpRulesHtml(){
+  const r=window._spRules;
+  if(!r)return '<p class="sp-rl-load"><span class="hv-spin"></span> Načítám pravidla…</p>';
+  if(r.err)return `<p class="sp-rl-load">Pravidla se teď nepodařilo načíst. <a href="${HV_SP_RULES_DOC}" target="_blank" rel="noopener">Otevřít pravidla v Google dokumentu</a></p>`;
+  const lines=r.text.split('\n').map(l=>l.trim()).filter(Boolean);
+  return `<div class="sp-rl">${lines.map(l=>{const m=l.match(/^(\d{1,2})[.)]\s*(.*)$/);return m?`<p class="n"><b>${m[1]}.</b><span>${escapeHtml(m[2])}</span></p>`:`<p>${escapeHtml(l)}</p>`}).join('')}</div>`;
+}
+window.hvSpLoadRules=async function(){
+  if((window._spRules&&!window._spRules.err)||window._spRulesBusy)return;
+  window._spRulesBusy=true;
+  window._spRules=null; const b=document.getElementById('spRulesBody'); if(b)b.innerHTML=hvSpRulesHtml();
+  try{
+    const r=await fetch(SUPABASE_URL+'/functions/v1/spoluprace',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},body:JSON.stringify({action:'rules'})});
+    const d=await r.json().catch(()=>null);
+    window._spRules=d&&d.ok&&d.text?{text:d.text}:{err:true};
+  }catch(e){window._spRules={err:true}}
+  window._spRulesBusy=false;
+  const b2=document.getElementById('spRulesBody'); if(b2)b2.innerHTML=hvSpRulesHtml();
+};
+
+function viewSpoluprace(form){
+  const cfg=HV_SP[form];
+  if(!_spS||_spS.form!==form){const d=hvSpLoadDraft(form);_spS={form,a:(d&&d.a)||{},cons:(d&&d.cons)||{},start:Date.now(),sending:false,done:false}}
+  const other=form==='ridic'?'firma':'ridic';
+  document.getElementById('app').innerHTML=`
+    ${renderNavbar()}
+    <main class="sp-page">
+      <div class="sp-wrap">
+        <div class="sp-left">
+          <nav class="sp-switch" aria-label="Spolupráce"><a href="#spoluprace/ridic" onclick="event.preventDefault();go('spoluprace/ridic')" class="${form==='ridic'?'on':''}" ${form==='ridic'?'aria-current="page"':''}>Řidiči</a><a href="#spoluprace/firma" onclick="event.preventDefault();go('spoluprace/firma')" class="${form==='firma'?'on':''}" ${form==='firma'?'aria-current="page"':''}>Firmy</a></nav>
+          <div class="sp-tag"><i></i>${escapeHtml(cfg.tag)}</div>
+          <h1 class="sp-h1">${escapeHtml(cfg.h1a)} <span>${escapeHtml(cfg.h1b)}</span></h1>
+          <p class="sp-lead">${escapeHtml(cfg.lead)}</p>
+          <img class="sp-img" src="${cfg.img}" alt="" loading="lazy" onerror="this.remove()">
+          <ul class="sp-perks">${cfg.perks.map(([ic,t,d])=>`<li><span class="sp-pi">${hvSpIcon(ic,24)}</span><span><b>${escapeHtml(t)}</b><span>${escapeHtml(d)}</span></span></li>`).join('')}</ul>
+          <a class="sp-other" href="#spoluprace/${other}" onclick="event.preventDefault();go('spoluprace/${other}')">${other==='firma'?'Máte virtuální firmu? Žádost o spolupráci':'Chceš jezdit u nás? Přihláška řidiče'} ${hvSpIcon('arrow',18)}</a>
+        </div>
+        <section class="sp-card" id="spCard" aria-label="${escapeHtml(cfg.title)}">${hvSpFormHtml(form)}</section>
+      </div>
+    </main>
+    ${renderFooter()}`;
+  hvSpProgress();
+  if(cfg.rules&&!(window._spRules&&!window._spRules.err))hvSpLoadRules();
+}
+
+function hvSpVisible(f){return !f.show||f.show(_spS.a)}
+function hvSpFilled(f){const v=_spS.a[f.k];return Array.isArray(v)?v.length>0:!!String(v||'').trim()}
+function hvSpProgress(){
+  if(!_spS||_spS.done)return;
+  const cfg=HV_SP[_spS.form];
+  const req=hvSpFields(cfg).filter(f=>f.req&&hvSpVisible(f));
+  let tot=req.length+1+(cfg.rules?1:0), ok=req.filter(hvSpFilled).length+(_spS.cons.gdpr?1:0)+(cfg.rules&&_spS.cons.rules?1:0);
+  const p=Math.round(ok/tot*100);
+  const el=document.getElementById('spPct'); if(el){const old=el.textContent;el.textContent=p+' %';el.classList.toggle('full',p===100);if(old!==el.textContent){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')}}
+  const b=document.getElementById('spBar'); if(b)b.style.width=p+'%';
+}
+function hvSpErr(k,msg){
+  const w=document.querySelector(`.sp-f[data-k="${k}"]`); if(!w)return;
+  w.classList.toggle('bad',!!msg); const e=w.querySelector('.sp-err'); if(e)e.textContent=msg||'';
+}
+function hvSpRefresh(){
+  // podmíněná pole (SinglePlayer → zkušenost s TMP, jiná firma → název a důvod)
+  hvSpFields(HV_SP[_spS.form]).forEach(f=>{if(!f.show)return;const w=document.querySelector(`.sp-f[data-k="${f.k}"]`);if(!w)return;const show=f.show(_spS.a);if(show&&w.hidden){w.classList.remove('sp-new');void w.offsetWidth;w.classList.add('sp-new')}w.hidden=!show});
+  const ah=document.getElementById('sp_age_h'); if(ah){const v=+_spS.a.age;ah.hidden=!(v>0&&v<18)}
+  hvSpProgress(); hvSpSaveDraft();
+}
+window.hvSpIn=function(el){
+  if(!_spS)return; let v=el.value;
+  if(el.name==='age'){const c=v.replace(/\D/g,'').slice(0,2);if(c!==v){el.value=c;v=c}}
+  _spS.a[el.name]=v; hvSpErr(el.name,''); hvSpRefresh();
+};
+window.hvSpPick=function(btn){
+  if(!_spS)return;
+  const k=btn.dataset.k, v=btn.dataset.v, f=hvSpFields(HV_SP[_spS.form]).find(x=>x.k===k); if(!f)return;
+  const box=btn.closest('.sp-chips');
+  if(f.t==='multi'){
+    let list=Array.isArray(_spS.a[k])?[..._spS.a[k]]:[];
+    if(list.includes(v))list=list.filter(x=>x!==v);
+    else{ if(f.none&&v===f.none)list=[v]; else{list=list.filter(x=>x!==f.none);list.push(v)} }
+    _spS.a[k]=list;
+    box.querySelectorAll('.sp-chip').forEach(c=>{const on=list.includes(c.dataset.v);c.classList.toggle('on',on);c.setAttribute('aria-pressed',on)});
+  }else{
+    _spS.a[k]=v;
+    box.querySelectorAll('.sp-chip').forEach(c=>{const on=c.dataset.v===v;c.classList.toggle('on',on);c.setAttribute('aria-pressed',on)});
+  }
+  hvSpErr(k,''); hvSpRefresh();
+};
+window.hvSpCons=function(el,k){if(!_spS)return;_spS.cons[k]=el.checked;hvSpErr(k,'');hvSpRefresh()};
+
+function hvSpAnswers(){
+  const a={..._spS.a};
+  if(_spS.form==='ridic'){
+    if(a.pref&&a.pref!=='SinglePlayer')a.tmpExp='Ano';
+    if(a.vtcHas==='Ne'){a.vtc='Ne';a.vtcWhy='—'}
+    delete a.vtcHas; a.rules=_spS.cons.rules?'Ano':'';
+  }
+  Object.keys(a).forEach(k=>{if(typeof a[k]==='string')a[k]=a[k].trim()});
+  return a;
+}
+function hvSpValidate(){
+  const cfg=HV_SP[_spS.form]; const bad=[];
+  hvSpFields(cfg).forEach(f=>{
+    if(!hvSpVisible(f)){hvSpErr(f.k,'');return}
+    let m='';
+    if(f.req&&!hvSpFilled(f))m=f.t==='chips'?'Vyber jednu možnost':f.t==='multi'?'Vyber aspoň jednu možnost':'Tohle pole vyplň, prosím';
+    else if(f.k==='age'){const n=+_spS.a.age;if(!(n>=10&&n<=99))m='Napiš věk číslem, např. 21'}
+    hvSpErr(f.k,m); if(m)bad.push(f.k);
+  });
+  if(cfg.rules&&!_spS.cons.rules){hvSpErr('rules','Potvrď prosím, že budeš pravidla dodržovat');bad.push('rules')}
+  if(!_spS.cons.gdpr){hvSpErr('gdpr','Potvrď prosím zpracování údajů');bad.push('gdpr')}
+  return bad;
+}
+const HV_SP_SRV2UI={vtc:'vtc',vtcWhy:'vtcWhy',rules:'rules'};
+window.hvSpSubmit=async function(){
+  if(!_spS||_spS.sending||_spS.done)return;
+  const msg=document.getElementById('spMsg'); if(msg){msg.innerHTML='';msg.className='sp-msg'}
+  const bad=hvSpValidate();
+  if(bad.length){
+    bad.forEach(k=>{const x=document.querySelector(`.sp-f[data-k="${k}"]`);if(x){x.classList.remove('shake');void x.offsetWidth;x.classList.add('shake')}});
+    const w=document.querySelector(`.sp-f[data-k="${bad[0]}"]`);
+    if(w){w.scrollIntoView({behavior:'smooth',block:'center'});const i=w.querySelector('input:not([type=checkbox]),textarea,.sp-chip,input');if(i)setTimeout(()=>i.focus({preventScroll:true}),350)}
+    return;
+  }
+  const btn=document.getElementById('spSend'); const cfg=HV_SP[_spS.form];
+  _spS.sending=true; btn.disabled=true; btn.innerHTML='<span class="hv-spin"></span><span>Odesílám…</span>';
+  let d=null, st=0;
+  try{
+    const r=await fetch(SUPABASE_URL+'/functions/v1/spoluprace',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},
+      body:JSON.stringify({action:'submit',form:_spS.form,answers:hvSpAnswers(),hp:(document.getElementById('sp_hp')||{}).value||'',elapsed:Date.now()-_spS.start})});
+    st=r.status; d=await r.json().catch(()=>null);
+  }catch(e){d=null}
+  _spS.sending=false;
+  if(d&&d.ok){
+    _spS.done=true; try{sessionStorage.removeItem(hvSpDraftKey(_spS.form))}catch(e){}
+    const card=document.getElementById('spCard');
+    if(card){card.innerHTML=hvSpDoneHtml(_spS.form);const top=card.getBoundingClientRect().top+window.scrollY-90;window.scrollTo({top:Math.max(0,top),behavior:'smooth'})}
+    return;
+  }
+  btn.disabled=false; btn.innerHTML=`<span>${escapeHtml(cfg.send)}</span>${hvSpIcon('arrow',20)}`;
+  if(d&&d.fields){Object.keys(d.fields).forEach(k=>hvSpErr(HV_SP_SRV2UI[k]||k,d.fields[k]))}
+  const text=d&&d.error?d.error:(st===404?'Odesílání ještě není zapnuté (chybí funkce spoluprace).':'Nepodařilo se spojit se serverem. Zkontroluj připojení a zkus to znovu.');
+  if(msg){msg.className='sp-msg on';msg.innerHTML=`<b>Neodesláno</b><span>${escapeHtml(text)} Vyplněné odpovědi ti zůstaly.</span>`}
+};
+
+// Karty dole na úvodní stránce (nad patičkou)
+function hvSpTeaser(){
+  return `<section class="sp-teaser" aria-label="Spolupráce">
+    <div class="sp-teaser-in">
+      <a class="sp-tc" href="#spoluprace/ridic" onclick="event.preventDefault();go('spoluprace/ridic')"><span><b>Hledáme řidiče do firmy</b><span>Jezdi s námi konvoje v ETS2.</span></span><i class="sp-ta-btn">${hvSpIcon('arrow',24)}</i></a>
+      <a class="sp-tc alt" href="#spoluprace/firma" onclick="event.preventDefault();go('spoluprace/firma')"><span><b>Máte virtuální firmu?</b><span>Pojeďme spolu – konvoje, propagace, eventy.</span></span><i class="sp-ta-btn">${hvSpIcon('arrow',24)}</i></a>
+    </div></section>`;
 }
 
 function viewInfo({t='doprava'}={}){
@@ -7347,19 +7813,19 @@ function viewInfo({t='doprava'}={}){
       <p style="font-size:13px;color:var(--muted)">(dále jen „správce“ nebo „my“)</p>
 
       <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">2. Jaké údaje zpracováváme</h2>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">kontaktní a identifikační údaje</strong> – jméno a příjmení, e-mail, telefon,</li><li><strong style="color:#fff">doručovací a fakturační údaje</strong> – adresa nebo výdejní místo, u firem název, IČO a DIČ,</li><li><strong style="color:#fff">údaje o objednávkách</strong> – zboží, ceny, slevy, způsob platby a dopravy, stav objednávky, reklamace a vratky,</li><li><strong style="color:#fff">zákaznický účet</strong> – přihlašovací e-mail, heslo (jen v zašifrované podobě, nikdo z nás ho nevidí), uložené adresy, věrnostní úroveň vypočtená z vašich nákupů a souhlas s obchodními sděleními,</li><li><strong style="color:#fff">komunikace</strong> – e-maily a zprávy v chatu na webu,</li><li><strong style="color:#fff">platební údaje</strong> – číslo karty zadáváte jen platební bráně GoPay, my ho nevidíme; dostáváme pouze výsledek platby. Při platbě kartou přímo v e-shopu zpracovává GoPay i technické údaje (IP adresa, prohlížeč, průběh platby) kvůli bezpečnosti platby.</li></ul>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">kontaktní a identifikační údaje</strong> – jméno a příjmení, e-mail, telefon,</li><li><strong style="color:#fff">doručovací a fakturační údaje</strong> – adresa nebo výdejní místo, u firem název, IČO a DIČ,</li><li><strong style="color:#fff">údaje o objednávkách</strong> – zboží, ceny, slevy, způsob platby a dopravy, stav objednávky, reklamace a vratky,</li><li><strong style="color:#fff">zákaznický účet</strong> – přihlašovací e-mail, heslo (jen v zašifrované podobě, nikdo z nás ho nevidí), uložené adresy, věrnostní úroveň vypočtená z vašich nákupů a souhlas s obchodními sděleními,</li><li><strong style="color:#fff">komunikace</strong> – e-maily a zprávy v chatu na webu,</li><li><strong style="color:#fff">přihlášky do virtuální firmy a žádosti o spolupráci</strong> – přezdívky (Discord, Steam, Trucky), věk, země a odpovědi z formuláře,</li><li><strong style="color:#fff">platební údaje</strong> – číslo karty zadáváte jen platební bráně GoPay, my ho nevidíme; dostáváme pouze výsledek platby. Při platbě kartou přímo v e-shopu zpracovává GoPay i technické údaje (IP adresa, prohlížeč, průběh platby) kvůli bezpečnosti platby.</li></ul>
       <p style="margin-top:10px">Návštěvnost webu měříme anonymně – viz čl. 6. Takové údaje nelze přiřadit konkrétní osobě.</p>
 
       <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">3. Proč údaje potřebujeme a na jakém základě</h2>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">vyřízení, zaplacení a doručení objednávky, reklamace a vratky</strong> – plnění smlouvy,</li><li><strong style="color:#fff">zákaznický účet a věrnostní program</strong> – plnění smlouvy (podmínky v obchodních podmínkách),</li><li><strong style="color:#fff">vystavení faktury, účetnictví a daně</strong> – zákonná povinnost,</li><li><strong style="color:#fff">zákaznická podpora</strong> (e-mail, telefon, chat) – plnění smlouvy, případně oprávněný zájem odpovědět na váš dotaz,</li><li><strong style="color:#fff">zasílání novinek a slev e-mailem (newsletter)</strong> – váš souhlas, který můžete kdykoli odvolat,</li><li><strong style="color:#fff">bezpečnost webu, ochrana před podvody a uplatnění našich nároků</strong> – oprávněný zájem,</li><li><strong style="color:#fff">anonymní statistika návštěvnosti</strong> – oprávněný zájem zlepšovat e-shop.</li></ul>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">vyřízení, zaplacení a doručení objednávky, reklamace a vratky</strong> – plnění smlouvy,</li><li><strong style="color:#fff">zákaznický účet a věrnostní program</strong> – plnění smlouvy (podmínky v obchodních podmínkách),</li><li><strong style="color:#fff">vystavení faktury, účetnictví a daně</strong> – zákonná povinnost,</li><li><strong style="color:#fff">zákaznická podpora</strong> (e-mail, telefon, chat) – plnění smlouvy, případně oprávněný zájem odpovědět na váš dotaz,</li><li><strong style="color:#fff">vyřízení přihlášky do virtuální firmy HOPI VIRTUAL nebo žádosti o spolupráci</strong> – oprávněný zájem odpovědět vám a domluvit se (kontaktujeme vás přes Discord),</li><li><strong style="color:#fff">zasílání novinek a slev e-mailem (newsletter)</strong> – váš souhlas, který můžete kdykoli odvolat,</li><li><strong style="color:#fff">bezpečnost webu, ochrana před podvody a uplatnění našich nároků</strong> – oprávněný zájem,</li><li><strong style="color:#fff">anonymní statistika návštěvnosti</strong> – oprávněný zájem zlepšovat e-shop.</li></ul>
 
       <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">4. Jak dlouho údaje uchováváme</h2>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">faktury a účetní záznamy:</strong> 10 let (zákon o účetnictví a daňové předpisy),</li><li><strong style="color:#fff">objednávky, reklamace a komunikace k nim:</strong> 3 roky od vyřízení objednávky (promlčecí lhůta),</li><li><strong style="color:#fff">zákaznický účet:</strong> do jeho zrušení – objednávky pak zůstávají jen po dobu uvedenou výše,</li><li><strong style="color:#fff">newsletter:</strong> do odvolání souhlasu,</li><li><strong style="color:#fff">zprávy v chatu:</strong> nejdéle 1 rok,</li><li><strong style="color:#fff">anonymní statistika návštěvnosti:</strong> nejdéle 25 měsíců.</li></ul>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">faktury a účetní záznamy:</strong> 10 let (zákon o účetnictví a daňové předpisy),</li><li><strong style="color:#fff">objednávky, reklamace a komunikace k nim:</strong> 3 roky od vyřízení objednávky (promlčecí lhůta),</li><li><strong style="color:#fff">zákaznický účet:</strong> do jeho zrušení – objednávky pak zůstávají jen po dobu uvedenou výše,</li><li><strong style="color:#fff">newsletter:</strong> do odvolání souhlasu,</li><li><strong style="color:#fff">zprávy v chatu:</strong> nejdéle 1 rok,</li><li><strong style="color:#fff">přihlášky do firmy a žádosti o spolupráci:</strong> po dobu členství nebo spolupráce, jinak nejdéle 1 rok od odeslání,</li><li><strong style="color:#fff">anonymní statistika návštěvnosti:</strong> nejdéle 25 měsíců.</li></ul>
       <p style="margin-top:10px">Po uplynutí lhůt údaje smažeme nebo anonymizujeme.</p>
 
       <h2 style="font-family:'Archivo Black',sans-serif;font-size:18px;margin-bottom:10px;margin-top:22px;text-transform:uppercase">5. Komu údaje předáváme</h2>
       <p>Údaje neprodáváme. Předáváme je jen ověřeným zpracovatelům, kteří nám pomáhají e-shop provozovat, a vždy jen v rozsahu, který potřebují:</p>
-      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">dopravci</strong> – Zásilkovna s.r.o. (Packeta), Česká pošta, s.p. (Balíkovna), PPL CZ s.r.o.: jméno, adresa nebo výdejní místo, telefon, e-mail,</li><li><strong style="color:#fff">platební brána</strong> – GoPay s.r.o.: platby kartou, Apple Pay a Google Pay,</li><li><strong style="color:#fff">fakturace</strong> – iDoklad (Solitea, a.s.),</li><li><strong style="color:#fff">databáze, zákaznické účty a serverové funkce</strong> – Supabase Inc. (USA),</li><li><strong style="color:#fff">hosting webu</strong> – Netlify, Inc. (USA),</li><li><strong style="color:#fff">odesílání e-mailů</strong> (potvrzení objednávek, přihlašovací e-maily) – Resend (USA),</li><li><strong style="color:#fff">chat na webu</strong> – Smartsupp.com, s.r.o.,</li><li><strong style="color:#fff">newsletter</strong> (jen se souhlasem) – Ecomail.cz, s.r.o.,</li><li><strong style="color:#fff">technické služby webu</strong> – při načtení stránky se poskytovatelům písma a knihoven (Google Fonts, jsDelivr, unpkg) předává IP adresa vašeho prohlížeče.</li></ul>
+      <ul style="padding-left:24px;line-height:1.8;margin-top:6px"><li><strong style="color:#fff">dopravci</strong> – Zásilkovna s.r.o. (Packeta), Česká pošta, s.p. (Balíkovna), PPL CZ s.r.o.: jméno, adresa nebo výdejní místo, telefon, e-mail,</li><li><strong style="color:#fff">platební brána</strong> – GoPay s.r.o.: platby kartou, Apple Pay a Google Pay,</li><li><strong style="color:#fff">fakturace</strong> – iDoklad (Solitea, a.s.),</li><li><strong style="color:#fff">databáze, zákaznické účty a serverové funkce</strong> – Supabase Inc. (USA),</li><li><strong style="color:#fff">hosting webu</strong> – Netlify, Inc. (USA),</li><li><strong style="color:#fff">odesílání e-mailů</strong> (potvrzení objednávek, přihlašovací e-maily) – Resend (USA),</li><li><strong style="color:#fff">chat na webu</strong> – Smartsupp.com, s.r.o.,</li><li><strong style="color:#fff">formuláře Nábor řidičů a Spolupráce</strong> – Google Ireland Limited (Google Formuláře a Tabulky),</li><li><strong style="color:#fff">newsletter</strong> (jen se souhlasem) – Ecomail.cz, s.r.o.,</li><li><strong style="color:#fff">technické služby webu</strong> – při načtení stránky se poskytovatelům písma a knihoven (Google Fonts, jsDelivr, unpkg) předává IP adresa vašeho prohlížeče.</li></ul>
       <p style="margin-top:10px">Někteří zpracovatelé sídlí mimo EU (zejména v USA). Přenos je v takovém případě zajištěn rámcem EU–USA pro ochranu osobních údajů (Data Privacy Framework) nebo standardními smluvními doložkami schválenými Evropskou komisí.</p>
       <p style="margin-top:10px">Údaje můžeme předat také orgánům veřejné moci, pokud nám to ukládá zákon.</p>
 
@@ -12274,7 +12740,7 @@ function hvTrack(path,params){
 // ---------- Návštěvnost: sekce v adminu ----------
 let hvTraffic={p:'month',from:'',to:'',cmp:false,metric:'visitors',sel:null};
 const _hvTrafCache={};
-const HV_TF_PAGES={home:'Úvodní stránka',product:'Detail produktu',cart:'Košík',checkout:'Pokladna',success:'Děkujeme (po objednávce)','gopay-done':'Děkujeme (po platbě)','payment-cancelled':'Platba zrušena',track:'Sledování zásilky',trackOrder:'Stav objednávky',login:'Přihlášení',register:'Registrace',account:'Můj účet',info:'Informace (doprava, podmínky…)',complaint:'Reklamace',jine:'Ostatní'};
+const HV_TF_PAGES={home:'Úvodní stránka','spoluprace/ridic':'Spolupráce – nábor řidičů','spoluprace/firma':'Spolupráce – firmy',product:'Detail produktu',cart:'Košík',checkout:'Pokladna',success:'Děkujeme (po objednávce)','gopay-done':'Děkujeme (po platbě)','payment-cancelled':'Platba zrušena',track:'Sledování zásilky',trackOrder:'Stav objednávky',login:'Přihlášení',register:'Registrace',account:'Můj účet',info:'Informace (doprava, podmínky…)',complaint:'Reklamace',jine:'Ostatní'};
 const HV_TF_DEV={mobil:'📱 Mobil',tablet:'📲 Tablet',pocitac:'💻 Počítač'};
 function hvTfKey(f,t){return f.toISOString()+'|'+t.toISOString()}
 async function hvTfLoad(f,t){
