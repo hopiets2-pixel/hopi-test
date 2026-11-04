@@ -1219,10 +1219,10 @@ body.ac-lock{overflow:hidden}
 .sp-h1 span{color:var(--green-glow);display:inline}
 .sp-lead{font-size:18px;line-height:1.6;color:#b9b9b9;max-width:560px;margin:0 0 30px}
 .sp-img{display:block;width:100%;max-width:620px;aspect-ratio:16/10;object-fit:cover;border-radius:26px;margin:0 0 30px;border:1px solid #1f1f1f;background:#0d0d0d}
-.sp-perks{list-style:none;margin:0;padding:0;max-width:620px;position:relative;--p:0}
+.sp-perks{list-style:none;margin:0;padding:0;max-width:620px}
 .sp-perks li{display:flex;gap:18px;align-items:flex-start;padding:20px 0;border-top:1px solid #1f1f1f;position:relative}
 .sp-perks li:last-child{border-bottom:1px solid #1f1f1f}
-.sp-pi{flex:0 0 52px;height:52px;border-radius:16px;background:#062a15;position:relative;z-index:1;color:var(--green-glow);display:flex;align-items:center;justify-content:center}
+.sp-pi{flex:0 0 52px;height:52px;border-radius:16px;background:rgba(0,138,63,.14);color:var(--green-glow);display:flex;align-items:center;justify-content:center}
 .sp-perks b{display:block;color:#fff;font-size:18px;font-weight:700;margin:3px 0 4px}
 .sp-perks li>span:last-child>span{display:block;color:#a3a3a3;font-size:16px;line-height:1.5}
 .sp-other{display:inline-flex;align-items:center;gap:8px;margin-top:26px;color:var(--green-glow);font-weight:600;font-size:16px;text-decoration:none;min-height:44px}
@@ -1319,16 +1319,10 @@ body.ac-lock{overflow:hidden}
 .sp-tc.alt>span>span{color:rgba(255,255,255,.92)}
 .sp-tc.alt b{text-shadow:0 1px 2px rgba(0,0,0,.18)}
 
-/* výhody: trasa a postupné rozsvícení při rolování */
-.sp-road{display:none}
-.sp-perks.sp-anim .sp-road{display:block;position:absolute;left:25px;top:46px;bottom:46px;width:2px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.16) 0 8px,transparent 8px 16px);pointer-events:none}
-.sp-road-fill{display:block;position:absolute;left:0;top:0;width:2px;height:calc(var(--p) * 100%);background:linear-gradient(180deg,#008a3f,var(--green-glow));box-shadow:0 0 10px rgba(0,200,83,.55);border-radius:2px}
-.sp-road-dot{display:block;position:absolute;left:50%;bottom:-6px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--green-glow);box-shadow:0 0 0 4px rgba(0,200,83,.2),0 0 16px rgba(0,200,83,.8);opacity:calc(var(--p) * 40)}
-.sp-perks.sp-anim li{opacity:0;transform:translateX(-18px);transition:opacity .6s cubic-bezier(.32,.72,0,1) calc(var(--i)*90ms),transform .6s cubic-bezier(.32,.72,0,1) calc(var(--i)*90ms)}
-.sp-perks.sp-anim li.in{opacity:1;transform:none}
-.sp-perks.sp-anim .sp-pi{transform:scale(.7);transition:transform .55s cubic-bezier(.34,1.56,.64,1) calc(var(--i)*90ms + 80ms),box-shadow .6s ease}
-.sp-perks.sp-anim li.in .sp-pi{transform:none;animation:spGlow 1.4s ease calc(var(--i)*90ms + 200ms) 1 both}
-.sp-perks.sp-anim .sp-pi svg *{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .9s cubic-bezier(.32,.72,0,1) calc(var(--i)*90ms + 220ms)}
+/* výhody: ikony se při rolování rozsvítí */
+.sp-perks.sp-anim .sp-pi{opacity:0;transform:scale(.55) rotate(-8deg);transition:opacity .35s ease calc(var(--i)*110ms),transform .6s cubic-bezier(.34,1.56,.64,1) calc(var(--i)*110ms),box-shadow .6s ease}
+.sp-perks.sp-anim li.in .sp-pi{opacity:1;transform:none;animation:spGlow 1.4s ease calc(var(--i)*110ms + 250ms) 1 both}
+.sp-perks.sp-anim .sp-pi svg *{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .9s cubic-bezier(.32,.72,0,1) calc(var(--i)*110ms + 200ms)}
 .sp-perks.sp-anim li.in .sp-pi svg *{stroke-dashoffset:0}
 @keyframes spGlow{0%{box-shadow:0 0 0 0 rgba(0,200,83,0)}35%{box-shadow:0 0 0 6px rgba(0,200,83,.22),0 0 26px rgba(0,200,83,.55)}100%{box-shadow:0 0 0 0 rgba(0,200,83,0)}}
 
@@ -1364,14 +1358,13 @@ body.ac-lock{overflow:hidden}
   .sp-lead{font-size:17px}
   .sp-perks li{gap:14px;padding:16px 0}
   .sp-pi{flex-basis:46px;height:46px;border-radius:14px}
-  .sp-perks.sp-anim .sp-road{left:22px;top:39px;bottom:39px}
   .sp-tc{min-height:0;padding:24px 22px;border-radius:24px}
   .sp-tc b{font-size:22px}
   .sp-tc>span>span{font-size:16px}
   .sp-ta-btn{flex-basis:54px;height:54px;border-radius:16px}
   .sp-tc.alt{background:linear-gradient(115deg,#005226 0%,#007534 58%,#009a47 84%,#00e676 100%)}
 }
-@media(prefers-reduced-motion:reduce){.sp-bar i,.sp-tc,.sp-ta-btn{transition:none}.sp-tc:hover{transform:none}.sp-f.sp-new,.sp-chip.on .sp-ck,.sp-cb input:checked+.sp-box svg,.sp-pct.bump,.sp-f.shake,.sp-err:not(:empty),.sp-done,.sp-done-ic,.sp-sec{animation:none}.sp-perks.sp-anim li,.sp-perks.sp-anim .sp-pi,.sp-perks.sp-anim .sp-pi svg *{transition:none}}
+@media(prefers-reduced-motion:reduce){.sp-bar i,.sp-tc,.sp-ta-btn{transition:none}.sp-tc:hover{transform:none}.sp-f.sp-new,.sp-chip.on .sp-ck,.sp-cb input:checked+.sp-box svg,.sp-pct.bump,.sp-f.shake,.sp-err:not(:empty),.sp-done,.sp-done-ic,.sp-sec{animation:none}.sp-perks.sp-anim .sp-pi,.sp-perks.sp-anim .sp-pi svg *{transition:none;animation:none}}
 
 /* tvar tlačítek jako zbytek e-shopu (ostré rohy) */
 .sp-tc,.sp-ta-btn,.sp-send,.sp-chip,.sp-switch,.sp-switch a,.sp-ck{border-radius:0}
@@ -7492,7 +7485,7 @@ function viewSpoluprace(form){
           <h1 class="sp-h1">${escapeHtml(cfg.h1a)} <span>${escapeHtml(cfg.h1b)}</span></h1>
           <p class="sp-lead">${escapeHtml(cfg.lead)}</p>
           <img class="sp-img" src="${cfg.img}" alt="" loading="lazy" onerror="this.remove()">
-          <ul class="sp-perks"><i class="sp-road" aria-hidden="true"><i class="sp-road-fill"><i class="sp-road-dot"></i></i></i>${cfg.perks.map(([ic,t,d],i)=>`<li style="--i:${i}"><span class="sp-pi">${hvSpIcon(ic,24).replace(/<(path|circle|rect|line|polyline)\b/g,'<$1 pathLength="1"')}</span><span><b>${escapeHtml(t)}</b><span>${escapeHtml(d)}</span></span></li>`).join('')}</ul>
+          <ul class="sp-perks">${cfg.perks.map(([ic,t,d],i)=>`<li style="--i:${i}"><span class="sp-pi">${hvSpIcon(ic,24).replace(/<(path|circle|rect|line|polyline)\b/g,'<$1 pathLength="1"')}</span><span><b>${escapeHtml(t)}</b><span>${escapeHtml(d)}</span></span></li>`).join('')}</ul>
           <a class="sp-other" href="#spoluprace/${other}" onclick="event.preventDefault();go('spoluprace/${other}')">${other==='firma'?'Máte virtuální firmu? Žádost o spolupráci':'Chceš jezdit u nás? Přihláška řidiče'} ${hvSpIcon('arrow',18)}</a>
         </div>
         <section class="sp-card" id="spCard" aria-label="${escapeHtml(cfg.title)}">${hvSpFormHtml(form)}</section>
@@ -7503,27 +7496,17 @@ function viewSpoluprace(form){
   if(cfg.rules&&!(window._spRules&&!window._spRules.err))hvSpLoadRules();
 }
 
-// Výhody vlevo: při rolování se postupně „rozsvítí“ – trasa se plní zeleně, ikony se nakreslí a karty vyjedou
-let _spIO=null,_spRoadRaf=0;
-function hvSpRoad(){
-  _spRoadRaf=0;
-  const ul=document.querySelector('.sp-perks.sp-anim'); if(!ul)return;
-  const r=ul.getBoundingClientRect(), vh=window.innerHeight||800;
-  const p=Math.max(0,Math.min(1,(vh*0.72-r.top)/Math.max(1,r.height)));
-  ul.style.setProperty('--p',p.toFixed(3));
-}
+// Výhody vlevo: ikony se při rolování „rozsvítí“ – vyskočí, nakreslí se a krátce zazáří (texty zůstávají vidět)
+let _spIO=null;
 function hvSpPerksAnim(){
   const ul=document.querySelector('.sp-perks'); if(!ul)return;
   const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduce||!('IntersectionObserver' in window)){ul.querySelectorAll('li').forEach(li=>li.classList.add('in'));ul.style.setProperty('--p','1');return}
+  if(reduce||!('IntersectionObserver' in window)){ul.querySelectorAll('li').forEach(li=>li.classList.add('in'));return}
   ul.classList.add('sp-anim');
   if(_spIO)_spIO.disconnect();
   _spIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');_spIO.unobserve(e.target)}}),{threshold:0.35,rootMargin:'0px 0px -8% 0px'});
   ul.querySelectorAll('li').forEach(li=>_spIO.observe(li));
-  hvSpRoad();
 }
-window.addEventListener('scroll',()=>{if(!_spRoadRaf&&document.querySelector('.sp-perks.sp-anim'))_spRoadRaf=requestAnimationFrame(hvSpRoad)},{passive:true});
-window.addEventListener('resize',()=>{if(document.querySelector('.sp-perks.sp-anim'))hvSpRoad()},{passive:true});
 function hvSpVisible(f){return !f.show||f.show(_spS.a)}
 function hvSpFilled(f){const v=_spS.a[f.k];return Array.isArray(v)?v.length>0:!!String(v||'').trim()}
 function hvSpProgress(){
